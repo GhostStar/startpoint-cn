@@ -97,7 +97,7 @@ const routes = async (fastify: FastifyInstance) => {
             data_headers: generateDataHeaders(),
             data: {
                 info: {
-                    client_asset_version: null,
+                    client_asset_version: highestDiffVer,
                     target_asset_version: highestDiffVer,
                     eventual_target_asset_version: highestDiffVer,
                     is_initial: true,

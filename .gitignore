@@ -14,4 +14,4 @@ build
 .mitmproxy/mitmweb.exe
 .mitmproxy/mitmdump.exe
 .unzip-temp
-.cn-cdn
+.cn-cdn.env
