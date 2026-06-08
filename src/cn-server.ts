@@ -9,6 +9,8 @@ import leitingAuthPlugin from "./routes/cn/leitingAuth";
 import cnToolPlugin from "./routes/cn/tool";
 import cnLoadPlugin from "./routes/cn/load";
 import cnAssetPlugin from "./routes/cn/asset";
+import indexWebPlugin from "./routes/web";
+import indexWebApiPlugin from "./routes/web_api";
 import reproduceApiPlugin from "./routes/api/reproduce";
 import tutorialApiPlugin from "./routes/api/tutorial";
 import gachaApiPlugin from "./routes/api/gacha";
@@ -85,11 +87,12 @@ function stubMsgpackReply(reply: any, data: any) {
 }
 
 fastify.post(`${apiPrefix}/assetintitle/version_info_in_title`, async (_request, reply) => {
+    const { CDN_TOTAL_SIZE } = require("./routes/cn/asset");
     stubMsgpackReply(reply, {
         base_url: `${CDN_BASE_URL}/EntityLists/`,
         files_list: `${CDN_BASE_URL}/EntityLists/10939-android_medium.csv`,
-        total_size: 10500000000,
-        delayed_assets_size: 7000000000
+        total_size: CDN_TOTAL_SIZE,
+        delayed_assets_size: 0
     });
 });
 
@@ -131,10 +134,14 @@ fastify.post("/crash", async (request, reply) => {
 
 fastify.register(cnToolPlugin, { prefix: `${apiPrefix}/tool` });
 fastify.register(reproduceApiPlugin, { prefix: `${apiPrefix}/reproduce` });
-fastify.post(`${apiPrefix}/tutorial/update_step`, async (_request, reply) => {
-    stubMsgpackReply(reply, { step: 1, start_time: Math.floor(Date.now() / 1000), mail_arrived: false });
+fastify.post(`${apiPrefix}/tutorial/update_step`, async (request, reply) => {
+    const body = request.body as any;
+    const step = body?.step || body?.step_count || 1;
+    stubMsgpackReply(reply, { step, start_time: Math.floor(Date.now() / 1000), mail_arrived: false });
 });
-fastify.post(`${apiPrefix}/tutorial/finish_trigger`, async (_request, reply) => {
+fastify.post(`${apiPrefix}/tutorial/finish_trigger`, async (request, reply) => {
+    const body = request.body as any;
+    const viewerId = body?.viewer_id;
     stubMsgpackReply(reply, []);
 });
 fastify.register(gachaApiPlugin, { prefix: `${apiPrefix}/gacha` });
@@ -160,6 +167,10 @@ fastify.register(newsApiPlugin, { prefix: `${apiPrefix}/news` });
 fastify.register(raidEventApiPlugin, { prefix: `${apiPrefix}/event/raid` });
 fastify.register(rushEventApiPlugin, { prefix: `${apiPrefix}/event/rush` });
 
+// Web management panel
+fastify.register(indexWebPlugin);
+fastify.register(indexWebApiPlugin, { prefix: "/api" });
+
 const cdnHost = process.env.CN_LISTEN_HOST || "localhost";
 const cdnPort = process.env.CN_LISTEN_PORT || "8001";
 const cdnDisplayHost = cdnHost === "0.0.0.0" ? "localhost" : cdnHost;
@@ -168,6 +179,13 @@ const cdnDir = process.env.CDN_DIR || ".cdn";
 fastify.register(fastifyStatic, {
     root: path.isAbsolute(cdnDir) ? cdnDir : path.join(__dirname, "..", cdnDir),
     prefix: "/patch",
+    decorateReply: false
+});
+
+// Web static assets
+fastify.register(fastifyStatic, {
+    root: path.join(__dirname, "..", "web", "public"),
+    prefix: "/public",
     decorateReply: false
 });
 

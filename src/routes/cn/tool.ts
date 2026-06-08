@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { generateDataHeaders } from "../../utils";
-import { insertAccount, insertDefaultPlayerSync, getAccountPlayers, getPlayerSync, getAccount } from "../../data/wdfpData";
+import { insertAccount, insertDefaultPlayerSync, getAccountPlayers, getPlayerSync, getAccount, insertSessionWithToken } from "../../data/wdfpData";
+import { SessionType } from "../../data/types";
 
 interface CnSignupBody {
     device_id: number;
@@ -66,6 +67,13 @@ const routes = async (fastify: FastifyInstance) => {
             status: "normal"
         });
         insertDefaultPlayerSync(account.id);
+
+        await insertSessionWithToken({
+            token: String(account.id),
+            accountId: account.id,
+            type: SessionType.VIEWER,
+            expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
+        });
 
         viewerIdToAccountId.set(account.id, account.id);
 

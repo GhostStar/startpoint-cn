@@ -3816,7 +3816,7 @@ export function insertMergedPlayerDataSync(
 
 export function getDefaultPlayerPartyGroupsSync(
     partyType: PartyCategory = PartyCategory.NORMAL,
-    characterIds: (number | null)[] = [1, null, null]
+    characterIds: (number | null)[] = [2, null, null]
 ): Record<string, PlayerPartyGroup> {
     const partyGroups: Record<string, PlayerPartyGroup> = {}
 
@@ -3905,15 +3905,15 @@ export function insertDefaultPlayerSync(
         }
     ])
 
-    // insert triggered tutorials
-    insertPlayerTriggeredTutorialsSync(playerId, [])
+    // insert triggered tutorials — include 12 to skip tutorial
+    insertPlayerTriggeredTutorialsSync(playerId, [12])
 
     // insert cleared regular missions
     insertPlayerClearedRegularMissionListSync(playerId, {})
 
     // insert characterList
     insertPlayerCharactersSync(playerId, {
-        "1": {
+        "2": {
             entryCount: 1,
             evolutionLevel: 0,
             overLimitStep: 0,

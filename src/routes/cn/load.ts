@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { generateDataHeaders } from "../../utils";
+import { generateDataHeaders, getServerTime, getServerDate } from "../../utils";
 import { getAccountPlayers, getPlayerSync, dailyResetPlayerDataSync, collectPlayerDataPooledExpSync } from "../../data/wdfpData";
 import { getClientSerializedData } from "../../data/utils";
 
@@ -17,8 +17,8 @@ interface CnLoadBody {
     viewer_id?: number;
 }
 
-function wrapOptionFields(d: any) {
-    d.available_asset_version = "1.4.0";
+function wrapOptionFields(d: any, resVer?: string) {
+    d.available_asset_version = resVer ?? "1.4.0";
 
     if (d.user_info) {
         if (typeof d.user_info.last_login_time === 'number') {
@@ -53,7 +53,7 @@ function wrapOptionFields(d: any) {
     d.enable_customer_service = false;
     d.enable_rename = true;
     d.enable_delete_file = false;
-    d.enable_newbie = true;
+    d.enable_newbie = false;
     d.enable_little_assistant = false;
     d.mission_tips = false;
     d.monthly_tip = false;
@@ -96,22 +96,24 @@ const routes = async (fastify: FastifyInstance) => {
             return reply.status(500).send({ error: "Internal Server Error", message: "No player data." });
         }
 
-        dailyResetPlayerDataSync(player);
-        collectPlayerDataPooledExpSync(player);
+        const now = getServerDate();
+        dailyResetPlayerDataSync(player, now);
+        collectPlayerDataPooledExpSync(player, now);
 
         const clientData = getClientSerializedData(playerId, { viewerId: accountId }) as any;
         if (clientData === null) {
             return reply.status(500).send({ error: "Internal Server Error", message: "No player data." });
         }
 
-        wrapOptionFields(clientData);
+        const resVer = request.headers['res_ver'] as string | undefined;
+        wrapOptionFields(clientData, resVer);
 
         reply.header("content-type", "application/x-msgpack");
         reply.status(200).send({
             data_headers: generateDataHeaders({
                 asset_update: true,
                 viewer_id: accountId,
-                servertime: Math.floor(Date.now() / 1000),
+                servertime: getServerTime(),
             }),
             data: clientData
         });

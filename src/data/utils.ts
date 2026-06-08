@@ -1,9 +1,10 @@
 import { getCharacterDataSync } from "../lib/assets"
-import { getDateFromServerTime, getServerTime } from "../utils"
+import { getDateFromServerTime, getServerTime, getServerDate } from "../utils"
 import { ClientPlayerData, DailyChallengePointListEntry, MergedPlayerData, PartyCategory, Player, PlayerBoxGacha, PlayerCharacter, PlayerCharacterBondToken, PlayerDrawnQuest, PlayerEquipment, PlayerGachaCampaign, PlayerGachaInfo, PlayerMultiSpecialExchangeCampaign, PlayerParty, PlayerPartyGroup, PlayerQuestProgress, PlayerRushEvent, PlayerRushEventPlayedParty, PlayerStartDashExchangeCampaign, RushEventBattleType, UserBoxGacha, UserCharacter, UserCharacterBondTokenStatus, UserEquipment, UserGachaCampaign, UserPartyGroup, UserPartyGroupTeam, UserQuestProgress, UserRushEvent, UserRushEventPlayedParty, UserRushEventPlayedPartyList, UserTutorial } from "./types"
 
 import { availableAssetVersion } from "../routes/api/asset"
 import { deserializePlayerRushEventPlayedParty, deserializeRushEvent, getPlayerActiveMissionsSync, getPlayerBoxGachasSync, getPlayerCharactersManaNodesSync, getPlayerCharactersSync, getPlayerClearedRegularMissionListSync, getPlayerDailyChallengePointListSync, getPlayerDrawnQuestsSync, getPlayerEquipmentListSync, getPlayerGachaCampaignListSync, getPlayerGachaInfoListSync, getPlayerItemsSync, getPlayerMultiSpecialExchangeCampaignsSync, getPlayerOptionsSync, getPlayerPartyGroupListSync, getPlayerPeriodicRewardPointsSync, getPlayerQuestProgressSync, getPlayerRushEventListClearedFoldersSync, getPlayerRushEventListPlayedPartiesSync, getPlayerRushEventListSync, getPlayerStartDashExchangeCampaignsSync, getPlayerSync, getPlayerTriggeredTutorialsSync, serializePlayerRushEventPlayedParty } from "./wdfpData"
+import { kIdToBusinessCode, businessCodeToKId } from "./codeMap"
 
 export interface SerializePlayerDataOptions {
     viewerId?: number
@@ -110,8 +111,8 @@ export function serializePartyGroupList(
         for (const [partyId, party] of Object.entries(group.list)) {
             list[partyId] = {
                 "name": party.name,
-                "character_ids": party.characterIds,
-                "unison_character_ids": party.unisonCharacterIds,
+                "character_ids": party.characterIds?.map((id: number | null) => id != null ? kIdToBusinessCode(id) : null),
+                "unison_character_ids": party.unisonCharacterIds?.map((id: number | null) => id != null ? kIdToBusinessCode(id) : null),
                 "equipment_ids": party.equipmentIds,
                 "ability_soul_ids": party.abilitySoulIds,
                 "edited": party.edited,
@@ -142,9 +143,9 @@ export function serializeRushEvent(
         active_rush_battle_folder_id: rushEvent.activeRushBattleFolderId,
         endless_battle_max_round: rushEvent.endlessBattleMaxRound,
         endless_battle_max_round_time: rushEvent.endlessBattleMaxRoundTime,
-        endless_battle_max_round_character_id_1: characterIds?.[0],
-        endless_battle_max_round_character_id_2: characterIds?.[1],
-        endless_battle_max_round_character_id_3: characterIds?.[2],
+        endless_battle_max_round_character_id_1: characterIds?.[0] != null ? kIdToBusinessCode(characterIds[0]) : null,
+        endless_battle_max_round_character_id_2: characterIds?.[1] != null ? kIdToBusinessCode(characterIds[1]) : null,
+        endless_battle_max_round_character_id_3: characterIds?.[2] != null ? kIdToBusinessCode(characterIds[2]) : null,
         endless_battle_max_round_character_evolution_img_lvl_1: characterEvolutionImgLevels?.[0],
         endless_battle_max_round_character_evolution_img_lvl_2: characterEvolutionImgLevels?.[1],
         endless_battle_max_round_character_evolution_img_lvl_3: characterEvolutionImgLevels?.[2],
@@ -162,9 +163,12 @@ export function serializePlayerData(
     options?: SerializePlayerDataOptions
 ): ClientPlayerData {
 
-    // convert userCharacterList
+    // convert userCharacterList (k_id → business code)
     const userCharacterList: Record<string, UserCharacter> = {}
     for (const [characterId, character] of Object.entries(toSerialize.characterList)) {
+        const kId = parseInt(characterId);
+        const code = kIdToBusinessCode(kId);
+        const codeKey = String(code);
         // convert bond tokens
         const converted_character: UserCharacter = {
             "entry_count": character.entryCount,
@@ -191,7 +195,7 @@ export function serializePlayerData(
             converted_character['illustration_settings'] = character.illustrationSettings
         }
 
-        userCharacterList[characterId] = converted_character
+        userCharacterList[codeKey] = converted_character
     }
 
     // convert parties
@@ -271,7 +275,7 @@ export function serializePlayerData(
             "bond_token": playerData.bondToken,
             "exp_pool": playerData.expPool,
             "exp_pooled_time": getServerTime(playerData.expPooledTime),
-            "leader_character_id": playerData.leaderCharacterId,
+            "leader_character_id": playerData.leaderCharacterId != null ? kIdToBusinessCode(playerData.leaderCharacterId) : 0,
             "party_slot": playerData.partySlot,
             "degree_id": playerData.degreeId,
             "birth": playerData.birth,
@@ -436,16 +440,17 @@ export function serializePlayerData(
  * @returns The generated default player data.
  */
 export function getDefaultPlayerData(): Omit<Player, 'id'> {
+    const now = getServerDate();
     // generate party groups
     return {
         stamina: 20,
-        staminaHealTime: new Date(),
+        staminaHealTime: now,
         boostPoint: 3,
         bossBoostPoint: 3,
         transitionState: 0,
         role: 1,
         name: "플레이어",
-        lastLoginTime: new Date(),
+        lastLoginTime: now,
         comment: "Nice to meet you.",
         vmoney: 0,
         freeVmoney: 150,
@@ -453,8 +458,8 @@ export function getDefaultPlayerData(): Omit<Player, 'id'> {
         starCrumb: 0,
         bondToken: 0,
         expPool: 0,
-        expPooledTime: new Date(),
-        leaderCharacterId: 1,
+        expPooledTime: now,
+        leaderCharacterId: 2,
         partySlot: 1,
         degreeId: 1,
         birth: 19900101,
@@ -551,7 +556,12 @@ export function deserializePlayerData(
 
         const characterList: Record<string, PlayerCharacter> = {}
         for (const [characterId, character] of Object.entries(userCharacterList)) {
-            // get asset data
+            // Convert business code → k_id for database storage
+            const code = parseInt(characterId);
+            const kId = businessCodeToKId(code);
+            const kIdKey = String(kId);
+            
+            // get asset data (uses business code to look up)
             const assetData = getCharacterDataSync(characterId)
             if (assetData === null) throw new Error(`Character with id "${characterId}" does not exist.`);
 
@@ -611,7 +621,7 @@ export function deserializePlayerData(
                 converted_character['illustrationSettings'] = character.illustration_settings
             }
 
-            characterList[characterId] = converted_character
+            characterList[kIdKey] = converted_character
         }
 
         // deserialize mana node list
@@ -647,8 +657,8 @@ export function deserializePlayerData(
 
                 list[partyId] = {
                     name: name,
-                    characterIds: characterIds,
-                    unisonCharacterIds: unisonCharacterIds,
+                    characterIds: characterIds?.map((id: number | null) => id != null ? businessCodeToKId(id) : 0),
+                    unisonCharacterIds: unisonCharacterIds?.map((id: number | null) => id != null ? businessCodeToKId(id) : 0),
                     equipmentIds: equipmentIds,
                     abilitySoulIds: abilitySoulIds,
                     edited: edited,

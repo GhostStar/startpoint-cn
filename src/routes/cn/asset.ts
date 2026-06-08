@@ -11,9 +11,9 @@ const CDN_BASE = process.env.CDN_BASE_URL || `http://${HOST}:${CN_PORT}/patch/cn
 function getVersionInfo() {
     return {
         base_url: `${CDN_BASE}/EntityLists/`,
-        files_list: `${CDN_BASE}/EntityLists/10939-android_medium.csv`,
-        total_size: 10500000000,
-        delayed_assets_size: 7000000000
+        files_list: `${CDN_BASE}/EntityLists/empty.csv`, // 空CSV → sufficiency check 无缺失文件
+        total_size: TOTAL_SIZE,
+        delayed_assets_size: 0
     };
 }
 
@@ -72,6 +72,18 @@ function buildDiffList(cdnDir: string): { original_version: string; version: str
 const envCdnDir = process.env.CDN_DIR || ".cdn";
 const cdnDir = path.isAbsolute(envCdnDir) ? path.join(envCdnDir, "cn") : path.join(__dirname, "..", "..", "..", envCdnDir, "cn");
 
+// 启动时扫描一次，动态计算总大小
+const TOTAL_SIZE = (() => {
+    let total = 0;
+    for (const subdir of ["archive-common-full","archive-medium-full","archive-android-full","archive-common-diff","archive-medium-diff","archive-android-diff"]) {
+        try {
+            for (const f of readdirSync(path.join(cdnDir, subdir)).filter(f => f.endsWith(".zip")))
+                total += statSync(path.join(cdnDir, subdir, f)).size;
+        } catch {}
+    }
+    return total;
+})();
+
 const routes = async (fastify: FastifyInstance) => {
     fastify.post("/version_info", async (_request: FastifyRequest, reply: FastifyReply) => {
         reply.header("content-type", "application/x-msgpack");
@@ -81,25 +93,27 @@ const routes = async (fastify: FastifyInstance) => {
         });
     });
 
-    fastify.post("/get_path", async (_request: FastifyRequest, reply: FastifyReply) => {
+    fastify.post("/get_path", async (request: FastifyRequest, reply: FastifyReply) => {
+        const resVer = request.headers['res_ver'] as string | undefined;
         const fullArchives = [
             ...buildArchiveList(cdnDir, "archive-common-full"),
             ...buildArchiveList(cdnDir, "archive-medium-full"),
             ...buildArchiveList(cdnDir, "archive-android-full"),
         ];
         const diffArchives = buildDiffList(cdnDir);
-        const highestDiffVer = diffArchives.length > 0
+        const highestDiff = diffArchives.length > 0
             ? diffArchives[diffArchives.length - 1].version
             : "1.4.0";
+        const targetVer = resVer ?? highestDiff;
 
         reply.header("content-type", "application/x-msgpack");
         reply.status(200).send({
-            data_headers: generateDataHeaders(),
+            data_headers: generateDataHeaders({ asset_update: true }),
             data: {
                 info: {
-                    client_asset_version: highestDiffVer,
-                    target_asset_version: highestDiffVer,
-                    eventual_target_asset_version: highestDiffVer,
+                    client_asset_version: resVer ?? "",
+                    target_asset_version: targetVer,
+                    eventual_target_asset_version: targetVer,
                     is_initial: true,
                     latest_maj_first_version: "1.4.0"
                 },
@@ -115,3 +129,5 @@ const routes = async (fastify: FastifyInstance) => {
 };
 
 export default routes;
+
+export const CDN_TOTAL_SIZE = TOTAL_SIZE;
