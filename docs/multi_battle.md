@@ -1,0 +1,805 @@
+# 多人战斗（Multi Battle Quest）联机系统文档
+
+## 1. API 端点规范
+
+### 1.1 端点列表
+
+全部挂载在 `/api/index.php/multi_battle_quest/` 下，MsgPack→Base64 编码（与 HTTP API 协议一致）。
+
+| 端点 | 状态 | 阶段 | 说明 |
+|------|:---:|------|------|
+| `get_rooms` | ✅ | 1 | 获取房间列表 |
+| `create_room` | ✅ | 1 | 创建房间 |
+| `search_room` | ✅ | 1 | 按房号搜索 |
+| `select_room` | ✅ | 1 | 选择/加入房间 |
+| `prepare` | ✅ | 1 | 准备阶段（自动调 select_room） |
+| `summon` | ✅ | 2 | NPC mate 数据下发 |
+| `restore_room` | ✅ | 1 | 断线恢复 |
+| `share_room` | ✅ | 1 | 分享房间 |
+| `verify_access_token` | ✅ | 1 | 验证访问令牌 |
+| `micro_community` | ✅ | 1 | CN 专属（桩） |
+| `start` | ✅ | 3 | 开始多人战斗 |
+| `finish` | ✅ | 3 | 结算多人战斗 |
+| `abort` | ✅ | 3 | 放弃多人战斗 |
+| `play_continue` | ✅ | 3 | 续关 |
+| `disband_room` | ❌ | — | 解散房间（未实现） |
+
+### 1.2 核心端点详细字段表
+
+#### get_rooms
+
+获取可加入的房间列表。客户端对响应有**严格的类型强制校验**，缺少任一字段即抛 C8700。
+
+**请求体**:
+| 字段 | 类型 | 必需 | 示例值 | 说明 |
+|------|------|:---:|--------|------|
+| `viewer_id` | number | ✅ | `2` | |
+| `category_id` | number | ✅ | `8` | QuestCategory 枚举值 |
+| `event_id` | number | ❌ | `1` | 活动 ID 过滤 |
+
+**响应体 `data.rooms[i]`** — 11 个强制字段:
+| # | 字段 | 客户端类型 | 当前值来源 | 示例值 | 说明 |
+|:-:|------|:--------:|------|--------|------|
+| 1 | `category_id` | Int | `room.category` | `8` | |
+| 2 | `quest_id` | Int | `room.quest_id` | `1002` | |
+| 3 | `room_number` | String | `room.room_number` | `"506880"` | 6 位数字字符串 |
+| 4 | `estabilisher_character` | **Int** | DB `player.leaderCharacterId` | `131012` | ⚠️ 必须 ≤65535，否则 MsgPack uint32 编码致 C8700 |
+| 5 | `estabilisher_character_evolution_img_level` | Int | 硬编码 | `0` | |
+| 6 | `estabilisher_follow` | Int | 硬编码 | `1` | 1=未关注，2=已关注 |
+| 7 | `estabilisher_name` | String | `"Player" + viewerId` | `"Player5"` | |
+| 8 | `host_entry_time` | Float | `room.host_entry_time` | `1723648978` | Unix 时间戳（秒） |
+| 9 | `is_pickup` | Bool | 硬编码 | `false` | 是否为置顶招募房间 |
+| 10 | `mates` | **Int** | `room.mates.length` | `2` | ⚠️ 是 Int 计数，不是对象数组 |
+| 11 | `raising_state` | Int | `room.raising_state` | `1` | 1=Ready, 2=Recruiting, 3=Filled, 4=Battle |
+
+**实现位置**: `src/data/multiRoom.ts:196-209` `serializeRoom()`
+
+---
+
+#### create_room
+
+创建新房间，返回 6 位数字房号和临时令牌。
+
+**请求体**:
+| 字段 | 类型 | 必需 | 示例值 | 说明 |
+|------|------|:---:|--------|------|
+| `category` | number | ✅ | `8` | QuestCategory |
+| `quest_id` | number | ✅ | `1002` | |
+| `party_id` | number | ✅ | `1` | 房主当前队伍 ID |
+| `viewer_id` | number | ✅ | `2` | |
+| `api_count` | number | ✅ | `1` | |
+
+**响应体 `data`**:
+| 字段 | 类型 | 来源 | 示例值 | 说明 |
+|------|------|------|--------|------|
+| `access_token` | string | 硬编码 | `"multi_access_token"` | 临时令牌（未使用，`verify_access_token` 中废弃） |
+| `room_number` | string | 随机生成 | `"506880"` | 6 位数字，`randomInt(100000,999999)` |
+| `room_url` | string | 硬编码 | `""` | 分享链接（未使用） |
+
+**数据库操作**: 从 `getViewerIdAndPlayer()` → DB 查 `player.leaderCharacterId` → 存入 `room.host_main_character_id`
+
+**实现位置**: `src/routes/api/multiBattleQuest.ts:224-249` `create_room`, `src/data/multiRoom.ts:112-141` `createRoom()`
+
+---
+
+#### search_room
+
+按 6 位数字房号搜索房间是否存在。
+
+**请求体**:
+| 字段 | 类型 | 必需 | 示例值 | 说明 |
+|------|------|:---:|--------|------|
+| `room_number` | string | ✅ | `"506880"` | |
+| `viewer_id` | number | ✅ | | |
+| `api_count` | number | ✅ | `1` | |
+
+**响应体 `data`**:
+| 字段 | 类型 | 来源 | 示例值 | 说明 |
+|------|------|------|--------|------|
+| `room_exists` | bool | `!!getRoom()` | `true` | |
+| `category_id` | number | 房间或 0 | `8` | 房间不存在时为 0 |
+| `quest_id` | number | 房间或 0 | `1002` | |
+| `room_number` | string | 请求体 | `"506880"` | 原样返回 |
+| `establisher_viewer_id` | number | 房间或 0 | `5` | |
+| `establisher_follow` | bool | 硬编码 | `false` | |
+
+**实现位置**: `src/routes/api/multiBattleQuest.ts:252-277` `search_room`
+
+---
+
+#### select_room
+
+选择/加入房间，返回 TCP 会话服务器的连接地址。
+
+**请求体**:
+| 字段 | 类型 | 必需 | 示例值 | 说明 |
+|------|------|:---:|--------|------|
+| `category` | number | ✅ | `8` | |
+| `quest_id` | number | ✅ | `1002` | |
+| `party_id` | number | ✅ | `1` | |
+| `accepted_type` | number | ✅ | `0` | |
+| `viewer_id` | number | ✅ | | |
+| `room_number` | string | ² | `"506880"` | 与 `access_token` 二选一 |
+| `access_token` | string | ² | | 与 `room_number` 二选一 |
+| `api_count` | number | ✅ | `1` | |
+
+**响应体 `data`** — 11 个字段:
+| 字段 | 类型 | 来源 | 示例值 | 说明 |
+|------|------|------|--------|------|
+| `application_update_url` | String | 硬编码 | `""` | |
+| `category_id` | Int | `room.category` | `8` | |
+| `host_entry_time` | Float | `room.host_entry_time` | `1723648978` | 房主最后进入时间 |
+| `ip_address` | String | 环境变量 | `"<PII_REMOVED>"` | TCP 会话服务器 IP |
+| `port` | Int | 环境变量 | `8003` | TCP 会话服务器端口 |
+| `quest_id` | Int | `room.quest_id` | `1002` | |
+| `raising_state` | Int | `room.raising_state` | `1` | |
+| `room_number` | String | 房间 | `"506880"` | |
+| `room_sequence` | Int | 全局自增 | `42` | |
+| `share_room_options` | Int | 硬编码 | `0` | |
+| `is_pickup` | Option\<Bool\> | 硬编码 | `null` | null = None |
+
+**实现位置**: `src/routes/api/multiBattleQuest.ts:279-303` `select_room`, `src/data/multiRoom.ts:222-235` `serializeRoomConnection()`
+
+---
+
+#### prepare
+
+准备阶段，自动调用 `select_room`。客户端 `MultiBattleQuestPrepareRealRemote` 收到 `raising_state=1` 后直接走 `select_room`。
+
+**请求体**:
+| 字段 | 类型 | 必需 | 示例值 | 说明 |
+|------|------|:---:|--------|------|
+| `category` | number | ✅ | `8` | |
+| `quest_id` | number | ✅ | `1002` | |
+| `viewer_id` | number | ✅ | | |
+| `room_number` | string | ² | | 与 `access_token` 二选一 |
+| `access_token` | string | ² | | |
+| `api_count` | number | ✅ | `1` | |
+
+**响应体**: 与 `select_room` 完全相同。
+
+**实现位置**: `src/routes/api/multiBattleQuest.ts:305-331` `prepare`
+
+---
+
+#### summon
+
+获取 NPC mate 队友数据。服务端生成 2 个 NPC（mate1, mate2），每个含完整队伍信息。
+
+**请求体**:
+| 字段 | 类型 | 必需 | 示例值 | 说明 |
+|------|------|:---:|--------|------|
+| `category_id` | number | ✅ | `8` | |
+| `quest_id` | number | ✅ | `1002` | |
+| `room_number` | string | ✅ | | |
+| `viewer_id` | number | ✅ | | |
+| `api_count` | number | ✅ | `1` | |
+
+**响应体 `data`**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `mate1` | MultiMate \| null | NPC 1，com_id=1 |
+| `mate2` | MultiMate \| null | NPC 2，com_id=2 |
+
+**MultiMate 子结构**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `com_id` | number | 1 或 2 |
+| `degree_id` | number | 称号 ID |
+| `rank` | number | 等级 |
+| `party.characters[]` | Array\<Object\> | 主位角色（固定 3 个） |
+| `characters[i].id` | number | 角色 ID |
+| `characters[i].evolution_level` | number | 进化等级 |
+| `characters[i].exp` | number | 经验值 |
+| `characters[i].over_limit_step` | number | 超越等级 |
+| `characters[i].mana_node_ids` | number[] \| null | 玛那板解锁节点 |
+| `characters[i].ex_boost` | { ability_id_list, status_id } \| null | EX 能力 |
+| `party.unison_characters[]` | Array\<Object\> | 副位角色（与 characters 结构相同） |
+| `party.equipments[]` | Array\<Object\> | 装备（固定 3 个） |
+| `equipments[i].equipment_id` | number | 装备 ID |
+| `equipments[i].level` | number | 等级 |
+| `equipments[i].enhancement_level` | number | 强化等级 |
+| `party.ability_soul_ids[]` | (number \| null)[] | 能力魂 ID（3 个空位） |
+
+**实现位置**: `src/data/multiRoom.ts:55-102` `buildNpcMate()`, `src/routes/api/multiBattleQuest.ts:332-365` `summon`
+
+---
+
+#### start (multi)
+
+开始多人战斗。与 single_battle_quest/start 共用 `insertActiveQuest` 机制，额外记录房间信息。
+
+**请求体** — 在 single 版基础上增加:
+| 字段 | 类型 | 必需 | 示例值 | 说明 |
+|------|------|:---:|--------|------|
+| `room_number` | string | ✅ | `"506880"` | |
+| `mate_player_ids` | number[] | ✅ | `[]` | 队友 viewerId 数组 |
+| `mate_party_ids` | object[] | ✅ | `[]` | 队友队伍信息 |
+| `combat_power` | number | ✅ | `5000` | 战斗力 |
+| `attention_key` | string | ❌ | | 协作匹配 key |
+
+**响应体**: 与 single 版类似，`is_multi: "multi"`。
+
+**实现位置**: `src/routes/api/multiBattleQuest.ts:466-526` `start`
+
+---
+
+#### finish (multi)
+
+多人战斗结算。与 single_battle_quest/finish 共用奖励逻辑，额外返回 multi 专属字段。
+
+**请求体** — 在 single 版基础上增加:
+| 字段 | 类型 | 必需 | 示例值 | 说明 |
+|------|------|:---:|--------|------|
+| `contribution_score` | number | ✅ | `250` | 贡献分 |
+| `mate_player_result[]` | array | ✅ | `[{viewer_id,com_id,score,contribution_score}]` | 队友战果 |
+| `isolated` | boolean | ✅ | `false` | 隔离环境 |
+| `priority_factors` | string[] | ✅ | `[]` | 优先因素 |
+| `sub_statistics` | object[] | ❌ | | |
+
+**响应体**: 在 single 版基础上增加:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `mate_player_result` | array | 队友战果（原样返回） |
+| `contribution_score` | number | 贡献分 |
+| `host_finished` | boolean | `true` |
+| `aborted_play_id` | null | |
+| `drawn_quest` | null | |
+| `follow_info` | null | |
+| `party_info` | null | |
+| `unfinished_play_id` | null | |
+| `carnival_event` | null | |
+| `ranking_event` | null | |
+| `score_attack_event` | null | |
+| `solo_time_attack_event` | null | |
+| `user_notice_list` | [] | |
+| `user_periodic_reward_point_list` | [] | |
+
+**实现位置**: `src/routes/api/multiBattleQuest.ts:532-780` `finish`
+
+---
+
+#### abort (multi)
+
+放弃多人战斗。清理 activeQuest 和房间。
+
+**请求体** — 在 single 版基础上增加:
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|:---:|------|
+| `sub_statistics` | object[] | ❌ | |
+| `reproduce_log_data` | object | ❌ | |
+
+**响应体**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `is_multi` | string | `"multi"` |
+| `aborted_play_id` | string | 放弃的 play_id |
+| `unfinished_play_id` | null | |
+| `drawn_quest` | null | |
+| `party_info` | null | |
+| `presigned_url` | null | |
+
+**实现位置**: `src/routes/api/multiBattleQuest.ts:785-822` `abort`
+
+---
+
+#### play_continue (multi)
+
+续关，与 single 版逻辑完全相同。
+
+**请求体**:
+| 字段 | 类型 | 必需 | 说明 |
+|------|------|:---:|------|
+| `payment_type` | number | ✅ | `1` (固定) |
+| `quest_id` | number | ✅ | |
+| `viewer_id` | number | ✅ | |
+| `paly_id` | string | ✅ | |
+| `category` | number | ✅ | |
+| `api_count` | number | ✅ | |
+
+**响应体**:
+| 字段 | 类型 | 说明 |
+|------|------|------|
+| `user_info.free_vmoney` | number | 续关后剩余免费星导石 |
+| `user_info.vmoney` | number | 续关后剩余付费星导石 |
+| `mail_arrived` | boolean | `false` |
+
+**实现位置**: `src/routes/api/multiBattleQuest.ts:828-870` `play_continue`
+
+---
+
+#### restore_room, share_room, verify_access_token, micro_community
+
+| 端点 | 请求关键字段 | 响应 | 状态 |
+|------|------------|------|:---:|
+| `restore_room` | `room_number`, `room_sequence`, `viewer_id` | 同 `select_room` 响应；房间不存在时返回 fallback（ip=8003, port=0） | ⚠️ 桩 |
+| `share_room` | `category`, `quest_id`, `room_number`, `share_type_list` | `{}` | ⚠️ 桩 |
+| `verify_access_token` | `access_token`, `viewer_id` | `{room_exists, category_id, quest_id, room_number, estabilisher_viewer_id, estabilisher_follow}` | ⚠️ 桩 |
+| `micro_community` | `category_id`, `quest_id`, `room_number`, `viewer_id` | `{micro_community_list: [], page_token: ""}` | ⚠️ 桩（CN 专属） |
+
+---
+
+## 2. TCP 会话协议
+
+### 2.1 连接流程（Phase 1 当前状态：仅创建房间，无 NPC）
+
+```
+客户端                                    服务端 (TCP :8003)
+  │                                         │
+  ├─ XMLSocket.connect(ip, port) ────────────►
+  │                                         │
+  ├─ 握手 (纯 JSON 字符串) ──────────────────►
+  │  {"reconnected":0,                     │
+  │   "socklet":"cooperation_room",        │
+  │   "viewerId":<number>,                 │
+  │   "roomNumber":"<string>",             │
+  │   "questCategory":<int>,               │
+  │   "questId":<int>}                     │
+  │                                         ├─ Accept (t=0)
+  │  ◄────────────────── [0, roomId, ""]  ─┤
+  │                                         ├─ Welcome (t=100ms)
+  │  ◄──── [1,[0,yourself,[yourself]]] ────┤   yourself 从 DB 读取
+  │                                         ├─ Mates (t=200ms)
+  │  ◄──── [1,[1,[yourself]]] ──────────────┤   mates 仅包含自己（C15202 防护）
+  │                                         │
+  ├─ Enter notify ──────────────────────────►  客户端状态数据
+  │  [0,[0,{partyData,partyId}]]          │
+  │                                         │
+  ├─ Heartbeat (每 5 秒) ───────────────────►
+  │  [0,[4]]                              │
+  │  ◄───────── [1,[10,"viewerId"]] ────  │  AckHeartbeat
+  │                                         │
+  ├─ Bye / 关闭 ────────────────────────────►
+  │  [0,[1]]                              │
+  X (断开)                                  │  removeClient → disbandRoom
+```
+
+**Phase 1 关注点**:
+- Welcome 的 `mates: [yourself]` — 包含房主自己，避免 C15202
+- `yourself.state: [0]` — Preparation（未准备），待 Phase 2 NPC 加入后由服务端改为 [1]
+- 延迟 100ms/200ms 避免 TCP 合并导致握手解析失败
+- NPC 加入 → 招募按钮协议 — Phase 2 待调研
+
+**Phase 2 待实现**:
+- 客户端点"招募" → 服务端接收 → Mates 更新为 [yourself, NPC1, NPC2]
+- NPC state=[1]（已准备）→ 全部非房主成员 Ready → checkAndSyncHostState → 房主 state=[1]
+- 房主"开始"按钮可点 → StartBattle → Start(members)
+
+### 2.2 消息格式
+
+**Wire format**: JSON 字符串 + `\0` 结尾（Flash XMLSocket 协议）
+
+**类型**: typepacker 序列化，配置为 `useEnumIndex=true`, `forceNullable=true`
+
+**编码规则**: 每个 Haxe enum 序列化为数组 `[index, param1, param2, ...]`，其中：
+- 静态常量子枚举（如 `Heartbeat`）无参数，仅 `index`
+- 带参数枚举（如 `Enter(info, id)`）为 `[index, info, id]`
+- `Option<T>` 序列化为 `[0, value]` (Some) 或 `[1]` (None)
+- 嵌套枚举递归展开
+
+### 2.3 枚举索引对照表
+
+#### HandshakeResult
+| 枚举 | Index | 参数 |
+|------|:-----:|------|
+| Accept | 0 | `(roomId: String, roomUrl: String)` |
+| Denied | 1 | `(reason: String)` |
+| Reconnect | 2 | `(host: String, port: Int)` |
+| Exception | 3 | `(reason: String)` |
+| Complete | 4 | (无) |
+
+#### MeetingServer2Client
+| 枚举 | Index | 参数 |
+|------|:-----:|------|
+| Error | 0 | `(ServerErrorMessage)` |
+| Message | 1 | `(MeetingServerMessage)` |
+| Messages | 2 | `(broadcaster: String, messages: Array)` |
+
+#### MeetingServerMessage
+| 枚举 | Index | 参数 |
+|------|:-----:|------|
+| Welcome | 0 | `(yourself: Object, mates: Array)` |
+| Mates | 1 | `(mates: Array)` |
+| StateChanged | 2 | `(viewerId: String, state: ReadyState)` |
+| AutoplayModeChanged | 3 | `(viewerId, auto: Bool, manual: Bool)` |
+| AutoStartChanged | 4 | `(viewerId, autoStart: Bool)` |
+| Start | 5 | `(members: Array<Object>)` |
+| Disbanded | 6 | `(reason: String)` |
+| RemainingTime | 7 | `(time: Int)` |
+| Update | 8 | `(reason: String)` |
+| StartRemainingTime | 9 | `(time: Int)` |
+| AckHeartbeat | 10 | `(viewerId: String)` |
+
+#### Client2Server
+| 枚举 | Index | 参数 |
+|------|:-----:|------|
+| Notify | 0 | `(MeetingNotifyMessage)` |
+| Broadcast | 1 | `(Array<MeetingBroadcastMessage>)` |
+| Send | 2 | `(Array, Object)` |
+
+#### MeetingNotifyMessage
+| 枚举 | Index | 参数 |
+|------|:-----:|------|
+| Enter | 0 | `(partyInfo: Object, partyId: Int)` |
+| Bye | 1 | (无) |
+| ChangeParty | 2 | `(party: Object, fromAutoStart: Bool, partyId: Int)` |
+| Ready | 3 | `(state: ReadyState)` |
+| Heartbeat | 4 | (无) |
+| StartBattle | 5 | (无) |
+| Suspend | 6 | (无) |
+| ChangeAutoplayMode | 7 | `(auto: Bool, manual: Bool)` |
+| ChangeAutoStart | 8 | `(enable: Bool)` |
+| Log | 9 | `(msg: String)` |
+| EnterComs | 10 | `(coms: Array)` |
+
+#### ReadyState
+| 枚举 | Index |
+|------|:-----:|
+| Preparation | 0 |
+| Ready | 1 |
+
+---
+
+## 3. 房间生命周期状态机
+
+```
+                    ┌──────────────┐
+                    │ create_room  │
+                    └──────┬───────┘
+                           │ raising_state=1
+                    ┌──────▼───────┐
+                    │  select_room │ ← prepare 自动调用
+                    └──────┬───────┘
+                           │ 返回 ip+port
+                    ┌──────▼───────┐
+              ┌─────│  TCP connect │
+              │     └──────┬───────┘
+              │            │ handshake Accept
+              │     ┌──────▼───────┐
+              │     │  Welcome+Mates│
+              │     └──────┬───────┘
+              │            │
+              │     ┌──────▼───────┐
+              │     │   房间等待    │ ◄── Heartbeat 循环
+              │     └──┬───┬───┬───┘
+              │        │   │   │
+              │     Bye│ Ready StartBattle
+              │        │   │   │
+              │        │   │   └──────────────┐
+              │        │   │                  │
+         ┌────▼──┐ ┌───▼───▼──┐      ┌───────▼──────┐
+         │ disband│ │StateChanged│     │ summon → start│
+         │ room   │ └───────────┘      └───────┬──────┘
+         └────────┘                            │ raising_state=4
+                                    ┌──────────▼──────────┐
+                                    │    战斗进行中        │
+                                    └──────┬──────┬──────┘
+                                           │      │
+                                      finish    abort
+                                           │      │
+                                    ┌──────▼──────▼──────┐
+                                    │    disband room    │
+                                    └───────────────────┘
+```
+
+**清理机制**:
+- TCP 最后一个客户端断开 → `removeClient()` → `disbandRoom()`
+- `finish`/`abort` 处理完成后 → `disbandRoom()`
+- 定时器每 60 秒清理超过 10 分钟且 `raising_state ≤ 2` 的过期房间
+
+---
+
+## 4. NPC Mate 数据格式
+
+### 4.1 summon 响应格式
+
+```typescript
+interface MultiMate {
+    com_id: number       // 1=NPC1, 2=NPC2, 或真实 viewerId
+    degree_id: number
+    rank: number
+    party: {
+        characters: Array<Option<{
+            id: number
+            evolution_level: number
+            exp: number
+            over_limit_step: number
+            mana_node_ids: Option<number[]>
+            ex_boost: Option<{ ability_id_list: number[], status_id: number }>
+        }>>
+        unison_characters: Array<同上>
+        equipments: Array<Option<{
+            equipment_id: number
+            level: number
+            enhancement_level: number
+        }>>
+        ability_soul_ids: Array<Option<number>>
+    }
+}
+```
+
+### 4.2 Welcome/Mates/Start 中的 mate 对象格式
+
+```typescript
+interface MateEntry {
+    // 身份
+    viewerId: number         // 正数为玩家，-1/-2 为 NPC
+    comId?: number           // NPC 专属
+    name: string
+    connectionId?: string    // 唯一连接标识
+    isHost: boolean
+
+    // 玩家属性
+    playerRoleKind?: number
+    rank: number
+    degreeId: number
+
+    // 队伍 — 与 summon 格式相同，使用 Option 包裹
+    party: {
+        characters:        Array<Option<{...}>>
+        unison_characters: Array<Option<{...}>>  // 注意: snake_case!
+        equipments:        Array<Option<{equipmentId, level, enhancementLevel}>>  // camelCase!
+        abilitySoulIds:    Array<Option<number>>
+    }
+    // 每个 character 额外需要 illustration_settings: Option<number[]>
+
+    // 自动战斗设置
+    autoplayMode: boolean
+    autoskillMode?: number
+    autoSpeedLevel?: number
+    autoStart?: boolean
+    skillAbilityBehaviorMode?: number
+    dashBehaviorMode?: number
+
+    // 状态
+    state: ReadyState          // [0]=Preparation, [1]=Ready
+    entryTime?: number
+    isNewbie?: boolean
+    allowHealFromOtherPlayers?: boolean
+}
+```
+
+### 4.3 NPC 角色模板
+
+```typescript
+// 默认 NPC 数据（取自 CN 客户端 DummyRemote）
+const NPC_TEMPLATES = {
+    default_1: {
+        com_id: 1,
+        characters:     [131012, 141007, 151001],  // 阿尔克 斯特拉 莱特
+        unison:         [141005, 121002, 131004],
+        equipments:     [200005, 1010001, 2020001],
+        rank: 80, degree_id: 1
+    },
+    default_2: {
+        com_id: 2,
+        characters:     [141004, 121002, 161001],
+        unison:         [151001, 141005, 131004],
+        equipments:     [200005, 1010001, 2020001],
+        rank: 80, degree_id: 2000
+    }
+}
+```
+
+---
+
+## 5. 关键字段命名对照
+
+客户端 typepacker 反序列化时使用**源字段名**，必须精确匹配：
+
+| 上下文 | 字段名 | 注意事项 |
+|--------|--------|---------|
+| summon → party.characters | `unison_characters` | snake_case ✅ |
+| session → party | `unison_characters` | 同上，不得写 `unisonCharacters` |
+| summon → party.equipments | `equipment_id`, `enhancement_level` | snake_case |
+| session → party.equipments | `equipmentId`, `enhancementLevel` | **camelCase**！（session 路径不同） |
+| summon → character | `mana_node_ids`, `ex_boost` | snake_case |
+| session → character | `mana_node_ids`, `ex_boost` | 同上 |
+| session → character | `illustration_settings` | 必需，`fixIllustrationSettingsForMate()` 会写出 |
+| session → party | `abilitySoulIds` | camelCase ✅ |
+
+---
+
+## 6. 错误码对照
+
+| 错误码 | 含义 | 根因 | 修复 |
+|--------|------|------|------|
+| `C8700` | `data.rooms[i].estabilisher_character:null` | MsgPack uint32 (`ce`) 编码 >65535 的值；`serializeRoom` 缺少该字段 | 使用 ≤65535 的 character ID；补全 `estabilisher_character` 字段 |
+| `C5603` | `Handshake failure (TypeError #1034)` | 握手响应用 `{tag,index,__enum__}` 格式，但 `handshakeUnserializer.useEnumIndex=true` | 改用数组 `[0, roomId, ""]` |
+| `C15202` | `matesに自分自身の情報が存在しません` | Welcome/Mates 的 `mates` 数组为空，不包含玩家自己 | mates 数组第一个元素为 `yourself` 对象 |
+| `Error #1009` | Null Pointer in `fixIllustrationSettingsForMate()` | mate 对象 `party` 字段命名错误（`unisonCharacters` vs `unison_characters`），缺少 `illustration_settings` | 修正字段命名，补全 `illustration_settings: [1]` |
+| `TypeError #1034` | Type coercion in `commandReceived()` | character/equipment 未用 Option `[0, val]` / `[1]` 格式包裹 | 所有 party 字段使用 Option 包裹 |
+| `S1000` | `通信が終了されました` | TCP 连接意外关闭 | 正常关闭不处理 |
+| `H404` | `disband_room` 端点不存在 | 未实现该端点 | 已由 TCP `removeClient` → `disbandRoom` 代偿 |
+
+---
+
+## 7. 已知限制
+
+1. **MsgPack uint32 不兼容**: 值 >65535 会用 `ce` (uint32) 编码，客户端解码为 null。受影响的潜在字段：quest_id、rankPointReward、characterId 等。当前 workaround：关键 display 字段使用 ≤65535 的值。
+
+2. **`disband_room` 未实现**: 客户端离开本地调用该端点返回 404。已由 TCP `removeClient` 中的 `disbandRoom()` 代偿清理。
+
+3. **单机模式**: 当前仅支持单人+NPC。真实多人联机需要：
+   - 多个客户端连接到同一 room_number
+   - 真实的 player mate 数据（从 DB 查询）
+   - `attention` 匹配系统完善
+
+4. **`HARD_MULTI_EVENT`**: quest 数据已导入，但 `getQuestFromCategorySync` 中 `fixedParty`、`scoreRewardGroup` 等字段可能缺失，战斗奖励可能不完整。
+
+5. **TCP 消息合并**: 多消息在同一 TCP 段到达会导致客户端 commandReceived 解析失败（不分割 null 终止符）。当前通过延迟发送（800ms/1100ms）缓解。
+
+6. **`is_pickup` 字段**: `select_room` 响应中为 `null`，客户端处理为 `Option.None`，不影响功能。
+
+---
+
+## 8. 文件清单
+
+| 文件 | 模块 | 职责 |
+|------|------|------|
+| `src/routes/api/multiBattleQuest.ts` | HTTP API | 14 个 REST 端点 |
+| `src/data/multiRoom.ts` | 房间管理 | 房间 CRUD、NPC 生成、序列化 |
+| `src/data/sessionServer.ts` | TCP 会话 (Phase 1) | 握手、心跳、Clean Room（无 NPC） |
+| `src/lib/types.ts` | 类型 | `MultiRoom`, `MultiMate`, `MultiMateParty` 等 |
+| `src/lib/assets.ts` | 资产 | `HARD_MULTI_EVENT` quest 查找 |
+| `src/assets/hard_multi_event_quest.json` | 资产 | 12 个 hard_multi 关卡数据 |
+| `src/cn-server.ts` | 入口 | 启动 sessionServer |
+| `src/routes/api/singleBattleQuest.ts` | 公用 | `activeQuests` 导出供 multi 共用 |
+
+---
+
+## 9. 联机功能实现进度
+
+### 9.1 阶段 1 — 创建房间 + TCP 握手 ✅（当前阶段）
+
+| 功能 | 状态 | 说明 |
+|------|:---:|------|
+| `get_rooms` | ✅ | 11 字段格式已对齐客户端 |
+| `create_room` | ✅ | 房号生成、从 DB 读取 `leaderCharacterId` |
+| `search_room` | ✅ | 按房号搜索 |
+| `select_room` | ✅ | 返回 TCP 会话 IP:8003 |
+| `prepare` | ✅ | |
+| TCP server (port 8003) | ✅ | XMLSocket null-terminated JSON |
+| 握手 Accept | ✅ | typepacker `[0, roomId, ""]` |
+| Welcome + Mates | ✅ | `[1,[0,yourself,[yourself]]]` + `[1,[1,[yourself]]]`，避免 C15202 |
+| Heartbeat/AckHeartbeat | ✅ | 5 秒间隔 |
+| Bye → disbandRoom | ✅ | |
+| `yourself` 从 DB 读数据 | ✅ | name/rank/degreeId/role 从玩家存档读取 |
+| 进入空白房间 | ✅ | 房主自己，无 NPC，"招募"按钮可见 |
+
+### 9.2 阶段 2 — NPC 加入 + 房主自动准备 ❌（待实施）
+
+| 功能 | 状态 | 说明 |
+|------|:---:|------|
+| 招募按钮协议调研 | ❌ | 客户端点"招募"后发什么消息？`EnterComs(10)`？HTTP `summon`？ |
+| NPC 加入房间 | ❌ | Mates 更新为 [yourself, NPC1, NPC2] |
+| 房主自动准备 | ❌ | 非房主成员全部 Ready → 房主 state=[1] |
+| `StartBattle → Start(members)` | ❌ | members 含完整 mate 对象数组 |
+| 完整战斗流程 | ❌ | summon → start → 战斗 → finish |
+
+### 9.3 待完成 — 辅助端点
+
+| 端点 | 状态 | 说明 |
+|------|:---:|------|
+| `summon` | ✅ | NPC mate1/mate2 数据下发 |
+| `start` (multi) | ✅ | |
+| `finish` (multi) | ✅ | |
+| `abort` (multi) | ✅ | |
+| `play_continue` | ✅ | |
+| `restore_room` | ⚠️ | 房间不存在时返回 fallback |
+| `share_room` | ⚠️ | 桩 |
+| `verify_access_token` | ⚠️ | 桩 |
+| `micro_community` | ⚠️ | 桩 |
+| `disband_room` | ❌ | 客户端调用→404，已有 TCP disbandRoom 代偿 |
+
+### 9.4 已知 Bug
+
+| 问题 | 状态 | 说明 |
+|------|:---:|------|
+| C8700 | ⚠️ | MsgPack uint32 (`ce`) 编码 >65535 的值，客户端解码为 null。当前用 `leaderCharacterId` 规避 |
+| 退出后弹 H404 | ⚠️ | `disband_room` 未实现 |
+| 消息 TCP 合并 | ⚠️ | 100ms/200ms 延迟规避 |
+| C15202 (mates 不含自己) | ✅ 已修复 | `mates: [yourself]` |
+| C5603 (握手 #1034) | ✅ 已修复 | 切换为 `useEnumIndex` 数组格式 |
+| #1009 (fixIllustrationSettings) | ✅ 已修复 | 字段命名 + Option 包裹 |
+
+---
+
+## 10. 附：Web 面板 & 存档管理
+
+### 10.1 存档切换 + 账号默认玩家
+
+Web 面板 `/player` 页面点击「激活存档」时，会调用 `saveAccountDefaultPlayer(accountId, playerId)` 持久化到 `active_account.json`。
+
+手机客户端 `/load` 端点读取 `getAccountDefaultPlayer(accountId)` 优先加载该存档，fallback 到 `ORDER BY id DESC` 的最新玩家。
+
+### 10.2 cloneSave 端点
+
+```
+POST /api/server/cloneSave?playerId=X&accountId=Y
+```
+
+读取源玩家数据 → 创建新玩家 → 反序列化合并 → 设为账号默认。
+
+### 10.3 新增端点汇总
+
+| 端点 | 方法 | 说明 |
+|------|------|------|
+| `/api/server/newSave?accountId=X` | POST | 创建空存档 |
+| `/api/server/cloneSave?playerId=X&accountId=Y` | POST | 克隆存档到指定账号 |
+
+---
+
+## 11. wdfpData.ts 重构进度
+
+| 步骤 | 模块 | 文件 | 状态 |
+|:---:|------|------|:---:|
+| 1 | Account + Session | `src/data/domains/account.ts` | ✅ |
+| 2 | Tutorial | `src/data/domains/tutorial.ts` | ✅ |
+| 3-15 | 剩余 13 个模块 | `src/data/domains/*.ts` | ⏳ 待实施 |
+
+**关键修复**:
+- `getAccountPlayersSync` / `getAccountPlayers` 添加 `ORDER BY id DESC`，确保最新玩家排在首位
+- 新增 `src/data/db.ts` — 共享 DB 实例，所有 domain 文件从中 import
+
+### 重构后的文件结构
+
+```
+src/data/
+├── db.ts                    ← 共享 DB 实例 (getDb)
+├── domains/                  ← 领域模块 (15 个)
+│   ├── account.ts            ← Account + DailyChallengePointList
+│   ├── session.ts            ← Session + DeviceBinding
+│   ├── player.ts             ← Player CRUD + insertDefaultPlayerSync
+│   ├── tutorial.ts           ← TriggeredTutorial
+│   ├── option.ts             ← PlayerOption
+│   ├── item.ts               ← PlayerItem
+│   ├── campaign.ts           ← StartDash + MultiSpecialExchange + PeriodicRewardPoint
+│   ├── equipment.ts          ← PlayerEquipment
+│   ├── party.ts              ← PlayerParty + PlayerPartyGroup
+│   ├── character.ts          ← PlayerCharacter + BondToken + ExBoost + ManaNode
+│   ├── quest.ts              ← QuestProgress + DrawnQuest
+│   ├── gacha.ts              ← GachaInfo + GachaCampaign
+│   ├── boxGacha.ts           ← BoxGacha + BoxGachaDrawnReward
+│   ├── rushEvent.ts          ← RushEvent + PlayedParty + Ranking
+│   ├── mission.ts            ← ClearedRegularMission + ActiveMission
+│   └── mail.ts               ← MailType + Mail + ReceiveHistory
+├── db.ts                      ← 共享 DB 实例 (getDb)
+├── wdfpData.ts               ← barrel re-export (4813L → 54L, -98.9%)
+├── activeAccount.ts          ← 账号默认玩家 持久化
+├── multiRoom.ts
+├── sessionServer.ts           ← Phase 1 clean room
+└── index.ts                   ← 数据库初始化
+
+---
+
+## 11. wdfpData.ts 重构完成 ✅
+
+### 11.1 最终状态
+
+`src/data/wdfpData.ts`: **4813 → 54 行 (-98.9%)**，纯 barrel re-export 文件。
+
+16 个领域模块全部通过 barrel 导出，所有旧 `import ... from "wdfpData"` 路径自动生效。
+
+### 11.2 各模块提取记录
+
+| 步骤 | 模块 | 文件 | 函数数 | 提交 |
+|:---:|------|------|:---:|------|
+| 1 | Account + Session | `account.ts` | 12 | `cefa243` |
+| 2 | Tutorial | `tutorial.ts` | 3 | `cefa243` |
+| 3 | PlayerOption | `option.ts` | 5 | `5c073f1` |
+| 4 | PlayerItem | `item.ts` | 6 | `5c073f1` |
+| 5 | Campaign ×3 | `campaign.ts` | 9 | `5c073f1` |
+| 6 | PlayerEquipment | `equipment.ts` | 8 | `7bba7c0` |
+| 7 | PlayerParty | `party.ts` | 6 | `3ed5962` |
+| 8 | PlayerCharacter | `character.ts` | 17 | `828fd8a` |
+| 9 | Quest + DrawnQuest | `quest.ts` | 9 | `828fd8a` |
+| 10 | Gacha | `gacha.ts` | 12 | `fa85420` |
+| 11 | Mission | `mission.ts` | 7 | `f885c2b` |
+| 12 | BoxGacha | `boxGacha.ts` | 9 | `618cc4e` |
+| 13 | RushEvent | `rushEvent.ts` | 22 | `5adea1c` |
+| 14 | Mail | `mail.ts` | 9 | `f63e05d` |
+| 15 | Session + Device | `session.ts` | 15 | `3c65cb9` |
+| 16 | Player CRUD + DCPL | `player.ts` | 20 | `3c65cb9` |
+
+**总计**: 16 个领域文件，169 个函数，0 TypeScript 错误。
