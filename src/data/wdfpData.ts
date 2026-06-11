@@ -4125,8 +4125,8 @@ export function insertDefaultPlayerSync(
         }
     ])
 
-    // insert triggered tutorials — include 12 to skip tutorial
-    insertPlayerTriggeredTutorialsSync(playerId, [12])
+    // insert triggered tutorials — empty to trigger tutorial on new accounts
+    insertPlayerTriggeredTutorialsSync(playerId, [])
 
     // insert cleared regular missions
     insertPlayerClearedRegularMissionListSync(playerId, {})
