@@ -1,13 +1,14 @@
 // Multi battle TCP session server
+// Phase 1: Room creation only (no NPCs, no auto-start)
 // Protocol: JSON messages delimited by null byte (\0)
 // Post-handshake messages use typepacker format with useEnumIndex=true:
 //   [index, param1, param2, ...]
 //
 // Enum indices:
 //   MeetingServer2Client: Message=1, Messages=2, Error=0
-//   MeetingServerMessage: Home=0, Mates=1, StateChanged=2, Start=5, AckHeartbeat=10
+//   MeetingServerMessage: Welcome=0, Mates=1, StateChanged=2, Start=5, AckHeartbeat=10
 //   MeetingNotifyMessage: Enter=0, Bye=1, ChangeParty=2, Ready=3, Heartbeat=4,
-//                          StartBattle=5, Suspend=6, ChangeAutoplayMode=7, ...
+//                          StartBattle=5, Suspend=6, ChangeAutoplayMode=7, ChangeAutoStart=8
 //   Client2Server: Notify=0, Broadcast=1, Send=2
 //   ReadyState: Preparation=0, Ready=1
 //   HandshakeResult: Accept=0, Denied=1, Reconnect=2, Exception=3, Complete=4
@@ -15,6 +16,7 @@
 import * as net from "net";
 import { MultiRoom } from "../lib/types";
 import { disbandRoom } from "./multiRoom";
+import { getSession, getAccountPlayers, getPlayerSync } from "./wdfpData";
 
 interface SessionClient {
     socket: net.Socket;
@@ -23,6 +25,7 @@ interface SessionClient {
     isReady: boolean;
     buffer: string;
     mates: any[];
+    enterData: any;
 }
 
 const clients = new Map<string, SessionClient>();
@@ -69,17 +72,6 @@ function sendJson(socket: net.Socket, obj: any) {
     console.log(`[SESSION] sent to ${(socket as any).remoteAddress}:${(socket as any).remotePort}:`, json.substring(0, 150));
 }
 
-function broadcastToRoom(roomNumber: string, msg: any, exclude?: net.Socket) {
-    const set = roomClients.get(roomNumber);
-    if (!set) return;
-    for (const addr of set) {
-        const client = clients.get(addr);
-        if (client && client.socket !== exclude) {
-            sendJson(client.socket, msg);
-        }
-    }
-}
-
 function handleMessage(client: SessionClient, data: string) {
     try {
         const msg = JSON.parse(data);
@@ -98,7 +90,6 @@ function handleMessage(client: SessionClient, data: string) {
 
 function handleClient2Server(client: SessionClient, msg: any[]) {
     const tag = msg[0];
-    // Client2Server: Notify=0, Broadcast=1, Send=2
     switch (tag) {
         case 0: // Notify
             if (msg.length > 1 && Array.isArray(msg[1])) {
@@ -118,9 +109,9 @@ function handleClient2Server(client: SessionClient, msg: any[]) {
 
 function handleNotify(client: SessionClient, msg: any[]) {
     const tag = msg[0];
-    // MeetingNotifyMessage indices
     switch (tag) {
         case 0: // Enter
+            client.enterData = msg[1];
             console.log(`[SESSION] client ${client.viewerId} entered room ${client.roomNumber}`);
             break;
 
@@ -133,8 +124,7 @@ function handleNotify(client: SessionClient, msg: any[]) {
             break;
 
         case 3: // Ready
-            client.isReady = true;
-            broadcastToRoom(client.roomNumber, [1, [2, String(client.viewerId), [1]]]);
+            sendJson(client.socket, [1, [2, String(client.viewerId), msg[1] ?? [0]]]);
             break;
 
         case 1: // Bye
@@ -146,10 +136,9 @@ function handleNotify(client: SessionClient, msg: any[]) {
             console.log(`[SESSION] client ${client.viewerId} suspended`);
             break;
 
-        case 5: // StartBattle
-            console.log(`[SESSION] client ${client.viewerId} requesting start`);
-            sendJson(client.socket, [1, [5, client.mates]]);
-            console.log(`[SESSION] started battle for room ${client.roomNumber}`);
+        case 7: // ChangeAutoplayMode
+        case 8: // ChangeAutoStart
+            console.log(`[SESSION] client ${client.viewerId}: notify=${tag}`);
             break;
 
         default:
@@ -175,7 +164,6 @@ export function startSessionServer(): Promise<void> {
             socket.on("data", (chunk: Buffer) => {
                 buffer += chunk.toString("utf-8");
 
-                // Process null-delimited messages
                 while (buffer.includes("\0")) {
                     const idx = buffer.indexOf("\0");
                     const data = buffer.substring(0, idx);
@@ -184,7 +172,6 @@ export function startSessionServer(): Promise<void> {
                     if (data.trim().length === 0) continue;
 
                     if (!handledHandshake) {
-                        // First message is the handshake
                         handleHandshake(socket, data, remoteAddr).then((client) => {
                             sessionClient = client;
                             handledHandshake = true;
@@ -200,16 +187,12 @@ export function startSessionServer(): Promise<void> {
 
             socket.on("close", () => {
                 console.log(`[SESSION] disconnect from ${remoteAddr}`);
-                if (sessionClient) {
-                    removeClient(sessionClient);
-                }
+                if (sessionClient) removeClient(sessionClient);
             });
 
             socket.on("error", (err) => {
                 console.log(`[SESSION] socket error from ${remoteAddr}:`, err.message);
-                if (sessionClient) {
-                    removeClient(sessionClient);
-                }
+                if (sessionClient) removeClient(sessionClient);
             });
         });
 
@@ -232,21 +215,62 @@ export function stopSessionServer(): Promise<void> {
     });
 }
 
+function makeDefaultChar(id: number): any[] {
+    return [0, {
+        id, evolution_level: 0, exp: 0, over_limit_step: 0,
+        mana_node_ids: [1], ex_boost: [1], illustration_settings: [1]
+    }];
+}
+function makeDefaultEquip(eid: number): any[] {
+    return [0, { equipmentId: eid, level: 1, enhancementLevel: 0 }];
+}
+function makeDefaultParty(chars: number[], unisons: number[], equips: number[]): any {
+    return {
+        characters: chars.map(makeDefaultChar),
+        unison_characters: unisons.map(makeDefaultChar),
+        equipments: equips.map(makeDefaultEquip),
+        abilitySoulIds: [[1], [1], [1]]
+    };
+}
+
 async function handleHandshake(socket: net.Socket, data: string, remoteAddr: string): Promise<SessionClient> {
     console.log(`[SESSION] handshake from ${remoteAddr}:`, data);
 
     let handshake: any;
-    try {
-        handshake = JSON.parse(data);
-    } catch {
+    try { handshake = JSON.parse(data); } catch {
         throw new Error("Invalid handshake JSON");
     }
 
     const viewerId = handshake.viewerId;
     const roomNumber = handshake.roomNumber;
+    if (!viewerId || !roomNumber) throw new Error("Missing viewerId or roomNumber");
 
-    if (!viewerId || !roomNumber) {
-        throw new Error("Missing viewerId or roomNumber in handshake");
+    // Look up player data from DB
+    let playerName = `Player${viewerId}`;
+    let playerRank = 1;
+    let playerDegreeId = 1;
+    let playerRoleKind = 1;
+    let playerIsNewbie = false;
+    let mainCharId = 131012;
+
+    try {
+        const session = await getSession(String(viewerId));
+        if (session) {
+            const playerIds = await getAccountPlayers(session.accountId);
+            if (playerIds && playerIds.length > 0 && !isNaN(playerIds[0])) {
+                const player = getPlayerSync(playerIds[0]);
+                if (player) {
+                    playerName = player.name || playerName;
+                    playerRank = player.rankPoint || playerRank;
+                    playerDegreeId = player.degreeId || playerDegreeId;
+                    playerRoleKind = player.role || playerRoleKind;
+                    playerIsNewbie = !!player.tutorialStep;
+                    mainCharId = player.leaderCharacterId || mainCharId;
+                }
+            }
+        }
+    } catch (e) {
+        console.log(`[SESSION] failed to read player data for viewer=${viewerId}:`, (e as Error).message);
     }
 
     const client: SessionClient = {
@@ -255,67 +279,47 @@ async function handleHandshake(socket: net.Socket, data: string, remoteAddr: str
         roomNumber: String(roomNumber),
         isReady: false,
         buffer: "",
-        mates: []
+        mates: [],
+        enterData: null
     };
 
     addClient(client);
 
-    // Send Accept response - array format [index, params...]
+    // Send Accept
     sendJson(socket, [0, roomNumber, ""]);
 
-    // Send Welcome + Mates after delay to ensure handshake listener
-    // has been replaced with socket_received on client side
-    // Fields use Option format: [0, value] = Some, [1] = None
-    function makeChar(id: number): any[] {
-        return [0, {
-            id, evolution_level: 0, exp: 0, over_limit_step: 0,
-            mana_node_ids: [1], ex_boost: [1], illustration_settings: [1]
-        }];
-    }
-    function makeEquip(eid: number): any[] {
-        return [0, { equipmentId: eid, level: 1, enhancementLevel: 0 }];
-    }
-    function makeParty(chars: number[], unisons: number[], equips: number[]): any {
-        return {
-            characters: chars.map(makeChar),
-            unison_characters: unisons.map(makeChar),
-            equipments: equips.map(makeEquip),
-            abilitySoulIds: [[1], [1], [1]]
-        };
-    }
-
+    // Build yourself from real DB data (using DB player name/rank/degreeId if available)
     const yourself = {
         viewerId: Number(viewerId),
-        name: "Player" + viewerId,
-        isHost: true,
-        rank: 1,
-        degreeId: 1,
+        name: playerName,
+        playerRoleKind,
+        rank: playerRank,
+        degreeId: playerDegreeId,
+        party: makeDefaultParty(
+            [mainCharId, 141007, 151001],
+            [141005, 121002, 131004],
+            [200005, 1010001, 2020001]
+        ),
+        connectionId: String(roomNumber),
         autoplayMode: false,
-        currentPartyId: 1,
-        state: [1],
-        party: makeParty([131012,141007,151001], [141005,121002,131004], [200005,1010001,2020001])
+        autoskillMode: 1,
+        autoSpeedLevel: 1,
+        autoStart: false,
+        skillAbilityBehaviorMode: 1,
+        dashBehaviorMode: 1,
+        allowHealFromOtherPlayers: true,
+        state: [0],
+        entryTime: Date.now(),
+        isNewbie: playerIsNewbie,
+        isHost: true,
+        currentPartyId: 1
     };
-    const comMate1 = {
-        viewerId: -1, comId: 1, name: "NPC助手1",
-        isHost: false, rank: 80, degreeId: 1,
-        autoplayMode: false, currentPartyId: 1, state: [1],
-        party: makeParty([131012,141007,151001], [141005,121002,131004], [200005,1010001,2020001])
-    };
-    const comMate2 = {
-        viewerId: -2, comId: 2, name: "NPC助手2",
-        isHost: false, rank: 80, degreeId: 2000,
-        autoplayMode: false, currentPartyId: 1, state: [1],
-        party: makeParty([141004,121002,161001], [151001,141005,131004], [200005,1010001,2020001])
-    };
-    const mates = [yourself, comMate1, comMate2];
-    client.mates = mates;
 
-    setTimeout(() => {
-        sendJson(socket, [1, [0, yourself, mates]]);
-    }, 800);
-    setTimeout(() => {
-        sendJson(socket, [1, [1, mates]]);
-    }, 1100);
+    // Welcome(self, [self]) — room with host only (avoids C15202)
+    setTimeout(() => sendJson(socket, [1, [0, yourself, [yourself]]]), 100);
+    setTimeout(() => sendJson(socket, [1, [1, [yourself]]]), 200);
+
+    client.mates = [yourself]; // for future StartBattle
 
     return client;
 }
