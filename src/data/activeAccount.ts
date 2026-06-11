@@ -76,12 +76,19 @@ export function saveTimeOffset(offset: number | null): void {
 }
 
 /**
- * Restore time offset on server startup — uses global offset only.
- * Player-specific time is handled by getServerTimeForPlayer.
+ * Restore time offset on server startup.
+ * Uses saved offset, or defaults to 2024-08-14 12:00 UTC if not set.
  */
 export function restoreTimeOffset(): void {
     const state = readState();
     if (state.timeOffset !== null) {
         setServerTimeOffset(state.timeOffset);
+    } else {
+        const defaultDate = new Date("2024-08-14T12:00:00Z");
+        const offset = defaultDate.getTime() - Date.now();
+        state.timeOffset = offset;
+        state.lastSetTime = defaultDate.toISOString();
+        writeState(state);
+        setServerTimeOffset(offset);
     }
 }
