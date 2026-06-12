@@ -612,7 +612,7 @@ const NPC_TEMPLATES = {
 | `S1000` | `通信が終了されました` | TCP 连接意外关闭 | 正常关闭不处理 |
 | `C8601` | `指定的Key不存在。key=2023013102` | 活动面板加载时，CDN master 数据缺少 `daily_challenge_point_campaign[2023013102]` | 通行证功能暂不实现，已清空所有角色 `daily_challenge_point_list`，默认存档不再写入该数据 |
 | `H404` | `disband_room` 端点不存在 | 未实现该端点 | 已实现 `POST /multi_battle_quest/disband_room` |
-| `H400` | `story_quest/finish` → 400，外传故事关卡 | 服务端 `world_story_event_quest.json` 缺少事件组 400012-400016 等，源自国际服数据 | 从 CN 源 `wf-assets-cn/orderedmap/quest/event/world_story_event_quest.json` 完全导入 57 事件组共 913 关（含 BOSS 72 关），覆盖所有 CN 外传故事 |
+| `H400` | `story_quest/finish` → 400，外传故事/活动关卡 | 服务端 quest JSON 缺少 CN 事件组数据 | ✅ 已从 CN 源完全导入 20 个 quest 分类共 5,158 关 |
 
 ---
 
