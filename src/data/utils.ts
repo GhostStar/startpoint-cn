@@ -306,9 +306,9 @@ export function serializePlayerData(
         "cleared_regular_mission_list": toSerialize.clearedRegularMissionList,
         "user_character_list": userCharacterList,
         "user_character_mana_node_list": (() => {
-                const list: Record<string, { mana_node_multiplied_id: number, awake_level: number }[]> = {}
+                const list: Record<string, { multiplied_id: number, awake_level: number }[]> = {}
                 for (const [charId, nodeIds] of Object.entries(toSerialize.characterManaNodeList)) {
-                    list[charId] = nodeIds.map(id => ({ mana_node_multiplied_id: id, awake_level: 0 }))
+                    list[charId] = nodeIds.map(id => ({ multiplied_id: id, awake_level: 0 }))
                 }
                 return list
             })(),
@@ -635,7 +635,7 @@ export function deserializePlayerData(
         if (rawCharacterManaNodeList === undefined) throw new Error("Missing 'user_character_mana_node_list' field.");
         const characterManaNodeList: Record<string, number[]> = {}
         for (const [charId, nodes] of Object.entries(rawCharacterManaNodeList)) {
-            characterManaNodeList[charId] = (nodes as { mana_node_multiplied_id: number }[]).map(n => n.mana_node_multiplied_id)
+            characterManaNodeList[charId] = (nodes as { multiplied_id: number }[]).map(n => n.multiplied_id)
         }
 
         // deserialize party list
