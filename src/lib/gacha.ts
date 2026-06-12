@@ -144,6 +144,13 @@ export function rewardPlayerGachaDrawResultSync(
                     const seeds = ((isRateUp ? rateUpMovieSeeds : movieSeeds) as GachaMovieSeeds)[rarity + 1][movieType]
                     const seedIndex = randomInt(0, seeds.length + 1)
 
+                    const actualRarity = assetData !== null ? assetData.rarity : (Math.floor(characterId / 100000))
+                    console.log('[GACHA] char=%d actualRarity=%d rarityIdx=%d movieType=%d seedsLen=%d movieName=%s movie_id=%s seed=%d',
+                        characterId, actualRarity, rarity, movieType, seeds.length,
+                        (gacha as CharacterGacha).movieName,
+                        movieType === GachaMovieType.NORMAL ? (gacha as CharacterGacha).movieName : (gacha as CharacterGacha).guaranteeMovieName,
+                        seeds[seedIndex] ?? seeds[0])
+
                     // build draw
                     const draw: GachaCharacterDraw = {
                         "character_id": characterId,

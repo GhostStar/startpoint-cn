@@ -620,6 +620,7 @@ const NPC_TEMPLATES = {
 | `H400` | `ranking_event/get_summary` → 400（云水试炼等） | `rankingEventIdQuestMap` 缺少 CN 事件 ID 1000/1001 | 新增映射 `1000→1000001`, `1001→1001001` |
 | `H500` | `shop/get_sales_list` → 500 | CN 导入的 shop 条目缺少 `availableUntil` 字段 | 已补充 `null` |
 | `H400` | `character/receive_bond_token` → 400 — 玛纳板完成后领羁绊之证 | bond token status 残留为 2（上次 CN 导入期间领取），DB 重置后服务端拒绝 | ⚠️ 待排查 — DB 已重置为 1，暂不影响流程 |
+| `C3032` | ガチャ結果レア度不一致 — 抽卡动画稀有度与角色稀有度不匹配 | `gacha_movie_seeds.json` 国际服种子池（162 个 ★3 seeds）混入了产生 ★4 动画的种子，且 `movieName=fes` 的卡池触发客户端严格校验 | ⚠️ 待修复 — 需要重建 CN 物理配置文件对应的种子池或使用角色 ID 确定性 seed |
 | `H400` | `story_quest/finish` → 400，外传故事/活动关卡 | 服务端 quest JSON 缺少 CN 事件组数据 | ✅ 已从 CN 源完全导入 20 个 quest 分类共 5,158 关 |
 | `C8702` | `character_list[i].join_time:null` — mail 领取角色 | 邮件角色响应缺少 `join_time`/`update_time` 字段 | 已补齐 `clientSerializeDate` 格式 |
 | `C8707` | `user_character_mana_node_list` 格式错误 | 序列化为数字数组，CN 客户端期望 `{ mana_node_multiplied_id: N }` 对象 | 已修正序列化格式 |
@@ -648,6 +649,8 @@ const NPC_TEMPLATES = {
 7. **玛纳板（Mana Board）适配**: CN 角色的玛纳板二版受 `mana_board2_open_condition.json` 的时间窗口控制。CN 角色如 151165 的 `start_time=2025-04-03`，默认服务端时间 2024-08-14 早于此时间 → `canManaBoard2Open()` 返回 false → 仅显示板一。解决方法：将服务端时间调整到 2025-06-01 之后。
 
 8. **EX Boost（增幅）感叹号**: 客户端 `canExBoost()` 不检查 `ex_boost` 字段（已强化状态），只检查角色满级 + 元素匹配 + 道具足够。即使 Tier 3 强化完毕，只要背包还有 EX 道具，感叹号就显示。属正常游戏行为。
+
+9. **抽卡动画种子表（C3032）**: `gacha_movie_seeds.json` 和 `gacha_rate_up_movie_seeds.json` 是国际服数据，★3 种子池（162 seeds）混入了产生 ★4 球效果的种子。CN 客户端用 `verifyResultBallRarity()` 校验 `ball.rarity + 3 == character.rarity` → 不匹配 → C3032。修复方向：重建 CN 物理配置文件对应的种子池，或使用 `seed = characterId * 1000` 确定性种子。
 
 7. **外传故事 quest 数据**: 已从 CN 源 `wf-assets-cn/orderedmap/quest/` 完全导入全部 20 个 quest 分类，共 5,158 关，覆盖所有 CN 事件组。
 
