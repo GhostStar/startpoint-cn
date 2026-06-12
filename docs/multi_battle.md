@@ -612,7 +612,7 @@ const NPC_TEMPLATES = {
 | `S1000` | `通信が終了されました` | TCP 连接意外关闭 | 正常关闭不处理 |
 | `C8601` | `指定的Key不存在。key=2023013102` | 活动面板加载时，CDN master 数据缺少 `daily_challenge_point_campaign[2023013102]` | 通行证功能暂不实现，已清空所有角色 `daily_challenge_point_list`，默认存档不再写入该数据 |
 | `H404` | `disband_room` 端点不存在 | 未实现该端点 | 已实现 `POST /multi_battle_quest/disband_room` |
-| `H400` | `story_quest/finish` → 400，外传故事关卡 | 排查中 — `getQuestSync` 将 battle 关卡的 `sPlusRewardId` 转为 `sPlusReward` 后触发拒绝逻辑，或 quest ID 不在 JSON 中 | 已加日志，等待触发后确认根因 |
+| `H400` | `story_quest/finish` → 400，外传故事关卡 | 服务端 `world_story_event_quest.json` 缺少事件组 400012-400016 等，源自国际服数据 | 从 CN 源 `wf-assets-cn/orderedmap/quest/event/world_story_event_quest.json` 完全导入 57 事件组共 913 关（含 BOSS 72 关），覆盖所有 CN 外传故事 |
 
 ---
 
@@ -632,6 +632,45 @@ const NPC_TEMPLATES = {
 5. **TCP 消息合并**: 多消息在同一 TCP 段到达会导致客户端 commandReceived 解析失败（不分割 null 终止符）。当前通过延迟发送（800ms/1100ms）缓解。
 
 6. **默认存档对齐**: 默认玩家数据的初始值已按 CN 客户端 `PlayerSaveDataTools.createDummy()` 对齐（vmoney=100, name=冒险者 等）。角色 ID 使用 business code，CN 客户端中阿尔克=1、白=10，k_id 映射表当前不需要。
+
+7. **外传故事 quest 数据**: 已从 CN 源 `wf-assets-cn/orderedmap/quest/event/world_story_event_quest.json` 完全导入，覆盖 57 个事件组共 913 关（841 剧情 + 72 BOSS），替换了原有的国际服 38 组 775 关数据。
+
+### 外传故事 quest 数据导入详情
+
+**源数据**: `wf-assets-cn/orderedmap/quest/event/world_story_event_quest.json`
+**目标**: `assets/world_story_event_quest.json`
+**格式**: 扁平化 `{ questId: { fields } }`
+
+**57 个事件组**:
+
+| 前缀 | 数量 | 示例 quest ID |
+|------|:---:|------|
+| 100100-100412 | 17 | `100100001` (主线序章) |
+| 100420-100424 | 5 | `100420001` (周年活动) |
+| 200100-200109, 201000 | 10 | `200100001` (个人剧情) |
+| 400001-400016 | 16 | `400010001` (外传故事), `400016001` (本次修复) |
+| 500002-500014 | 9 | `500002001` (特殊事件) |
+
+**字段映射（CN 源 → 服务端）**:
+
+剧情关卡 (`sub-key < 100`):
+```json
+{ "name": "", "clearRewardId": <int> }
+```
+
+BOSS 战斗 (`sub-key >= 100`):
+```json
+{ 
+  "name": "", "clearRewardId": <int>,
+  "bRankTime": <int_ms>, "aRankTime": <int_ms>, 
+  "sRankTime": <int_ms>, "sPlusRankTime": <int_ms>,
+  "rankPointReward": <int>, "characterExpReward": <int>,
+  "manaReward": <int>, "poolExpReward": <int>,
+  "scoreRewardGroup": <int>
+}
+```
+
+`getQuestSync` 通过 `"manaReward" in quest` 自动区分剧情/BOSS 类型。
 
 ---
 
