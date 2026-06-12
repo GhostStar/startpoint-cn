@@ -441,30 +441,30 @@ export function serializePlayerData(
  */
 export function getDefaultPlayerData(): Omit<Player, 'id'> {
     const now = getServerDate();
-    // generate party groups
+    // Default values aligned with CN client PlayerSaveDataTools.createDummy()
     return {
-        stamina: 20,
+        stamina: 10,
         staminaHealTime: now,
-        boostPoint: 3,
+        boostPoint: 10,
         bossBoostPoint: 3,
         transitionState: 0,
         role: 1,
-        name: "플레이어",
+        name: "冒险者",
         lastLoginTime: now,
-        comment: "Nice to meet you.",
-        vmoney: 0,
-        freeVmoney: 150,
-        rankPoint: 10,
-        starCrumb: 0,
-        bondToken: 0,
+        comment: "よろしくお願いします",
+        vmoney: 100,
+        freeVmoney: 100,
+        rankPoint: 0,
+        starCrumb: 2,
+        bondToken: 10,
         expPool: 0,
         expPooledTime: now,
         leaderCharacterId: 1,
         partySlot: 1,
         degreeId: 1,
         birth: 19900101,
-        freeMana: 1000,
-        paidMana: 0,
+        freeMana: 2000,
+        paidMana: 2000,
         enableAuto3x: false,
         tutorialStep: 0,
         tutorialSkipFlag: null

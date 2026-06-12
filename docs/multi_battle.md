@@ -630,7 +630,7 @@ const NPC_TEMPLATES = {
 
 5. **TCP 消息合并**: 多消息在同一 TCP 段到达会导致客户端 commandReceived 解析失败（不分割 null 终止符）。当前通过延迟发送（800ms/1100ms）缓解。
 
-6. **`is_pickup` 字段**: `select_room` 响应中为 `null`，客户端处理为 `Option.None`，不影响功能。
+6. **默认存档对齐**: 默认玩家数据的初始值已按 CN 客户端 `PlayerSaveDataTools.createDummy()` 对齐（vmoney=100, name=冒险者 等）。角色 ID 使用 business code，CN 客户端中阿尔克=1、白=10，k_id 映射表当前不需要。
 
 ---
 
