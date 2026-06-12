@@ -620,6 +620,7 @@ const NPC_TEMPLATES = {
 | `C8702` | `character_list[i].join_time:null` — mail 领取角色 | 邮件角色响应缺少 `join_time`/`update_time` 字段 | 已补齐 `clientSerializeDate` 格式 |
 | `C8707` | `user_character_mana_node_list` 格式错误 | 序列化为数字数组，CN 客户端期望 `{ mana_node_multiplied_id: N }` 对象 | 已修正序列化格式 |
 | `F1009` | TypeError #1009 — `ManaNodeTreeChartView/changeActiveManaBoard()` | `mana_board_index=2` 但 `mana_node.json` 缺少对应角色的 level 2 数据；或服务端时间早于 `mana_board2_open_condition` 的 `start_time` | ① 增量导入 CN 角色资产数据（含 level 2）② DB 重置 `mana_board_index=1` ③ 服务端时间调整到 2025-06-01 之后 |
+| `F1010` | TypeError #1010 — 经验卡结算崩溃 | `bondTokenStatusList` 缺少 NPC/限时队伍条目，`null.before` | 所有队伍角色（含 DB 中找不到的）均创建条目 |
 
 ---
 
@@ -642,7 +643,7 @@ const NPC_TEMPLATES = {
 
 7. **玛纳板（Mana Board）适配**: CN 角色的玛纳板二版受 `mana_board2_open_condition.json` 的时间窗口控制。CN 角色如 151165 的 `start_time=2025-04-03`，默认服务端时间 2024-08-14 早于此时间 → `canManaBoard2Open()` 返回 false → 仅显示板一。解决方法：将服务端时间调整到 2025-06-01 之后。
 
-8. **CN 资产数据补齐**: 从 `wf-assets-cn/orderedmap/` 增量导入全部 CN 独有数据：`character.json` (505, CN 源全量), `mana_node.json` (495, CN 源全量), `score_reward.json` (1532), `rare_score_reward.json` (2768), 以及商店、宝箱扭蛋、通关奖励等共 10 个文件。存量国际服数据未受影响。
+8. **EX Boost（增幅）感叹号**: 客户端 `canExBoost()` 不检查 `ex_boost` 字段（已强化状态），只检查角色满级 + 元素匹配 + 道具足够。即使 Tier 3 强化完毕，只要背包还有 EX 道具，感叹号就显示。属正常游戏行为。
 
 7. **外传故事 quest 数据**: 已从 CN 源 `wf-assets-cn/orderedmap/quest/` 完全导入全部 20 个 quest 分类，共 5,158 关，覆盖所有 CN 事件组。
 
