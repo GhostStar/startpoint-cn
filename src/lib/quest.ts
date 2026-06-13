@@ -33,7 +33,7 @@ export function givePlayerScoreRewardsSync(
     let equipmentList: Object[] = []
     let items: Record<string, number> = {}
 
-    if (scoreRewards !== undefined && groupId !== undefined) {
+    if (scoreRewards != null && groupId != null) {
         let rewardIndex = 0
         for (const scoreReward of scoreRewards) {
             rewardIndex += 1;

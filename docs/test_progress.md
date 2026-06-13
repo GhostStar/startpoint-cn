@@ -9,7 +9,7 @@
 | 1 | 嘉年华 | `carnival_event_quest` | 171 | ✅ | ⬜ | carnival_event/index + /get_party 已实现 |
 | 2 | 战阵之宴（Rush） | `rush_event_quest` | 110 | ✅ | ⬜ | reward + endless_battle 端点已实现；Raid 7 端点已实现 |
 | 3 | Raid 活动 | `raid_event_quest` | 50 | ✅ | ⬜ | summary/get_boss/party/ranking 等 7 端点已实现 |
-| 4 | 练习战 | `practice_quest` | 21 | ✅ | ⬜ | 98 条 quest（双 key 映射）；shop recover_stamina 已实现 |
+| 4 | 练习战 | `practice_quest` | 21 | ✅ | ✅ | 结算 scoreRewardGroup null 修复 + 邮件装备已拥有 UNIQUE 修复 |
 | 5 | 分数挑战 | `score_attack_event_quest` | 123 | ⬜ | ⬜ | 含 BOSS 63 关；history/score_attack_event_battle 已实现 |
 | 6 | 剧情活动 | `story_event_single_quest` | 348 | ⬜ | ⬜ | 需活动开放期 |
 | 7 | 排名战 | `ranking_event_single_quest` | 7 | ✅ | ⬜ | event ID 1000/1001 映射已修复 |
@@ -43,3 +43,6 @@
 | F1013 1板角色虚假 board 2 行 | `insertDefaultPlayerCharacterSync` 按 `skill_count` 决定创建几条 |
 | F1014 open_mana_board 缺等级检查 | 5★ Lv80 / 4★ Lv70 / 3★ Lv60 最低经验限制 |
 | — DB 清理 | player 20 全部 243 行污染 status=1→0，161129 板 1 标记为可领取 |
+| F1015 scoreRewardGroup null 不可遍历 | `assets.ts:105` + `quest.ts:36` null 守卫，练习战结算不再崩溃 |
+| F1016 邮件 EQUIPMENT 已有装备 UNIQUE 冲突 | `mail.ts` 改用 `givePlayerEquipmentSync`，已有则加 stack |
+| F1017 邮件 type_id 超 Int 范围 C8700 | `web_api/mail.ts` 加 1~2^31-1 校验，`formatMailResponse` null 安全 |

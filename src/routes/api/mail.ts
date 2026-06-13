@@ -4,6 +4,7 @@ import { getPlayerItemSync, givePlayerItemSync, getPlayerCharacterSync, updatePl
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { generateDataHeaders, getServerTime } from "../../utils";
 import { clientSerializeDate } from "../../data/utils";
+import { givePlayerEquipmentSync } from "../../lib/equipment";
 
 interface IndexBody {
     api_count: number
@@ -30,7 +31,7 @@ function formatMailResponse(mail: RawPlayerMail) {
         subject: mail.subject,
         description: mail.description,
         type: mail.type,
-        type_id: mail.type_id,
+        type_id: mail.type_id != null && mail.type_id > 2147483647 ? 0 : mail.type_id,
         number: mail.number,
         receive_time: mail.receive_time,
         create_time: mail.create_time,
@@ -102,20 +103,8 @@ function applyMailReward(playerId: number, mail: RawPlayerMail): {
         }
         case MailType.EQUIPMENT: {
             if (mail.type_id === null) break
-            const now = new Date()
-            insertPlayerEquipmentSync(playerId, mail.type_id, {
-                enhancementLevel: 0,
-                level: 1,
-                protection: false,
-                stack: mail.number,
-            })
-            equipmentList.push({
-                equipment_id: mail.type_id,
-                enhancement_level: 0,
-                level: 1,
-                protection: false,
-                stack: mail.number,
-            })
+            const result = givePlayerEquipmentSync(playerId, mail.type_id, mail.number)
+            equipmentList.push(result)
             break
         }
         case MailType.STAR_CRUMB: {

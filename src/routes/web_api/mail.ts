@@ -15,6 +15,11 @@ const routes = async (fastify: FastifyInstance) => {
 
         const mailType = parseInt(body.type || "0")
         const typeId = body.type_id ? parseInt(body.type_id) : null
+
+        // Validate type_id fits in 32-bit signed integer (client Int limit)
+        if (typeId !== null && (isNaN(typeId) || typeId > 2147483647 || typeId < 1)) {
+            return reply.redirect("/mail?error=" + encodeURIComponent("附件 ID 无效（需为 1-2147483647 之间的整数）"))
+        }
         const count = parseInt(body.number || "1")
         const subject = body.subject && body.subject.trim() ? body.subject.trim() : null
         const desc = body.description && body.description.trim() ? body.description.trim() : null
