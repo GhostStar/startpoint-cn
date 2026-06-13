@@ -38,3 +38,8 @@
 | C3032 抽卡动画种子不匹配 | ⚠️ 已知不修复（非必现） |
 | shop/buy 响应 free_vmoney 补齐 | 购买后珠子余量正确显示 |
 | CDN 白名单修正 | 商店商品不再 C8601 崩溃 |
+| F1011 score reward MANA 写入 freeVmoney | `src/lib/quest.ts:61` `freeVmoney`→`freeMana`，玛纳结算正确累加 |
+| F1012 bondTokenList 双板同步更新 | `character.ts:207` WHERE 加 `mana_board_index`，不再联动修改两个板 |
+| F1013 1板角色虚假 board 2 行 | `insertDefaultPlayerCharacterSync` 按 `skill_count` 决定创建几条 |
+| F1014 open_mana_board 缺等级检查 | 5★ Lv80 / 4★ Lv70 / 3★ Lv60 最低经验限制 |
+| — DB 清理 | player 20 全部 243 行污染 status=1→0，161129 板 1 标记为可领取 |

@@ -1,6 +1,7 @@
 import { getDb } from "../db";
 import { PlayerCharacter, PlayerCharacterBondToken, PlayerCharacterExBoost, RawPlayerCharacter, RawPlayerCharacterBondToken, RawPlayerCharacterManaNode } from "../types";
 import { deserializeBoolean, deserializeNumberList, serializeBoolean, serializeNumberList } from "../utils";
+import { getCharacterDataSync } from "../../lib/assets";
 
 /**
  * Converts a RawPlayerCharacterBondToken into a PlayerCharacterBondToken
@@ -204,11 +205,12 @@ export function updatePlayerCharacterBondTokenSync(
     getDb().prepare(`
     UPDATE players_characters_bond_tokens
     SET status = ?
-    WHERE player_id = ? AND character_id = ?
+    WHERE player_id = ? AND character_id = ? AND mana_board_index = ?
     `).run(
         bondToken.status,
         playerId,
-        Number(characterId)
+        Number(characterId),
+        bondToken.manaBoardIndex
     )
 }
 
@@ -265,6 +267,21 @@ export function insertDefaultPlayerCharacterSync(
 ) {
     const dateNow = new Date()
 
+    const bondTokenList = [
+        {
+            manaBoardIndex: 1,
+            status: 0
+        }
+    ]
+
+    const assetData = getCharacterDataSync(characterId)
+    if (assetData && assetData.skill_count > 3) {
+        bondTokenList.push({
+            manaBoardIndex: 2,
+            status: 0
+        })
+    }
+
     insertPlayerCharacterSync(
         playerId,
         characterId,
@@ -278,16 +295,7 @@ export function insertDefaultPlayerCharacterSync(
             exp: 0,
             stack: 0,
             manaBoardIndex: 1,
-            bondTokenList: [
-                {
-                    manaBoardIndex: 1,
-                    status: 0
-                },
-                {
-                    manaBoardIndex: 2,
-                    status: 0
-                }
-            ]
+            bondTokenList: bondTokenList
         }
     )
 }

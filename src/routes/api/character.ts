@@ -4,6 +4,7 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { getAccountPlayers, getPlayerCharacterManaNodesSync, getPlayerCharacterSync, getPlayerCharactersManaNodesSync, getPlayerItemSync, getPlayerSync, getSession, givePlayerItemSync, hasPlayerUnlockedCharacterManaNodeSync, insertPlayerCharacterManaNodesSync, updatePlayerCharacterBondTokenSync, updatePlayerCharacterSync, updatePlayerItemSync, updatePlayerSync } from "../../data/wdfpData";
 import { generateDataHeaders } from "../../utils";
 import { getCharacterDataSync, getCharacterManaNodeSync, getCharacterManaNodesSync } from "../../lib/assets";
+import { characterExpCaps } from "../../lib/character";
 import { clientSerializeDate } from "../../data/utils";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 
@@ -51,6 +52,13 @@ const openManaBoardRequiredUncaps: Record<number, number> = {
     [3]: 6,
     [4]: 4,
     [5]: 2
+}
+
+// Minimum exp to open 2nd mana board: 5★ Lv80, 4★ Lv70, 3★ Lv60
+const openManaBoardRequiredExp: Record<number, number> = {
+    [3]: characterExpCaps[3][0],
+    [4]: characterExpCaps[4][0],
+    [5]: characterExpCaps[5][0]
 }
 
 const routes = async (fastify: FastifyInstance) => {
@@ -222,7 +230,11 @@ const routes = async (fastify: FastifyInstance) => {
         })
 
         // ensure that the mana board can be opened
-        // TODO: Add level check.  5*: Level 80, 4*: Level 70, 3*: Level 60.
+        const requiredLevelExp = openManaBoardRequiredExp[characterAssetData.rarity]
+        if (requiredLevelExp !== undefined && requiredLevelExp > characterData.exp) return reply.status(400).send({
+            "error": "Bad Request",
+            "message": `Character level is too low to unlock mana board.`
+        })
         if (openManaBoardRequiredUncaps[characterAssetData.rarity] > characterData.overLimitStep) return reply.status(400).send({
             "error": "Bad Request",
             "message": `Character is not uncapped enough to unlock mana board.`
