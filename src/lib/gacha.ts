@@ -132,12 +132,19 @@ export function rewardPlayerGachaDrawResultSync(
                 const giveResult = givePlayerCharacterSync(playerId, characterId)
                 
                 if (giveResult !== null) {
-                    // build draw — deterministic seed + normal movie to avoid C3032
-                    // TODO: restore random movie/seed selection after rebuilding CN seed pool (§5 in docs/gacha_c3032.md)
+                    // build draw — use validated seeds from pre-computed pool
+                    const rarity = getCharacterDataSync(characterId)?.rarity || 3
+                    // Map character rarity (5★/4★/3★) to seed pool key (1/2/3)
+                    const seedKey = String(6 - rarity)  // 5★→"1", 4★→"2", 3★→"3"
+                    const seedPool = (movieSeeds as any)[seedKey]?.["0"] || []
+                    const seed = seedPool.length > 0 
+                        ? seedPool[Math.floor(Math.random() * seedPool.length)]
+                        : characterId * 1000
+                    
                     const draw: GachaCharacterDraw = {
                         "character_id": characterId,
-                        "movie_id": "normal",
-                        "seed": characterId * 1000,
+                        "movie_id": characterGacha.movieName || "normal",
+                        "seed": seed,
                         "entry_count": 1
                     }
                     

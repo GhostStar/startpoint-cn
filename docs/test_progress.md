@@ -61,6 +61,10 @@
 | F1031 advent_event_quest 掉落修复 | 转换脚本 `col[70]`→`col[76]` + 再生 JSON |
 | F1032 CDN 数据再生 + C8601 根除 | `score_reward.json` + `rare_score_reward.json` 从 CDN 全量重新生成：修复 array wrapper bug，type=0/1 正确分类，罕见组 ID 对齐客户端表 |
 | 📊 掉落表 | `docs/quest_drop_table.json` — 1573 关 × 10335 条掉落，含物品名/数量/稀有度 |
+| F1033 gacha_campaign 修复 | CN CDN 重新生成 145 条映射（旧版全球数据仅 50 条） |
+| F1034 gacha.json CDN odds 重建 | 从 926 个 CDN `gacha_odds/` 有序映射文件完整重建 490 卡池：CDN 权重 + `odds_up` UP 标记 + `is_limited`/`is_exchangeable` |
+| F1035 C8024/C3032 卡池动画修复 | `gacha.ts`：`movie_id` 从硬编码→读取 `gacha.movieName`；`seed` 从 `characterId*1000`→预验证种子池随机选取 |
+| ⚠️ 种子池 | 当前种子来自抓包数据，可能不全，与国服数据有差距 |
 
 ## C3212 修复详解
 
