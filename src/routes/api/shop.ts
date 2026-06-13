@@ -2,7 +2,7 @@
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { deserializeClientDate } from "../../data/utils";
-import { getAccountPlayers, getPlayerItemSync, getPlayerSync, getSession, updatePlayerItemSync, updatePlayerSync } from "../../data/wdfpData";
+import { getAccountPlayers, getPlayerItemSync, getPlayerSync, getSession, updatePlayerItemSync, updatePlayerSync, getPlayerShopPurchasesMapSync, getPlayerShopPurchaseCountSync, addPlayerShopPurchaseSync } from "../../data/wdfpData";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { getBossCoinShopItemsSync, getEventShopItemsSync, getGenericShopItemsSync, getShopItemSync } from "../../lib/assets";
 import { CharacterReward, CharacterShopItemReward, CurrencyReward, CurrencyShopItemReward, EquipmentItemReward, EquipmentItemShopItemReward, Reward, RewardType, ShopItemRewardType, ShopItems, ShopItemUserCostType, ShopType } from "../../lib/types";
@@ -68,6 +68,17 @@ const routes = async (fastify: FastifyInstance) => {
             "error": "Bad Request",
             "message": "Shop item with specified id does not exist."
         })
+
+        // validate stock limit
+        if (shopItemData.stock !== undefined && shopItemData.stock > 0) {
+            const purchased = getPlayerShopPurchaseCountSync(playerId, shopItemId)
+            if (purchased + purchaseAmount > shopItemData.stock) {
+                return reply.status(400).send({
+                    "error": "Bad Request",
+                    "message": "Shop item purchase limit reached."
+                })
+            }
+        }
 
         // keep track of various stats
         const itemList: Record<string, number> = {}
@@ -190,6 +201,11 @@ const routes = async (fastify: FastifyInstance) => {
         // give rewards
         const rewardResult = givePlayerRewardsSync(playerId, rewards)
 
+        // record purchase for stock tracking
+        for (let i = 0; i < purchaseAmount; i++) {
+            addPlayerShopPurchaseSync(playerId, shopItemId)
+        }
+
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
             "data_headers": generateDataHeaders({
@@ -280,6 +296,9 @@ const routes = async (fastify: FastifyInstance) => {
         // parse shop items
         const salesList: Object[] = []
 
+        // Load purchase history for stock tracking
+        const purchasedMap = getPlayerShopPurchasesMapSync(playerId)
+
         let filteredCdnCount = 0
         const now: number = getServerDate().getTime()
         for (const [shopType, items] of Object.entries(toParseShopItems)) {
@@ -294,15 +313,18 @@ const routes = async (fastify: FastifyInstance) => {
                 }
 
                 if ((now >= from.getTime()) && (until === null || (until.getTime() > now))) {
+                    const purchased = purchasedMap[Number(itemId)] ?? 0
+                    const stock = item.stock
+                    const stockQuantity = stock !== undefined ? Math.max(0, stock - purchased) : -1
                     salesList.push({
                         "shop_item_id": Number(itemId),
-                        "stock_quantity": -1, // Change if you want a limited quantity of items. -1 = infinite.
-                        "today_purchase_num": 0,
-                        "this_month_purchase_num": 0,
-                        "total_purchase_num": 0,
+                        "stock_quantity": stockQuantity,
+                        "today_purchase_num": purchased,
+                        "this_month_purchase_num": purchased,
+                        "total_purchase_num": purchased,
                         "group_info": {
-                            "group_total_stock_quantity": -1,
-                            "group_total_purchase_num": 0,
+                            "group_total_stock_quantity": stockQuantity,
+                            "group_total_purchase_num": purchased,
                             "multi_stage": false
                         },
                         "shop_type": Number(shopType)

@@ -52,6 +52,8 @@
 | F1021 carnival score + party display | DB 表 + CDN 打分数据 + `single_battle_quest/finish` carnival_event 字段 |
 | F1022 party_slot 3000 → F1009 | 外传「体验队伍」标识，战斗结束后未被清回；修复为 1 恢复进游戏 |
 | F1023 getQuestSync 统一 BattleQuest 副作用 | 纯剧情关被客户端误判为战斗关，需 `clearRank: 5` 补充 |
+| F1024 quest/unlock H404 | `questUnlock.ts` 新增 stub 端点 |
+| F1025 事件商店购买限制 | `shop.ts` + `players_shop_purchases` 表：stock_quantity 真实库存 + /buy 校验上限 + 购买记录 |
 
 ## C3212 修复详解
 

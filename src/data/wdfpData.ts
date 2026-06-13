@@ -29,6 +29,7 @@ export { playerOwnsCharacterSync, getPlayerCharacterSync, getPlayerCharactersSyn
 import { insertPlayerCharactersSync, insertPlayerCharactersManaNodesSync } from "./domains/character";
 export { getPlayerQuestProgressSync, getPlayerSingleQuestProgressSync, insertPlayerQuestProgressSync, insertPlayerQuestProgressListSync, updatePlayerQuestProgressSync, getPlayerDrawnQuestsSync, insertPlayerDrawnQuestsSync } from "./domains/quest";
 import { insertPlayerDrawnQuestsSync, insertPlayerQuestProgressListSync } from "./domains/quest";
+export { getPlayerShopPurchasesSync, getPlayerShopPurchasesMapSync, getPlayerShopPurchaseCountSync, addPlayerShopPurchaseSync } from "./domains/shopPurchase";
 export { getPlayerCarnivalEventRecordsSync, getPlayerCarnivalEventRecordSync, upsertPlayerCarnivalEventRecordSync } from "./domains/carnivalEvent";
 export { getPlayerGachaInfoListSync, getPlayerGachaInfoSync, insertPlayerGachaInfoSync, insertPlayerGachaInfoListSync, updatePlayerGachaInfoSync, getPlayerGachaCampaignSync, getPlayerGachaCampaignListSync, insertPlayerGachaCampaignSync, insertPlayerGachaCampaignListSync, updatePlayerGachaCampaignSync } from "./domains/gacha";
 import { insertPlayerGachaInfoListSync, insertPlayerGachaCampaignListSync } from "./domains/gacha";

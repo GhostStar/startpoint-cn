@@ -410,4 +410,12 @@ export default function init(
         PRIMARY KEY (player_id, event_id, folder_id),
         FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
     )`).run()
+
+    database.prepare(`CREATE TABLE IF NOT EXISTS players_shop_purchases (
+        player_id INTEGER NOT NULL,
+        shop_item_id INTEGER NOT NULL,
+        count INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (player_id, shop_item_id),
+        FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
+    )`).run()
 }
