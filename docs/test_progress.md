@@ -10,7 +10,7 @@
 | 2 | 战阵之宴（Rush） | `rush_event_quest` | 110 | ✅ | ⬜ | ⏸️ 涉及联机，延后测试 |
 | 3 | Raid 活动 | `raid_event_quest` | 50 | ✅ | ⬜ | ⏸️ 联机多人，battle/start stub |
 | 4 | 练习战 | `practice_quest` | 21 | 🔧 | 🔧 | 云水试炼进入+结算通过；余下 4 试炼待测（共 5 试炼，复用同一网络请求） |
-| 5 | 分数挑战 | `score_attack_event_quest` | 123 | ⬜ | ⬜ | 含 BOSS 63 关；history/score_attack_event_battle 已实现 |
+| 5 | 分数挑战 | `score_attack_event_quest` | 123 | ✅ | ✅ | 进入+结算通过；⚠️ 无 scoreRewardGroup，仅首通 clearReward |
 | 6 | 剧情活动 | `story_event_single_quest` | 348 | ⬜ | ⬜ | 需活动开放期 |
 | 7 | 排名战 | `ranking_event_single_quest` | 7 | ✅ | ✅ | 测 2 个通过，走 single_battle_quest 通用流程 |
 | 8 | 专家挑战 | `expert_single_event_quest` | 28 | ⬜ | ⬜ | 高难单人 |
@@ -54,6 +54,10 @@
 | F1023 getQuestSync 统一 BattleQuest 副作用 | 纯剧情关被客户端误判为战斗关，需 `clearRank: 5` 补充 |
 | F1024 quest/unlock H404 | `questUnlock.ts` 新增 stub 端点 |
 | F1025 事件商店购买限制 | `shop.ts` + `players_shop_purchases` 表：stock_quantity 真实库存 + /buy 校验上限 + 购买记录 |
+| F1026 280 关 BOSS 掉落修复 | `boss_battle_quest.json` + `world_story_event_boss_battle_quest.json` 从 CDN col[70] 重新生成 scoreRewardGroup |
+| F1027 DROP_MULTIPLIER 可配置 | `.env` 中 `DROP_MULTIPLIER=10`（测试状态），`quest.ts` 默认 1；影响 ITEM/MANA/EXP 普通掉落 |
+| F1028 score_attack_event_quest 字段修复 | 转换脚本重写，rankTime/reward 字段正确提取，移除不存在的 scoreRewardGroup |
+| ⚠️ 已知缺口 | `rare_score_reward` 缺失组 10000091-10000093，导致机兵等 BOSS 稀有掉落为 0；需 Leiting 完整 CDN 数据补充 |
 
 ## C3212 修复详解
 

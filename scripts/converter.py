@@ -156,7 +156,7 @@ def convert_advent_quest(obj):
                     "name": "", #chapter[2],
                     "clearRewardId": int(chapter[4]),
                     "sPlusRewardId": 1,
-                    "scoreRewardGroup": int(chapter[74]),
+                    "scoreRewardGroup": int(chapter[70]),
                     "bRankTime": floor(float(chapter[88]) * 1000),
                     "aRankTime": floor(float(chapter[89]) * 1000),
                     "sRankTime": floor(float(chapter[90]) * 1000),
@@ -394,19 +394,32 @@ def convert_rush_event_quest(obj):
 
 def convert_score_attack_event_quest(obj):
     converted = {}
-    for _, quests in obj.items():
-        for _, quest in quests.items():
-            converted[quest[0]] = {
-                "name": "",
-                "bRankTime": 0,
-                "aRankTime": 0,
-                "sRankTime": 0,
-                "sPlusRankTime": 0,
-                "rankPointReward": 0,
-                "characterExpReward": 0,
-                "manaReward": 0,
-                "poolExpReward": 0
-            }
+    for _, folders in obj.items():
+        for _, wrapper in folders.items():
+            if isinstance(wrapper, list):
+                for quest in wrapper:
+                    if not isinstance(quest, list) or len(quest) < 90:
+                        continue
+                    qid = quest[0]
+                    # Boss-only quests (10xx) have no rank times
+                    if len(quest) <= 85 or quest[85] == '' or quest[85] == '(None)':
+                        converted[qid] = {
+                            "name": "",
+                            "clearRewardId": 1
+                        }
+                    else:
+                        converted[qid] = {
+                            "name": "",
+                            "clearRewardId": 1,
+                            "bRankTime": floor(float(quest[85]) * 1000),
+                            "aRankTime": floor(float(quest[86]) * 1000),
+                            "sRankTime": floor(float(quest[87]) * 1000),
+                            "sPlusRankTime": floor(float(quest[88]) * 1000),
+                            "rankPointReward": int(quest[92]) if len(quest) > 92 and quest[92] != '' else 0,
+                            "characterExpReward": int(quest[93]) if len(quest) > 93 and quest[93] != '' else 0,
+                            "manaReward": int(quest[94]) if len(quest) > 94 and quest[94] != '' else 0,
+                            "poolExpReward": int(quest[95]) if len(quest) > 95 and quest[95] != '' else 0
+                        }
     return converted 
 
 def convert_character_quests(obj):
