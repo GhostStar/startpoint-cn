@@ -6,7 +6,7 @@
 
 | # | 活动名称 | quest JSON | 关数 | 进入 | 结算 | 备注 |
 |---|------|------|:---:|:---:|:---:|------|
-| 1 | 嘉年华 | `carnival_event_quest` | 171 | ✅ | ✅ | 进入+结算通过；⚠️ 分数统计不显示、通关队伍不展示，待修复（见底部） |
+| 1 | 嘉年华 | `carnival_event_quest` | 171 | ✅ | ✅ | 配队独立存储 EVENT；分数统计+通关队伍显示正常 |
 | 2 | 战阵之宴（Rush） | `rush_event_quest` | 110 | ✅ | ⬜ | ⏸️ 涉及联机，延后测试 |
 | 3 | Raid 活动 | `raid_event_quest` | 50 | ✅ | ⬜ | ⏸️ 联机多人，battle/start stub |
 | 4 | 练习战 | `practice_quest` | 21 | 🔧 | 🔧 | 云水试炼进入+结算通过；余下 4 试炼待测（共 5 试炼，复用同一网络请求） |
@@ -46,29 +46,4 @@
 | F1015 scoreRewardGroup null 不可遍历 | `assets.ts:105` + `quest.ts:36` null 守卫，练习战结算不再崩溃 |
 | F1016 邮件 EQUIPMENT 已有装备 UNIQUE 冲突 | `mail.ts` 改用 `givePlayerEquipmentSync`，已有则加 stack |
 | F1017 邮件 type_id 超 Int 范围 C8700 | `web_api/mail.ts` 加 1~2^31-1 校验，`formatMailResponse` null 安全 |
-| F1018 episode_trial_reading/finish 404 | `cn-server.ts` 新增 stub 端点 |
-
-## 嘉年华（Carnival Event）已知问题
-
-### 已实现
-- `carnival_event/index` — 返回 EVENT 配队 + records
-- `carnival_event/get_party` — 返回 EVENT 配队
-- `single_battle_quest/finish` — 嘉年华关卡结算时计算分数（difficulty_score + time_bonus）并存 DB
-- 数据库表 `players_carnival_event_records`（player_id, event_id, folder_id, scores, character_ids）
-- CDN 数据提取 `assets/carnival_event_quest_scores.json`（171 条 quest 的 difficulty_score/time_limit）
-
-### 未工作
-- **主页评分始终为 0**：服务端返回 3 条 records（score/character_ids 正确），但客户端不显示
-- **通关队伍不展示**：previous_character_ids 已正确存储和返回
-
-### 已排除的原因
-- MsgPack uint32 编码（ce→d2 替换无效）
-- 分数截断 ≤65535（无效）
-- character_ids 全传 null（无效）
-- event_id 不匹配（log 确认客户端请求 event_id=250606，服务端匹配返回）
-
-### 待排查方向
-- 客户端可能需要 `carnival_event/finish` 等专用端点
-- 客户端可能需要 `carnival_event` 字段在 finish 响应的不同位置
-- 活动开放期检查（客户端可能在检测活动是否在 period 内）
-- folder_id 映射：CDN 数据按 event 分组，folder 1/2/3 是 boss 类型，7/8/9 是同一 boss 的 difficulty 3
+| F1019 carnival score + party display | 分数通过，清理存档后新嘉年华正常显示 |
