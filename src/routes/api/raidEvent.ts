@@ -152,8 +152,19 @@ const routes = async (fastify: FastifyInstance) => {
             "error": "Internal Server Error", "message": "No player bound to account."
         })
 
-        // Read from NORMAL party data (aligned with /party/edit which saves category=3)
-        const playerPartyGroups = getPlayerPartyGroupListSync(playerId, PartyCategory.NORMAL)
+        // Read from EVENT (dedicated party set), first time copy from NORMAL
+        let playerPartyGroups = getPlayerPartyGroupListSync(playerId, PartyCategory.EVENT)
+        if (Object.keys(playerPartyGroups).length === 0) {
+            console.log(`[RAID] party: no EVENT groups, copying from NORMAL`)
+            playerPartyGroups = getPlayerPartyGroupListSync(playerId, PartyCategory.NORMAL)
+            for (const group of Object.values(playerPartyGroups)) {
+                for (const party of Object.values(group.list)) {
+                    party.category = PartyCategory.EVENT
+                }
+                group.category = PartyCategory.EVENT
+            }
+            insertPlayerPartyGroupListSync(playerId, playerPartyGroups)
+        }
         const group1 = playerPartyGroups['1']
         const partyList: RushParty[] = []
 

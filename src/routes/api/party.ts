@@ -477,7 +477,7 @@ const routes = async (fastify: FastifyInstance) => {
                     abilitySoulIds: updateInfo.ability_soul_ids,
                     options: { allowOtherPlayersToHealMe: updateInfo.options.allow_other_players_to_heal_me },
                     edited: updateInfo.party_edited,
-                    category: updateInfo.party_category === 3 ? 1 : updateInfo.party_category
+                    category: updateInfo.party_category === 3 ? 4 : updateInfo.party_category
                 }
             )
         }

@@ -160,6 +160,7 @@ const routes = async (fastify: FastifyInstance) => {
         const boxId = body.box_id
         const pullCount = body.number
         const stopOnFeaturedRewards = body.stop_on_featured_rewards
+        console.log(`[BOX] exec: boxGachaId=${boxGachaId} boxId=${boxId} pullCount=${pullCount}`)
         if (isNaN(viewerId) || isNaN(boxGachaId) || isNaN(boxId) || isNaN(pullCount) || stopOnFeaturedRewards === undefined) return reply.status(400).send({
             "error": "Bad Request",
             "message": "Invalid request body."
@@ -333,6 +334,7 @@ const routes = async (fastify: FastifyInstance) => {
 
         const viewerId = body.viewer_id
         const boxGachaId = body.box_gacha_id
+        console.log(`[BOX] get_box_list: boxGachaId=${boxGachaId}`)
         if (isNaN(viewerId) || isNaN(boxGachaId)) return reply.status(400).send({
             "error": "Bad Request",
             "message": "Invalid request body."

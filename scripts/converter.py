@@ -387,6 +387,8 @@ def convert_raid_event_quest(obj):
                 "manaReward": int(quest[98]) if len(quest) > 98 and quest[98] not in ('', '(None)') else 0,
                 "poolExpReward": 0
             }
+            if len(quest) > 69 and quest[69] not in ('', '(None)'):
+                converted[quest[0]]["scoreRewardGroupId"] = int(quest[69])
     return converted 
 
 def convert_rush_event_quest(obj):
@@ -644,6 +646,7 @@ def convert_box_rewards(obj):
             converted_box = {}
             box_total_counts[str(gacha_id)][str(box_id)] = 0
             for _, reward in box.items():
+                reward = reward[0]  # extract inner array
                 converted_reward = {
                     "type": int(reward[2]),
                     "count": int(reward[4]),
@@ -662,10 +665,11 @@ def convert_box_rewards(obj):
 def convert_box_gacha(obj):
     converted = {}
     for gacha_id, gacha in obj.items():
+        gacha = gacha[0]  # extract inner array
         converted[gacha_id] = {
             "itemId": int(gacha[2]),
             "count": int(gacha[3]),
-            "availableCounts": box_total_counts[str(gacha_id)]
+            "availableCounts": box_total_counts.get(str(gacha_id), {})
         }
     return converted
 
