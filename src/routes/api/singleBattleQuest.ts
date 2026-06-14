@@ -146,7 +146,7 @@ const routes = async (fastify: FastifyInstance) => {
 
         // get active quest data
         const activeQuestData = activeQuests[playerId]
-        console.log(`[FINISH] req: playerId=${playerId} questId=${body.quest_id} category=${body.category} activeExists=${activeQuestData !== undefined}`)
+        console.log(`[FINISH] req: playerId=${playerId} questId=${body.quest_id} category=${body.category} activeExists=${activeQuestData !== undefined} multi=${activeQuestData?.isMulti ?? false}`)
         if (activeQuestData === undefined) return reply.status(400).send({
             "error": "Bad Request",
             "message": "No active quest to finish."

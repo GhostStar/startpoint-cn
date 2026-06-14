@@ -14,11 +14,14 @@ const ROOM_EXPIRY_MS = 10 * 60 * 1000;
 // Clean up expired rooms periodically
 function cleanExpiredRooms() {
     const now = Date.now();
+    let cleaned = 0;
     for (const [roomNumber, room] of rooms) {
         if (now - room.created_at > ROOM_EXPIRY_MS && room.raising_state <= 2) {
             rooms.delete(roomNumber);
+            cleaned++;
         }
     }
+    if (cleaned > 0) console.log(`[MULTI] expired rooms cleaned: ${cleaned}`);
 }
 setInterval(cleanExpiredRooms, 60_000);
 
@@ -103,9 +106,9 @@ function buildNpcMate(template: NpcMateTemplate): MultiMate {
 
 // Get NPC mates for a quest (returns 2 mates)
 export function getNpcMates(questId: number, category: QuestCategory): { mate1: MultiMate | null, mate2: MultiMate | null } {
-    // Always provide both NPC mates for solo multi play
     const mate1 = buildNpcMate(NPC_TEMPLATES["default_1"]);
     const mate2 = buildNpcMate(NPC_TEMPLATES["default_2"]);
+    console.log(`[MULTI] npc mates: quest=${questId} m1=${mate1?.com_id} m2=${mate2?.com_id}`);
     return { mate1, mate2 };
 }
 
@@ -141,12 +144,15 @@ export function createRoom(
         share_room_options: 0
     };
     rooms.set(roomNumber, room);
+    console.log(`[MULTI] room created: ${roomNumber} host=${hostViewerId} category=${category} quest=${questId}`);
     return room;
 }
 
 // Get room by room number
 export function getRoom(roomNumber: string): MultiRoom | undefined {
-    return rooms.get(roomNumber);
+    const room = rooms.get(roomNumber);
+    if (!room) console.log(`[MULTI] room not found: ${roomNumber}`);
+    return room;
 }
 
 // Get room by access token
@@ -172,6 +178,7 @@ export function getRooms(categoryId: number, eventId?: number): MultiRoom[] {
 export function updateRoomState(roomNumber: string, state: number): boolean {
     const room = rooms.get(roomNumber);
     if (!room) return false;
+    console.log(`[MULTI] room state: ${roomNumber} → ${state}`);
     room.raising_state = state;
     return true;
 }
@@ -183,7 +190,9 @@ export function setRoomBattle(roomNumber: string): boolean {
 
 // Disband/delete a room
 export function disbandRoom(roomNumber: string): boolean {
-    return rooms.delete(roomNumber);
+    const deleted = rooms.delete(roomNumber);
+    if (deleted) console.log(`[MULTI] room deleted: ${roomNumber}`);
+    return deleted;
 }
 
 // Update room host entry time

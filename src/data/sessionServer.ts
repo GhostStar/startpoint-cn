@@ -8,7 +8,8 @@
 //   MeetingServer2Client: Message=1, Messages=2, Error=0
 //   MeetingServerMessage: Welcome=0, Mates=1, StateChanged=2, Start=5, AckHeartbeat=10
 //   MeetingNotifyMessage: Enter=0, Bye=1, ChangeParty=2, Ready=3, Heartbeat=4,
-//                          StartBattle=5, Suspend=6, ChangeAutoplayMode=7, ChangeAutoStart=8
+//                          Suspend=5, StartBattle=6, ChangeAutoplayMode=7, ChangeAutoStart=8,
+//                          Log=9, EnterComs=10
 //   Client2Server: Notify=0, Broadcast=1, Send=2
 //   ReadyState: Preparation=0, Ready=1
 //   HandshakeResult: Accept=0, Denied=1, Reconnect=2, Exception=3, Complete=4
@@ -34,6 +35,11 @@ const roomClients = new Map<string, Set<string>>();
 let server: net.Server | null = null;
 const SESSION_PORT = parseInt(process.env.SESSION_PORT || "8003");
 const SESSION_HOST = process.env.SESSION_HOST || "0.0.0.0";
+
+// NPC recruit timing (env-configurable, defaults)
+const NPC_JOIN_DELAY_MS = parseInt(process.env.NPC_JOIN_DELAY_MS || "2000");
+const NPC_READY_DELAY_MS = parseInt(process.env.NPC_READY_DELAY_MS || "500");
+const HOST_READY_DELAY_MS = parseInt(process.env.NPC_HOST_READY_DELAY_MS || "500");
 
 function getAddress(client: SessionClient): string {
     return `${client.viewerId}@${client.roomNumber}`;
@@ -69,7 +75,8 @@ function removeClient(client: SessionClient) {
 function sendJson(socket: net.Socket, obj: any) {
     const json = JSON.stringify(obj);
     socket.write(json + "\0");
-    console.log(`[SESSION] sent to ${(socket as any).remoteAddress}:${(socket as any).remotePort}:`, json.substring(0, 150));
+    const tag = Array.isArray(obj) && Array.isArray(obj[1]) && Array.isArray(obj[1][1]) ? ` [1][${obj[1][0]}][N=${obj[1][1].length}]` : '';
+    console.log(`[SESSION] sent to ${(socket as any).remoteAddress}:${(socket as any).remotePort}${tag}:`, json.substring(0, 200));
 }
 
 function handleMessage(client: SessionClient, data: string) {
@@ -93,6 +100,8 @@ function handleClient2Server(client: SessionClient, msg: any[]) {
     switch (tag) {
         case 0: // Notify
             if (msg.length > 1 && Array.isArray(msg[1])) {
+                const notifyTag = msg[1][0]
+                console.log(`[SESSION] Notify tag=${notifyTag} from viewer=${client.viewerId}`)
                 handleNotify(client, msg[1]);
             }
             break;
@@ -124,7 +133,13 @@ function handleNotify(client: SessionClient, msg: any[]) {
             break;
 
         case 3: // Ready
-            sendJson(client.socket, [1, [2, String(client.viewerId), msg[1] ?? [0]]]);
+            console.log(`[SESSION] client ${client.viewerId} ready state=`, msg[1])
+            const mate = client.mates.find(m => m.viewerId === client.viewerId)
+            if (mate) {
+                mate.state = msg[1] ?? [1]
+                sendJson(client.socket, [1, [2, mate.connectionId, mate.state]])
+                console.log(`[SESSION] client ${client.viewerId} ready via cid=${mate.connectionId}`)
+            }
             break;
 
         case 1: // Bye
@@ -132,8 +147,24 @@ function handleNotify(client: SessionClient, msg: any[]) {
             disconnectClient(client);
             break;
 
-        case 6: // Suspend
+        case 6: // StartBattle (CN index 6)
+            console.log(`[SESSION] client ${client.viewerId} StartBattle, mates=${client.mates.length}`)
+            // Send Start(members) to all mates
+            sendJson(client.socket, [1, [5, client.mates]])
+            break;
+
+        case 5: // Suspend (CN index 5)
             console.log(`[SESSION] client ${client.viewerId} suspended`);
+            break;
+
+        case 9: // Log
+            console.log(`[SESSION] client ${client.viewerId} log:`, typeof msg[1] === 'string' ? (msg[1] as string).substring(0, 100) : msg[1]);
+            break;
+
+        case 10: // EnterComs (NPC recruitment)
+            const coms = msg[1] as any[]
+            console.log(`[SESSION] client ${client.viewerId} EnterComs: ${coms.length} NPCs`)
+            handleEnterComs(client, coms)
             break;
 
         case 7: // ChangeAutoplayMode
@@ -149,6 +180,89 @@ function handleNotify(client: SessionClient, msg: any[]) {
 function disconnectClient(client: SessionClient) {
     removeClient(client);
     try { client.socket.destroy(); } catch (e) {}
+}
+
+function handleEnterComs(client: SessionClient, coms: any[]) {
+    // Build NPC mate objects from client's EnterComs data
+    const npcMates: any[] = []
+    for (const com of coms) {
+        const comId = com.comId ?? com.com_id ?? 1
+        // Normalize party data: HTTP summon uses snake_case, TCP session needs camelCase for equipments
+        const party = com.party ?? { characters: [[1],[1],[1]], unison_characters: [[1],[1],[1]], equipments: [[1],[1],[1]], abilitySoulIds: [[1],[1],[1]] }
+        if (party.equipments) {
+            party.equipments = party.equipments.map((eq: any) => {
+                if (Array.isArray(eq) && eq[0] === 0 && eq[1]) {
+                    return [0, {
+                        equipmentId: eq[1].equipmentId ?? eq[1].equipment_id ?? 0,
+                        level: eq[1].level ?? 1,
+                        enhancementLevel: eq[1].enhancementLevel ?? eq[1].enhancement_level ?? 0
+                    }]
+                }
+                return eq
+            })
+        }
+        const mate = {
+            viewerId: -comId,  // negative IDs for NPCs
+            comId: comId,
+            name: com.name ?? `NPC${comId}`,
+            rank: com.rank ?? 80,
+            degreeId: com.degreeId ?? com.degree_id ?? 1,
+            playerRoleKind: 99,  // NPC marker
+            party: com.party ?? {
+                characters: [[1], [1], [1]],
+                unison_characters: [[1], [1], [1]],
+                equipments: [[1], [1], [1]],
+                abilitySoulIds: [[1], [1], [1]]
+            },
+            connectionId: `${client.roomNumber}-npc-${comId}`,  // unique per NPC
+            autoplayMode: false,
+            autoskillMode: 1,
+            autoSpeedLevel: 1,
+            autoStart: false,
+            skillAbilityBehaviorMode: 1,
+            dashBehaviorMode: 1,
+            allowHealFromOtherPlayers: true,
+            state: [0],
+            entryTime: Date.now(),
+            isNewbie: false,
+            isHost: false
+        }
+        npcMates.push(mate)
+    }
+
+    // Get current mates (host is client.mates[0])
+    const host = client.mates[0]
+    if (!host) {
+        console.log(`[SESSION] EnterComs error: no host mate found`)
+        return
+    }
+
+    // Update mates: [host, npc1, npc2, ...]
+    client.mates = [host, ...npcMates]
+    console.log(`[SESSION] EnterComs: room=${client.roomNumber} total mates=${client.mates.length}`)
+
+    // 1. Send Mates update after configured join delay (NPCs join, state=[0] Preparation)
+    setTimeout(() => {
+        sendJson(client.socket, [1, [1, client.mates]])
+        console.log(`[SESSION] EnterComs: NPCs joined room=${client.roomNumber} mates=${client.mates.length}`)
+    }, NPC_JOIN_DELAY_MS)
+
+    // 2. NPCs transition to Ready state
+    setTimeout(() => {
+        for (const npc of npcMates) {
+            npc.state = [1]
+            sendJson(client.socket, [1, [2, npc.connectionId, [1]]])
+            console.log(`[SESSION] NPC ready: cid=${npc.connectionId} name=${npc.name}`)
+        }
+    }, NPC_JOIN_DELAY_MS + NPC_READY_DELAY_MS)
+
+    // 3. Host auto-ready after NPCs
+    setTimeout(() => {
+        host.state = [1]
+        client.isReady = true
+        sendJson(client.socket, [1, [2, host.connectionId, [1]]])
+        console.log(`[SESSION] EnterComs: host auto-ready viewer=${client.viewerId} cid=${host.connectionId}`)
+    }, NPC_JOIN_DELAY_MS + NPC_READY_DELAY_MS + HOST_READY_DELAY_MS)
 }
 
 export function startSessionServer(): Promise<void> {
@@ -284,11 +398,15 @@ async function handleHandshake(socket: net.Socket, data: string, remoteAddr: str
     };
 
     addClient(client);
+    console.log(`[SESSION] client added: viewer=${viewerId} room=${roomNumber} (room total=${roomClients.get(roomNumber)?.size ?? 0})`);
 
     // Send Accept
+    console.log(`[SESSION] handshake OK viewer=${viewerId} room=${roomNumber} name=${playerName}`)
     sendJson(socket, [0, roomNumber, ""]);
 
-    // Build yourself from real DB data (using DB player name/rank/degreeId if available)
+    const hostConnectionId = `${roomNumber}-host`;
+
+    // Build yourself from real DB data
     const yourself = {
         viewerId: Number(viewerId),
         name: playerName,
@@ -300,7 +418,7 @@ async function handleHandshake(socket: net.Socket, data: string, remoteAddr: str
             [141005, 121002, 131004],
             [200005, 1010001, 2020001]
         ),
-        connectionId: String(roomNumber),
+        connectionId: hostConnectionId,
         autoplayMode: false,
         autoskillMode: 1,
         autoSpeedLevel: 1,

@@ -205,6 +205,7 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/get_rooms", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as GetRoomsBody
         const viewerId = body.viewer_id
+        console.log(`[MULTI] get_rooms body:`, JSON.stringify(body))
         if (!viewerId || isNaN(viewerId)) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid request body."
         })
@@ -224,6 +225,7 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/create_room", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as CreateRoomBody
         const { viewer_id, category, quest_id, party_id } = body
+        console.log(`[MULTI] create_room: viewer=${viewer_id} category=${category} quest=${quest_id} party=${party_id}`)
         const ctx = await getViewerIdAndPlayer(viewer_id)
         if (!ctx) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid viewer id or no player bound."
@@ -252,6 +254,7 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/search_room", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as SearchRoomBody
         const viewerId = body.viewer_id
+        console.log(`[MULTI] search_room: viewer=${viewerId} room=${body.room_number}`)
         if (!viewerId || isNaN(viewerId)) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid request body."
         })
@@ -279,6 +282,7 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/select_room", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as SelectRoomBody
         const viewerId = body.viewer_id
+        console.log(`[MULTI] select_room body:`, JSON.stringify(body))
         if (!viewerId || isNaN(viewerId)) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid request body."
         })
@@ -305,6 +309,7 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/prepare", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as PrepareBody
         const viewerId = body.viewer_id
+        console.log(`[MULTI] prepare: viewer=${viewerId} room=${body.room_number}`)
         if (!viewerId || isNaN(viewerId)) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid request body."
         })
@@ -332,18 +337,37 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/summon", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as SummonBody
         const viewerId = body.viewer_id
-        if (!viewerId || isNaN(viewerId)) return reply.status(400).send({
-            "error": "Bad Request", "message": "Invalid request body."
-        })
+        console.log(`[MULTI] summon body:`, JSON.stringify(body))
+        if (!viewerId || isNaN(viewerId)) {
+            console.log(`[MULTI] summon 400: invalid viewer_id=${viewerId}`)
+            return reply.status(400).send({
+                "error": "Bad Request", "message": "Invalid request body."
+            })
+        }
         const ctx = await getViewerIdAndPlayer(viewerId)
-        if (!ctx) return reply.status(400).send({
-            "error": "Bad Request", "message": "Invalid viewer id or no player bound."
-        })
+        if (!ctx) {
+            console.log(`[MULTI] summon 400: no player bound viewer=${viewerId}`)
+            return reply.status(400).send({
+                "error": "Bad Request", "message": "Invalid viewer id or no player bound."
+            })
+        }
 
-        const room = getRoom(body.room_number)
-        if (!room) return reply.status(400).send({
-            "error": "Bad Request", "message": "Room doesn't exist."
-        })
+        // Fallback: if room_number is empty, find room by host_viewer_id
+        let roomNumber: string = body.room_number
+        if (!roomNumber) {
+            roomNumber = getRooms(body.category_id, undefined).find(r => r.host_viewer_id === viewerId)?.room_number ?? ""
+            console.log(`[MULTI] summon fallback room=${roomNumber}`)
+        }
+
+        const room = getRoom(roomNumber)
+        if (!room) {
+            console.log(`[MULTI] summon 400: room not found room=${roomNumber} (body=${body.room_number})`)
+            return reply.status(400).send({
+                "error": "Bad Request", "message": "Room doesn't exist."
+            })
+        }
+
+        console.log(`[MULTI] summon: viewer=${viewerId} room=${body.room_number} quest=${body.quest_id}`)
 
         // Check if room has real players as mates, else fall back to NPCs
         const realMates = room.mates.filter(m => m.viewer_id !== null)
@@ -358,6 +382,7 @@ const routes = async (fastify: FastifyInstance) => {
         const npcMates = getNpcMates(body.quest_id, room.category)
         mate1 = npcMates.mate1
         mate2 = npcMates.mate2
+        console.log(`[MULTI] summon res: mate1=${mate1?.com_id} mate2=${mate2?.com_id}`)
 
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
@@ -373,6 +398,7 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/restore_room", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as RestoreRoomBody
         const viewerId = body.viewer_id
+        console.log(`[MULTI] restore_room: viewer=${viewerId} room=${body.room_number} seq=${body.room_sequence}`)
         if (!viewerId || isNaN(viewerId)) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid request body."
         })
@@ -409,9 +435,23 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/share_room", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as ShareRoomBody
         const viewerId = body.viewer_id
+        console.log(`[MULTI] share_room body:`, JSON.stringify(body))
+        console.log(`[MULTI] share_room: viewer=${viewerId} room=${body.room_number} shareTypes=${JSON.stringify(body.share_type_list)}`)
         if (!viewerId || isNaN(viewerId)) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid request body."
         })
+
+        // Fallback: if room_number is empty, find room by host_viewer_id
+        let roomNumber: string = body.room_number
+        if (!roomNumber) {
+            const rooms = getRooms(body.category, undefined)
+            const hostRoom = rooms.find(r => r.host_viewer_id === viewerId)
+            if (hostRoom) {
+                roomNumber = hostRoom.room_number
+                console.log(`[MULTI] share_room fallback: hostRoom=${roomNumber}`)
+            }
+        }
+
         const sid = await getSession(viewerId.toString())
         if (!sid) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid viewer id."
@@ -428,6 +468,7 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/verify_access_token", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as VerifyAccessTokenBody
         const viewerId = body.viewer_id
+        console.log(`[MULTI] verify_token: viewer=${viewerId}`)
         if (!viewerId || isNaN(viewerId)) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid request body."
         })
@@ -475,6 +516,7 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/micro_community", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as MicroCommunityBody
         const viewerId = body.viewer_id
+        console.log(`[MULTI] micro_community: viewer=${viewerId}`)
         if (!viewerId || isNaN(viewerId)) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid request body."
         })
@@ -498,6 +540,7 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/start", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as MultiStartBody
         const { viewer_id, quest_id, category, party_id, use_boost_point, use_boss_boost_point, is_auto_start_mode, room_number, mate_player_ids } = body
+        console.log(`[MULTI] start: viewer=${viewer_id} quest=${quest_id} category=${category} party=${party_id} room=${room_number}`)
 
         if (isNaN(viewer_id) || isNaN(party_id) || isNaN(quest_id) || isNaN(category) || use_boost_point === undefined || use_boss_boost_point === undefined || is_auto_start_mode === undefined) {
             return reply.status(400).send({
@@ -564,6 +607,7 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/finish", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as MultiFinishBody
         const viewerId = body.viewer_id
+        console.log(`[MULTI] finish: viewer=${viewerId} quest=${body.quest_id} category=${body.category} accomplished=${body.is_accomplished}`)
         if (!viewerId || isNaN(viewerId)) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid request body."
         })
@@ -835,6 +879,7 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/abort", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as MultiAbortBody
         const viewerId = body.viewer_id
+        console.log(`[MULTI] abort: viewer=${viewerId} quest=${body.quest_id} category=${body.category}`)
         if (isNaN(viewerId)) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid request body."
         })
@@ -878,6 +923,7 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/play_continue", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as PlayContinueBody
         const viewerId = body.viewer_id
+        console.log(`[MULTI] play_continue: viewer=${viewerId} quest=${body.quest_id} category=${body.category}`)
         if (isNaN(viewerId)) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid request body."
         })

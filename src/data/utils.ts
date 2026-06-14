@@ -374,6 +374,7 @@ export function serializePlayerData(
         }),
         "associate_token": "associate_token",
         "config": {
+            "summon_com_seconds": parseInt(process.env.SUMMON_COM_SECONDS || "5"),
             "attention_recruitment_interval_seconds": 15,
             "attention_recruitment_redeliver_limit": 20,
             "attention_polling_interval_seconds_normal": 10,
