@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { deletePlayerRushEventPlayedPartyListSync, getPlayerItemSync, getPlayerRushEventPlayedPartiesSync, getPlayerRushEventSync, getPlayerSingleQuestProgressSync, getPlayerSync, getSession, insertPlayerQuestProgressSync, insertPlayerRushEventClearedFolderSync, insertPlayerRushEventPlayedPartySync, updatePlayerEquipmentSync, updatePlayerItemSync, updatePlayerQuestProgressSync, updatePlayerRushEventSync, updatePlayerSync, upsertPlayerCarnivalEventRecordSync } from "../../data/wdfpData";
+import { deletePlayerRushEventPlayedPartyListSync, getPlayerItemSync, getPlayerRushEventPlayedPartiesSync, getPlayerRushEventSync, getPlayerSingleQuestProgressSync, getPlayerSync, getSession, givePlayerItemSync, insertPlayerQuestProgressSync, insertPlayerRushEventClearedFolderSync, insertPlayerRushEventPlayedPartySync, updatePlayerEquipmentSync, updatePlayerItemSync, updatePlayerQuestProgressSync, updatePlayerRushEventSync, updatePlayerSync, upsertPlayerCarnivalEventRecordSync } from "../../data/wdfpData";
 import { getQuestFromCategorySync, getRushEventFolderClearRewards } from "../../lib/assets";
 import { getCharactersEvolutionImgLevels, givePlayerCharactersExpSync } from "../../lib/character";
 import { givePlayerRewardsSync, givePlayerRewardSync, givePlayerScoreRewardsSync } from "../../lib/quest";
@@ -11,6 +11,7 @@ import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { readFileSync, existsSync } from "fs";
 import path from "path";
 import questEntryCosts from "../../../assets/quest_entry_costs.json";
+import scoreAttackBorderRewards from "../../../assets/score_attack_border_reward.json";
 
 // Load carnival quest score data
 let carnivalScoreLookup: Record<string, { difficulty_score: number, time_limit_ms: number, folder_id: number, event_id: number }> = {}
@@ -85,7 +86,13 @@ interface ReturnRushEvent {
     }[],
     rush_battle_played_party_list: Record<number, UserRushEventPlayedParty> | null,
     endless_battle_played_party_list: Record<number, UserRushEventPlayedParty> | null,
-    is_out_of_period: boolean
+    is_out_of_period: boolean,
+    endless_battle_next_round: number | null,
+    endless_battle_max_round: number | null,
+    high_score: number | null,
+    best_elapsed_time_ms: number | null,
+    old_endless_battle_max_round: number | null,
+    old_best_elapsed_time_ms: number | null
 }
 
 export interface ActiveQuest {
@@ -142,7 +149,6 @@ const routes = async (fastify: FastifyInstance) => {
             "message": "No active quest to finish."
         })
 
-        // get quest data
         const questCategory = activeQuestData.category
         const questId = activeQuestData.questId
         const questData = getQuestFromCategorySync(questCategory, questId) as BattleQuest | null
@@ -182,7 +188,19 @@ const routes = async (fastify: FastifyInstance) => {
         // check current quest progress
         const questProgress = getPlayerSingleQuestProgressSync(playerId, questCategory, questId);
         const questPreviouslyCompleted = questProgress !== null
-        const questAccomplished = body.is_accomplished
+
+        // Score attack: accomplished determined by border reward minimum tier (from CDN)
+        let questAccomplished = body.is_accomplished
+        if (questCategory === QuestCategory.SCORE_ATTACK_EVENT) {
+            const eventId = questData.eventId
+            const folderId = questData.folderId
+            if (eventId !== undefined && folderId !== undefined) {
+                const borderTiers = (scoreAttackBorderRewards as Record<string, {score: number}[]>)[`${eventId}_${folderId}`]
+                if (borderTiers && borderTiers.length > 0) {
+                    questAccomplished = body.score >= borderTiers[0].score
+                }
+            }
+        }
 
         const clearReward = !questPreviouslyCompleted && questData.clearReward !== undefined ? givePlayerRewardSync(playerId, questData.clearReward) : null
         const sPlusClearReward = (clearRank === 5) && (questProgress?.clearRank !== 5) && (questData.sPlusReward !== undefined) ? givePlayerRewardSync(playerId, questData.sPlusReward) : null
@@ -224,8 +242,48 @@ const routes = async (fastify: FastifyInstance) => {
         })
 
         // reward score rewards
+        if (questCategory === QuestCategory.SCORE_ATTACK_EVENT) {
+            console.log(`[SCORE_ATTACK] questId=${questId} body={score:${body.score}, elapsed:${body.elapsed_time_ms}, accomplished:${body.is_accomplished}, addMana:${body.add_mana}, continue:${body.continue_count}}`)
+            console.log(`[SCORE_ATTACK] questData={groupId:${questData.scoreRewardGroupId}, groupLen:${questData.scoreRewardGroup?.length ?? 'null'}, bRank:${questData.bRankTime}, aRank:${questData.aRankTime}, sRank:${questData.sRankTime}, sPlus:${questData.sPlusRankTime}, rankPt:${questData.rankPointReward}, charExp:${questData.characterExpReward}, mana:${questData.manaReward}, poolExp:${questData.poolExpReward}, clearReward:${questData.clearReward?.id ?? 'none'}}`)
+        }
         console.log(`[BATTLE] scoreReward groupId=${questData.scoreRewardGroupId} groupLen=${questData.scoreRewardGroup?.length ?? 'null'} questId=${questId} category=${questCategory}`)
         const scoreRewardsResult = givePlayerScoreRewardsSync(playerId, questData.scoreRewardGroupId, questData.scoreRewardGroup, useBoostPoint)
+        let scoreAttackRewardIds: number[] = []
+        if (questCategory === QuestCategory.SCORE_ATTACK_EVENT) {
+            // Look up border rewards for score attack events
+            const eventId = questData.eventId
+            const folderId = questData.folderId
+            if (eventId !== undefined && folderId !== undefined) {
+                const borderKey = `${eventId}_${folderId}`
+                const borderTiers = (scoreAttackBorderRewards as Record<string, {score: number, rewardItemId: number, rewardCount: number, coinItemId: number, coinCount: number}[]>)[borderKey]
+                if (borderTiers) {
+                    // Find highest tier the player's score qualifies for
+                    let matched: typeof borderTiers[0] | null = null
+                    for (const tier of borderTiers) {
+                        if (body.score >= tier.score) {
+                            matched = tier
+                        }
+                    }
+                    if (matched) {
+                        console.log(`[SCORE_ATTACK] borderReward matched: score=${body.score} tierScore=${matched.score} rewardItem=${matched.rewardItemId} coinItem=${matched.coinItemId}x${matched.coinCount}`)
+                        // Give reward item
+                        if (matched.rewardItemId > 0 && matched.rewardCount > 0) {
+                            givePlayerItemSync(playerId, matched.rewardItemId, matched.rewardCount)
+                            scoreRewardsResult.items[String(matched.rewardItemId)] = (scoreRewardsResult.items[String(matched.rewardItemId)] ?? 0) + matched.rewardCount
+                            scoreAttackRewardIds.push(matched.rewardItemId)
+                        }
+                        // Give coin item
+                        if (matched.coinItemId > 0 && matched.coinCount > 0) {
+                            givePlayerItemSync(playerId, matched.coinItemId, matched.coinCount)
+                            scoreRewardsResult.items[String(matched.coinItemId)] = (scoreRewardsResult.items[String(matched.coinItemId)] ?? 0) + matched.coinCount
+                            scoreAttackRewardIds.push(matched.coinItemId)
+                        }
+                    }
+                }
+            }
+            console.log(`[SCORE_ATTACK] afterReward: dropIds=${JSON.stringify(scoreRewardsResult.drop_score_reward_ids)}, drops=${scoreRewardsResult.drop_score_reward_ids.length}, items=${JSON.stringify(scoreRewardsResult.items)}, equipList=${scoreRewardsResult.equipment_list?.length ?? 0}`)
+            console.log(`[SCORE_ATTACK] response: accomplished=${questAccomplished}, clearRank=${clearRank}, score=${body.score}, elapsed=${body.elapsed_time_ms}, items=${JSON.stringify(scoreRewardsResult.items)}, clientCategory=${questCategory}`)
+        }
 
         // reward character exp
         const bodyPartyStatistics = body.statistics.party
@@ -273,6 +331,12 @@ const routes = async (fastify: FastifyInstance) => {
                 let round: number = questId
 
                 // update endless battle stats
+                let oldEndlessMaxRound: number | null = null
+                let oldBestElapsedTimeMs: number | null = null
+                let newEndlessMaxRound: number | null = null
+                let newEndlessNextRound: number | null = null
+                let newBestElapsedTimeMs: number | null = null
+
                 if (rushEventBattleType === RushEventBattleType.ENDLESS) {
                     // get player rush event data
                     const playerRushEventData = getPlayerRushEventSync(playerId, rushEventId)
@@ -282,7 +346,12 @@ const routes = async (fastify: FastifyInstance) => {
                     const playerBestClearTime = playerRushEventData?.endlessBattleMaxRoundTime ?? Number.MAX_SAFE_INTEGER
                     round = playerNextRound
 
-                    if ((playerNextRound >= playerMaxRound && playerBestClearTime >= clearTime) || (playerNextRound > playerMaxRound)) {
+                    // Capture old values before update
+                    oldEndlessMaxRound = playerMaxRound
+                    oldBestElapsedTimeMs = playerBestClearTime < Number.MAX_SAFE_INTEGER ? playerBestClearTime : null
+
+                    const isNewRecord = (playerNextRound >= playerMaxRound && playerBestClearTime >= clearTime) || (playerNextRound > playerMaxRound)
+                    if (isNewRecord) {
                         updatePlayerRushEventSync(playerId, {
                             eventId: rushEventId,
                             endlessBattleMaxRound: playerNextRound,
@@ -290,8 +359,13 @@ const routes = async (fastify: FastifyInstance) => {
                             endlessBattleMaxRoundCharacterIds: characterIds,
                             endlessBattleMaxRoundCharacterEvolutionImgLvls: evolutionImgLevels
                         })
+                        newEndlessMaxRound = playerNextRound
+                        newBestElapsedTimeMs = clearTime
+                    } else {
+                        newEndlessMaxRound = playerMaxRound
+                        newBestElapsedTimeMs = playerBestClearTime < Number.MAX_SAFE_INTEGER ? playerBestClearTime : null
                     }
-                    
+                    newEndlessNextRound = playerNextRound + 1
                 } else if (rushEventBattleType === RushEventBattleType.FOLDER && (rushEventRound >= (rushEventFolderMaxRounds[rushEventFolderId] ?? 0))) {
                     // mark folder as complete since this is the final round
                     insertPlayerRushEventClearedFolderSync(playerId, rushEventId, rushEventFolderId)
@@ -320,11 +394,18 @@ const routes = async (fastify: FastifyInstance) => {
                 const serializedPlayedParties = getSerializedPlayerRushEventPlayedPartiesSync(playerId, rushEventId)
 
                 // set rush event data
+                const isEndless = rushEventBattleType === RushEventBattleType.ENDLESS
                 rushEventData = {
                     "rush_battle_reward_list": [],
                     "rush_battle_played_party_list": serializedPlayedParties.folderParties,
                     "endless_battle_played_party_list": serializedPlayedParties.endlessParties,
-                    "is_out_of_period": false
+                    "is_out_of_period": false,
+                    "endless_battle_next_round": isEndless ? newEndlessNextRound : null,
+                    "endless_battle_max_round": isEndless ? newEndlessMaxRound : null,
+                    "high_score": isEndless ? clearTime : null,
+                    "best_elapsed_time_ms": isEndless ? newBestElapsedTimeMs : null,
+                    "old_endless_battle_max_round": isEndless ? oldEndlessMaxRound : null,
+                    "old_best_elapsed_time_ms": isEndless ? oldBestElapsedTimeMs : null
                 }
 
                 // give rewards if allowed
@@ -426,7 +507,7 @@ const routes = async (fastify: FastifyInstance) => {
                 "drop_additional_reward_ids": [],
                 "drop_periodic_reward_ids": [],
                 "equipment_list": scoreRewardsResult.equipment_list,
-                "category_id": questCategory,
+                "category_id": body.category,
                 "start_time": dataHeaders['servertime'],
                 "is_multi": "single",
                 "quest_name": "",
@@ -440,6 +521,7 @@ const routes = async (fastify: FastifyInstance) => {
                 "presigned_quest_category": []
             }
         })
+
     })
 
     fastify.post("/abort", async (request: FastifyRequest, reply: FastifyReply) => {

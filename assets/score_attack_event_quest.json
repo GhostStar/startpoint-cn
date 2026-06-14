@@ -2,6 +2,7 @@
     "1101": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -9,11 +10,15 @@
         "rankPointReward": 25,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1102": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -21,11 +26,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1103": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -33,11 +42,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1104": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -45,11 +58,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1105": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -57,11 +74,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1106": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -69,11 +90,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1107": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -81,11 +106,15 @@
         "rankPointReward": 1,
         "characterExpReward": 0,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1108": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -93,11 +122,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1109": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -105,11 +138,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1110": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -117,11 +154,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1111": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -129,11 +170,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1112": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -141,11 +186,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1113": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -153,11 +202,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1114": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -165,11 +218,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1115": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -177,11 +234,15 @@
         "rankPointReward": 200,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1116": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -189,11 +250,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1117": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -201,11 +266,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1118": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -213,11 +282,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1119": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -225,11 +298,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1120": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -237,11 +314,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1121": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -249,11 +330,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1122": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -261,11 +346,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1123": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -273,11 +362,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1124": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -285,11 +378,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1125": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -297,11 +394,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1126": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -309,11 +410,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1127": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -321,11 +426,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1128": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -333,11 +442,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 2
+        "poolExpReward": 2,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1129": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -345,11 +458,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1130": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -357,11 +474,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1131": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -369,11 +490,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1132": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -381,11 +506,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1133": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -393,11 +522,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1134": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -405,11 +538,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1135": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -417,11 +554,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1136": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -429,11 +570,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1137": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -441,11 +586,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1138": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -453,11 +602,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1139": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -465,11 +618,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1140": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -477,11 +634,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1141": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -489,11 +650,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1142": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -501,11 +666,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1143": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -513,11 +682,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 2
+        "poolExpReward": 2,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1144": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -525,11 +698,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1145": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -537,11 +714,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1146": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -549,11 +730,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1147": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -561,11 +746,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1148": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -573,11 +762,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1149": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -585,11 +778,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1150": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -597,11 +794,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1151": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -609,11 +810,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1152": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -621,11 +826,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1153": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -633,11 +842,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1154": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -645,11 +858,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1155": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -657,11 +874,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1156": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -669,11 +890,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1157": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -681,11 +906,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 2
+        "poolExpReward": 2,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1158": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -693,11 +922,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 3
+        "poolExpReward": 3,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1159": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -705,11 +938,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1160": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -717,11 +954,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1161": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -729,11 +970,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1162": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -741,11 +986,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1163": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -753,11 +1002,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1058": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -765,11 +1018,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 3
+        "poolExpReward": 3,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1059": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -777,11 +1034,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1060": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -789,11 +1050,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1055": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -801,11 +1066,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1056": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -813,11 +1082,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1057": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -825,11 +1098,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 2
+        "poolExpReward": 2,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1052": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -837,11 +1114,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1053": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -849,11 +1130,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1054": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -861,11 +1146,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1049": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -873,11 +1162,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1050": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -885,11 +1178,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1051": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -897,11 +1194,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1046": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -909,11 +1210,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1047": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -921,11 +1226,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1048": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -933,11 +1242,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1043": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -945,11 +1258,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 2
+        "poolExpReward": 2,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1044": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -957,11 +1274,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1045": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -969,11 +1290,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1040": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -981,11 +1306,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1041": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -993,11 +1322,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1042": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1005,11 +1338,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1037": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1017,11 +1354,15 @@
         "rankPointReward": 1,
         "characterExpReward": 0,
         "manaReward": 0,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1038": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1029,11 +1370,15 @@
         "rankPointReward": 1,
         "characterExpReward": 0,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1039": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1041,11 +1386,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1034": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1053,11 +1402,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1035": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1065,11 +1418,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1036": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1077,11 +1434,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1031": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1089,11 +1450,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1032": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1101,11 +1466,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1033": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1113,11 +1482,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1028": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1125,11 +1498,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 2
+        "poolExpReward": 2,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1029": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1137,11 +1514,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1030": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1149,11 +1530,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1025": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1161,11 +1546,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1026": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1173,11 +1562,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1027": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1185,11 +1578,15 @@
         "rankPointReward": 1,
         "characterExpReward": 0,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1022": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1197,11 +1594,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 0,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1023": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1209,11 +1610,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1024": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1221,11 +1626,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1019": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1233,11 +1642,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1020": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1245,11 +1658,15 @@
         "rankPointReward": 1,
         "characterExpReward": 0,
         "manaReward": 0,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1021": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1257,11 +1674,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1016": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1269,11 +1690,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1017": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1281,11 +1706,15 @@
         "rankPointReward": 1,
         "characterExpReward": 0,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1018": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1293,11 +1722,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1013": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1305,11 +1738,15 @@
         "rankPointReward": 1,
         "characterExpReward": 0,
         "manaReward": 0,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1014": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1317,11 +1754,15 @@
         "rankPointReward": 1,
         "characterExpReward": 0,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1015": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1329,11 +1770,15 @@
         "rankPointReward": 200,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 4,
+        "folderId": 4,
+        "eventId": 1
     },
     "1010": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1341,11 +1786,15 @@
         "rankPointReward": 1,
         "characterExpReward": 0,
         "manaReward": 0,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1011": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1353,11 +1802,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1012": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1365,11 +1818,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1007": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1377,11 +1834,15 @@
         "rankPointReward": 1,
         "characterExpReward": 0,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1008": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1389,11 +1850,15 @@
         "rankPointReward": 1,
         "characterExpReward": 0,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1009": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1401,11 +1866,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1004": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1413,11 +1882,15 @@
         "rankPointReward": 1,
         "characterExpReward": 0,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 0,
+        "folderId": 0,
+        "eventId": 1
     },
     "1005": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1425,11 +1898,15 @@
         "rankPointReward": 1,
         "characterExpReward": 0,
         "manaReward": 0,
-        "poolExpReward": 0
+        "poolExpReward": 0,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     },
     "1006": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1437,11 +1914,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 5,
+        "folderId": 5,
+        "eventId": 1
     },
     "1001": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1449,11 +1930,15 @@
         "rankPointReward": 25,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 1,
+        "folderId": 1,
+        "eventId": 1
     },
     "1002": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1461,11 +1946,15 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 2,
+        "folderId": 2,
+        "eventId": 1
     },
     "1003": {
         "name": "",
         "clearRewardId": 1,
+        "sPlusRewardId": 1,
         "bRankTime": 6000,
         "aRankTime": 10000,
         "sRankTime": 15000,
@@ -1473,6 +1962,9 @@
         "rankPointReward": 1,
         "characterExpReward": 1,
         "manaReward": 1,
-        "poolExpReward": 1
+        "poolExpReward": 1,
+        "scoreRewardGroupId": 3,
+        "folderId": 3,
+        "eventId": 1
     }
 }

@@ -409,8 +409,8 @@ def convert_rush_event_quest(obj):
 
 def convert_score_attack_event_quest(obj):
     converted = {}
-    for _, folders in obj.items():
-        for _, wrapper in folders.items():
+    for event_id, folders in obj.items():
+        for folder_id, wrapper in folders.items():
             if isinstance(wrapper, list):
                 for quest in wrapper:
                     if not isinstance(quest, list) or len(quest) < 90:
@@ -426,6 +426,7 @@ def convert_score_attack_event_quest(obj):
                         converted[qid] = {
                             "name": "",
                             "clearRewardId": 1,
+                            "sPlusRewardId": 1,
                             "bRankTime": floor(float(quest[85]) * 1000),
                             "aRankTime": floor(float(quest[86]) * 1000),
                             "sRankTime": floor(float(quest[87]) * 1000),
@@ -435,7 +436,43 @@ def convert_score_attack_event_quest(obj):
                             "manaReward": int(float(quest[94])) if len(quest) > 94 and quest[94] != '' else 0,
                             "poolExpReward": int(float(quest[95])) if len(quest) > 95 and quest[95] != '' else 0
                         }
-    return converted 
+                        if len(quest) > 70 and quest[70] != '' and quest[70] != '(None)':
+                            converted[qid]["scoreRewardGroupId"] = int(quest[70])
+                            converted[qid]["folderId"] = int(quest[70])
+                        converted[qid]["eventId"] = int(event_id)
+    return converted
+
+def convert_score_attack_border_reward(obj):
+    """Maps (event_id, folder_id) → [{score, reward_item_id, reward_count, coin_item_id, coin_count}] sorted by score ascending."""
+    lookup = {}
+    for _, entries in obj.items():
+        if not isinstance(entries, list) or not entries:
+            continue
+        row = entries[0]
+        event_id = row[1]
+        folder_id = row[2]
+        try:
+            score = int(float(str(row[4])))
+        except:
+            score = 0
+        reward_item_id = int(row[5]) if row[5] else 0
+        coin_item_id = int(row[7]) if row[7] and row[7] != '(None)' else 0
+        coin_count = int(row[8]) if row[8] and row[8] != '(None)' else 0
+        tier = {
+            'score': score,
+            'rewardItemId': reward_item_id,
+            'rewardCount': 1,
+            'coinItemId': coin_item_id,
+            'coinCount': coin_count
+        }
+        key = f'{event_id}_{folder_id}'
+        if key not in lookup:
+            lookup[key] = []
+        lookup[key].append(tier)
+    # Sort each key's tiers by score ascending (lowest score threshold first)
+    for key in lookup:
+        lookup[key].sort(key=lambda t: t['score'])
+    return lookup
 
 def convert_character_quests(obj):
     converted = {}
@@ -1098,6 +1135,7 @@ to_convert_files = {
     "rush_event_quest": convert_rush_event_quest,
     "raid_event_quest": convert_raid_event_quest,
     "score_attack_event_quest": convert_score_attack_event_quest,
+    "score_attack_border_reward": convert_score_attack_border_reward,
     "box_reward": convert_box_rewards,
     "box_gacha": convert_box_gacha,
     "gacha": convert_gacha,
