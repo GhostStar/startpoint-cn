@@ -159,6 +159,34 @@ function handleNotify(client: SessionClient, msg: any[]) {
 
         case 2: // ChangeParty
             console.log(`[SESSION] client ${client.viewerId} changed party`);
+            // Rebuild host party from ChangeParty data
+            const pd = msg[1]
+            if (pd?.party && client.mates[0] && pd.currentPartyId !== undefined) {
+                const host = client.mates[0]
+                // Extract IDs: characters → .id, equipment → .equipmentId, souls → bare number
+                const getOptVal = (arr: any) => (Array.isArray(arr) && arr[0] === 0 && arr[1]) ? arr[1] : null
+                const getCharIds = (arr: any) => Array.isArray(arr) ? arr.map((c: any) => { const v = getOptVal(c); return v?.id ?? null }) : []
+                const getEquipIds = (arr: any) => Array.isArray(arr) ? arr.map((e: any) => { const v = getOptVal(e); return v?.equipmentId ?? null }) : []
+                const getSoulIds = (arr: any) => Array.isArray(arr) ? arr.map((s: any) => { const v = getOptVal(s); return v ?? null }) : []
+                const charIds = getCharIds(pd.party.characters)
+                const unisonIds = getCharIds(pd.party.unison_characters)
+                const equipIds = getEquipIds(pd.party.equipments)
+                const soulIds = getSoulIds(pd.party.abilitySoulIds)
+                const newParty: PlayerParty = {
+                    name: pd.name ?? host.name,
+                    characterIds: [charIds[0] ?? null, charIds[1] ?? null, charIds[2] ?? null],
+                    unisonCharacterIds: [unisonIds[0] ?? null, unisonIds[1] ?? null, unisonIds[2] ?? null],
+                    equipmentIds: [equipIds[0] ?? null, equipIds[1] ?? null, equipIds[2] ?? null],
+                    abilitySoulIds: [soulIds[0] ?? null, soulIds[1] ?? null, soulIds[2] ?? null],
+                    edited: true,
+                    options: { allowOtherPlayersToHealMe: true },
+                    category: PartyCategory.NORMAL
+                }
+                host.party = buildRealParty(client.playerId!, newParty)
+                host.currentPartyId = pd.currentPartyId
+                console.log(`[SESSION] party changed: partyId=${pd.currentPartyId} chars=${charIds.filter(Boolean)}`)
+                sendJson(client.socket, [1, [1, client.mates]])
+            }
             break;
 
         case 3: // Ready
@@ -402,7 +430,7 @@ function buildRealParty(playerId: number, party: PlayerParty): any {
         if (!charId) return [1]  // Option None
         const dbChar = getPlayerCharacterSync(playerId, charId)
         if (!dbChar) return [1]
-        // mana nodes: keep empty for TCP mate — client reads from /load response
+        // mana nodes: intentionally empty — CN client GeneralManaNodeLogic CDN lookup incompatible
         const manaNodeIds: number[] = []
         // ex boost from DB
         let exBoost: any = [1]
@@ -570,7 +598,7 @@ async function handleHandshake(socket: net.Socket, data: string, remoteAddr: str
         entryTime: Date.now(),
         isNewbie: playerIsNewbie,
         isHost: true,
-        currentPartyId: 1
+        currentPartyId: playerPartySlot
     };
 
     // Welcome(self, [self]) — room with host only (avoids C15202)
