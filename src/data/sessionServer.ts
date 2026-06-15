@@ -19,6 +19,7 @@ import { MultiRoom } from "../lib/types";
 import { disbandRoom } from "./multiRoom";
 import { getSession, getAccountPlayers, getPlayerSync, getPlayerPartyGroupListSync, getPlayerCharacterSync, getPlayerEquipmentSync } from "./wdfpData";
 import { PartyCategory, PlayerParty, PlayerCharacter, PlayerEquipment } from "./types";
+import playerRankTable from "../../../wf-assets-cn/orderedmap/player/player_rank.json";
 
 interface SessionClient {
     socket: net.Socket;
@@ -43,6 +44,16 @@ const SESSION_HOST = process.env.SESSION_HOST || "0.0.0.0";
 const NPC_JOIN_DELAY_MS = parseInt(process.env.NPC_JOIN_DELAY_MS || "2000");
 const NPC_READY_DELAY_MS = parseInt(process.env.NPC_READY_DELAY_MS || "500");
 const HOST_READY_DELAY_MS = parseInt(process.env.NPC_HOST_READY_DELAY_MS || "500");
+
+// Calculate rank level from rankPoint using CDN threshold table
+function getRankLevel(rankPoint: number): number {
+    let level = 1
+    for (const [lvl, data] of Object.entries(playerRankTable as Record<string, any>)) {
+        const threshold = parseInt(data[0][1])
+        if (rankPoint >= threshold) level = parseInt(lvl)
+    }
+    return level
+}
 
 function getAddress(client: SessionClient): string {
     return `${client.viewerId}@${client.roomNumber}`;
@@ -298,8 +309,8 @@ function handleEnterComs(client: SessionClient, coms: any[]) {
             viewerId: 900000000 + comId,  // dummy positive IDs for NPC finish validation
             comId: comId,
             name: coms[i]?.name ?? `NPC${comId}`,
-            rank: coms[i]?.rank ?? 80,
-            degreeId: coms[i]?.degree_id ?? 1,
+            rank: host.rank,  // use host's rank level
+            degreeId: host.degreeId,  // use host's degree
             playerRoleKind: 99,
             party: party,
             connectionId: `${client.roomNumber}-npc-${comId}`,
@@ -430,7 +441,7 @@ function buildRealParty(playerId: number, party: PlayerParty): any {
         if (!charId) return [1]  // Option None
         const dbChar = getPlayerCharacterSync(playerId, charId)
         if (!dbChar) return [1]
-        // mana nodes: intentionally empty — CN client GeneralManaNodeLogic CDN lookup incompatible
+        // mana nodes: intentionally empty — CN client CDN ManaNodeTable lookup incompatible
         const manaNodeIds: number[] = []
         // ex boost from DB
         let exBoost: any = [1]
@@ -525,7 +536,7 @@ async function handleHandshake(socket: net.Socket, data: string, remoteAddr: str
                 const player = getPlayerSync(playerIds[0]);
                 if (player) {
                     playerName = player.name || playerName;
-					playerRank = 1;  // TODO: CN rank level calculation from CDN thresholds
+					playerRank = getRankLevel(player.rankPoint || 0);
                     playerDegreeId = player.degreeId || playerDegreeId;
                     playerRoleKind = player.role || playerRoleKind;
                     playerIsNewbie = !!player.tutorialStep;
