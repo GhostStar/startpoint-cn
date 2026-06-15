@@ -17,7 +17,8 @@
 import * as net from "net";
 import { MultiRoom } from "../lib/types";
 import { disbandRoom } from "./multiRoom";
-import { getSession, getAccountPlayers, getPlayerSync } from "./wdfpData";
+import { getSession, getAccountPlayers, getPlayerSync, getPlayerPartyGroupListSync, getPlayerCharacterSync, getPlayerEquipmentSync, getPlayerCharactersManaNodesSync } from "./wdfpData";
+import { PartyCategory, PlayerParty, PlayerCharacter, PlayerEquipment } from "./types";
 
 interface SessionClient {
     socket: net.Socket;
@@ -27,6 +28,7 @@ interface SessionClient {
     buffer: string;
     mates: any[];
     enterData: any;
+    playerId: number | null;
 }
 
 const clients = new Map<string, SessionClient>();
@@ -183,38 +185,49 @@ function disconnectClient(client: SessionClient) {
 }
 
 function handleEnterComs(client: SessionClient, coms: any[]) {
-    // Build NPC mate objects from client's EnterComs data
-    const npcMates: any[] = []
-    for (const com of coms) {
-        const comId = com.comId ?? com.com_id ?? 1
-        // Normalize party data: HTTP summon uses snake_case, TCP session needs camelCase for equipments
-        const party = com.party ?? { characters: [[1],[1],[1]], unison_characters: [[1],[1],[1]], equipments: [[1],[1],[1]], abilitySoulIds: [[1],[1],[1]] }
-        if (party.equipments) {
-            party.equipments = party.equipments.map((eq: any) => {
-                if (Array.isArray(eq) && eq[0] === 0 && eq[1]) {
-                    return [0, {
-                        equipmentId: eq[1].equipmentId ?? eq[1].equipment_id ?? 0,
-                        level: eq[1].level ?? 1,
-                        enhancementLevel: eq[1].enhancementLevel ?? eq[1].enhancement_level ?? 0
-                    }]
+    // Get host mate (already built from real data)
+    const host = client.mates[0]
+    if (!host) {
+        console.log(`[SESSION] EnterComs error: no host mate found`)
+        return
+    }
+
+    // Build NPC parties from real DB data — find parties named with "NPC"
+    const npcParties: any[] = []
+    const hostParty = host.party  // fallback: use host party if no NPC parties
+
+    if (client.playerId) {
+        try {
+            for (const category of [PartyCategory.NORMAL, PartyCategory.EVENT]) {
+                const groups = getPlayerPartyGroupListSync(client.playerId, category)
+                for (const g of Object.values(groups)) {
+                    for (const party of Object.values(g.list)) {
+                        if (party.name && party.name.includes("NPC")) {
+                            npcParties.push(buildRealParty(client.playerId, party))
+                            console.log(`[SESSION] EnterComs: NPC party "${party.name}" slot=${Object.keys(g.list).find(k => g.list[k] === party)}`)
+                        }
+                    }
                 }
-                return eq
-            })
+            }
+        } catch (e) {
+            console.log(`[SESSION] EnterComs: failed to read parties:`, (e as Error).message)
         }
+    }
+
+    // Build NPC mates
+    const npcMates: any[] = []
+    for (let i = 0; i < 2; i++) {
+        const party = npcParties[i] ?? (npcParties[0] ?? hostParty)
+        const comId = i + 1
         const mate = {
-            viewerId: -comId,  // negative IDs for NPCs
+            viewerId: -comId,
             comId: comId,
-            name: com.name ?? `NPC${comId}`,
-            rank: com.rank ?? 80,
-            degreeId: com.degreeId ?? com.degree_id ?? 1,
-            playerRoleKind: 99,  // NPC marker
-            party: com.party ?? {
-                characters: [[1], [1], [1]],
-                unison_characters: [[1], [1], [1]],
-                equipments: [[1], [1], [1]],
-                abilitySoulIds: [[1], [1], [1]]
-            },
-            connectionId: `${client.roomNumber}-npc-${comId}`,  // unique per NPC
+            name: coms[i]?.name ?? `NPC${comId}`,
+            rank: coms[i]?.rank ?? 80,
+            degreeId: coms[i]?.degree_id ?? 1,
+            playerRoleKind: 99,
+            party: party,
+            connectionId: `${client.roomNumber}-npc-${comId}`,
             autoplayMode: false,
             autoskillMode: 1,
             autoSpeedLevel: 1,
@@ -230,12 +243,7 @@ function handleEnterComs(client: SessionClient, coms: any[]) {
         npcMates.push(mate)
     }
 
-    // Get current mates (host is client.mates[0])
-    const host = client.mates[0]
-    if (!host) {
-        console.log(`[SESSION] EnterComs error: no host mate found`)
-        return
-    }
+    console.log(`[SESSION] EnterComs: room=${client.roomNumber} npcParties=${npcParties.length} fromDB`)
 
     // Update mates: [host, npc1, npc2, ...]
     client.mates = [host, ...npcMates]
@@ -329,22 +337,71 @@ export function stopSessionServer(): Promise<void> {
     });
 }
 
-function makeDefaultChar(id: number): any[] {
-    return [0, {
-        id, evolution_level: 0, exp: 0, over_limit_step: 0,
-        mana_node_ids: [1], ex_boost: [1], illustration_settings: [1]
-    }];
-}
-function makeDefaultEquip(eid: number): any[] {
-    return [0, { equipmentId: eid, level: 1, enhancementLevel: 0 }];
-}
-function makeDefaultParty(chars: number[], unisons: number[], equips: number[]): any {
+function buildDefaultParty(): any {
+    const emptyChar = [0, {
+        id: 0, evolution_level: 0, exp: 0, over_limit_step: 0,
+        mana_node_ids: [], ex_boost: [1], illustration_settings: [1]
+    }]
     return {
-        characters: chars.map(makeDefaultChar),
-        unison_characters: unisons.map(makeDefaultChar),
-        equipments: equips.map(makeDefaultEquip),
+        characters: [emptyChar, emptyChar, emptyChar],
+        unison_characters: [emptyChar, emptyChar, emptyChar],
+        equipments: [[1], [1], [1]],
         abilitySoulIds: [[1], [1], [1]]
-    };
+    }
+}
+
+function buildRealParty(playerId: number, party: PlayerParty): any {
+    const buildChar = (charId: number | null) => {
+        if (!charId) return [1]  // Option None
+        const dbChar = getPlayerCharacterSync(playerId, charId)
+        if (!dbChar) return [1]
+        // get mana nodes
+        let manaNodeIds: number[] = []
+        try {
+            const allManaNodes = getPlayerCharactersManaNodesSync(playerId)
+            const nodes = allManaNodes[String(charId)]
+            if (nodes && nodes.length > 0) {
+                manaNodeIds = nodes
+            }
+        } catch { }
+        // ex boost
+        let exBoost: any = [1]
+        if (dbChar.exBoost && dbChar.exBoost.abilityIdList && dbChar.exBoost.abilityIdList.length > 0) {
+            exBoost = [0, { ability_id_list: dbChar.exBoost.abilityIdList, status_id: dbChar.exBoost.statusId }]
+        }
+        // illustration_settings
+        let illustration: any = [1]
+        if (dbChar.illustrationSettings && dbChar.illustrationSettings.length > 0) {
+            illustration = [0, dbChar.illustrationSettings]
+        }
+        return [0, {
+            id: charId,
+            evolution_level: dbChar.evolutionLevel,
+            exp: dbChar.exp,
+            over_limit_step: dbChar.overLimitStep,
+            mana_node_ids: manaNodeIds,
+            ex_boost: exBoost,
+            illustration_settings: illustration
+        }]
+    }
+
+    const buildEquip = (equipId: number | null) => {
+        if (!equipId) return [1]
+        const dbEquip = getPlayerEquipmentSync(playerId, equipId)
+        if (!dbEquip) return [1]
+        return [0, {
+            equipmentId: equipId,
+            level: dbEquip.level,
+            enhancementLevel: dbEquip.enhancementLevel
+        }]
+    }
+
+    return {
+        characters: party.characterIds.map(buildChar),
+        unison_characters: party.unisonCharacterIds.map(buildChar),
+        equipments: party.equipmentIds.map(buildEquip),
+        abilitySoulIds: party.abilitySoulIds.map(id => id ? [0, id] : [1])
+    }
 }
 
 async function handleHandshake(socket: net.Socket, data: string, remoteAddr: string): Promise<SessionClient> {
@@ -353,6 +410,29 @@ async function handleHandshake(socket: net.Socket, data: string, remoteAddr: str
     let handshake: any;
     try { handshake = JSON.parse(data); } catch {
         throw new Error("Invalid handshake JSON");
+    }
+
+    // Battle socklet: accept and handle basic messages (no viewerId needed)
+    if (handshake.socklet === "cooperation_battle") {
+        const battleRoomNumber = handshake.roomNumber
+        const connectionId = handshake.connectionId
+        console.log(`[SESSION] battle handshake: room=${battleRoomNumber} cid=${connectionId}`)
+        if (!battleRoomNumber) throw new Error("Missing roomNumber for battle handshake")
+
+        // Accept battle connection with minimal client
+        const battleClient: SessionClient = {
+            socket,
+            viewerId: 0,
+            roomNumber: String(battleRoomNumber),
+            isReady: false,
+            buffer: "",
+            mates: [],
+            enterData: null,
+            playerId: null
+        }
+        addClient(battleClient)
+        sendJson(socket, [0, battleRoomNumber, ""])
+        return battleClient
     }
 
     const viewerId = handshake.viewerId;
@@ -365,7 +445,8 @@ async function handleHandshake(socket: net.Socket, data: string, remoteAddr: str
     let playerDegreeId = 1;
     let playerRoleKind = 1;
     let playerIsNewbie = false;
-    let mainCharId = 131012;
+    let playerPartySlot = 1;
+    let actualPlayerId: number | null = null;
 
     try {
         const session = await getSession(String(viewerId));
@@ -379,7 +460,8 @@ async function handleHandshake(socket: net.Socket, data: string, remoteAddr: str
                     playerDegreeId = player.degreeId || playerDegreeId;
                     playerRoleKind = player.role || playerRoleKind;
                     playerIsNewbie = !!player.tutorialStep;
-                    mainCharId = player.leaderCharacterId || mainCharId;
+                    playerPartySlot = player.partySlot || 1;
+                    actualPlayerId = playerIds[0];
                 }
             }
         }
@@ -394,17 +476,37 @@ async function handleHandshake(socket: net.Socket, data: string, remoteAddr: str
         isReady: false,
         buffer: "",
         mates: [],
-        enterData: null
+        enterData: null,
+        playerId: actualPlayerId
     };
 
     addClient(client);
     console.log(`[SESSION] client added: viewer=${viewerId} room=${roomNumber} (room total=${roomClients.get(roomNumber)?.size ?? 0})`);
 
-    // Send Accept
+    // Send Accept (roomId, roomNumber) — client uses params[1] as roomNumber
     console.log(`[SESSION] handshake OK viewer=${viewerId} room=${roomNumber} name=${playerName}`)
-    sendJson(socket, [0, roomNumber, ""]);
+    sendJson(socket, [0, roomNumber, roomNumber]);
 
     const hostConnectionId = `${roomNumber}-host`;
+
+    // Build host party from real DB data (player's current party slot)
+    let hostParty = buildDefaultParty()
+    if (actualPlayerId) {
+        try {
+            const partyGroups = getPlayerPartyGroupListSync(actualPlayerId, PartyCategory.NORMAL)
+            const group = partyGroups[1] ?? partyGroups[Object.keys(partyGroups)[0]]
+            if (group) {
+                const party = group.list[playerPartySlot] ?? group.list[Object.keys(group.list)[0]]
+                if (party) {
+                    hostParty = buildRealParty(actualPlayerId, party)
+                    console.log(`[SESSION] host party: player=${actualPlayerId} slot=${playerPartySlot} chars=${party.characterIds.filter(Boolean).length}`)
+                }
+            }
+        } catch (e) {
+            console.log(`[SESSION] failed to read party for player=${actualPlayerId}:`, (e as Error).message)
+        }
+    }
+    console.log(`[SESSION] host party chars: ${JSON.stringify(hostParty.characters.map((c: any) => c[0] === 0 ? c[1].id : 'none'))}`)
 
     // Build yourself from real DB data
     const yourself = {
@@ -413,11 +515,7 @@ async function handleHandshake(socket: net.Socket, data: string, remoteAddr: str
         playerRoleKind,
         rank: playerRank,
         degreeId: playerDegreeId,
-        party: makeDefaultParty(
-            [mainCharId, 141007, 151001],
-            [141005, 121002, 131004],
-            [200005, 1010001, 2020001]
-        ),
+        party: hostParty,
         connectionId: hostConnectionId,
         autoplayMode: false,
         autoskillMode: 1,

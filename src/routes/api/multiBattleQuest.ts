@@ -352,16 +352,9 @@ const routes = async (fastify: FastifyInstance) => {
             })
         }
 
-        // Fallback: if room_number is empty, find room by host_viewer_id
-        let roomNumber: string = body.room_number
-        if (!roomNumber) {
-            roomNumber = getRooms(body.category_id, undefined).find(r => r.host_viewer_id === viewerId)?.room_number ?? ""
-            console.log(`[MULTI] summon fallback room=${roomNumber}`)
-        }
-
-        const room = getRoom(roomNumber)
+        const room = getRoom(body.room_number)
         if (!room) {
-            console.log(`[MULTI] summon 400: room not found room=${roomNumber} (body=${body.room_number})`)
+            console.log(`[MULTI] summon 400: room not found room=${body.room_number}`)
             return reply.status(400).send({
                 "error": "Bad Request", "message": "Room doesn't exist."
             })
@@ -422,7 +415,7 @@ const routes = async (fastify: FastifyInstance) => {
                 ip_address: displayHost,
                 port: sessionPort,
                 quest_id: 0,
-                raising_state: 1,
+                raising_state: 9,  // Disbanded — tells client room is gone, don't retry
                 room_number: body.room_number,
                 room_sequence: body.room_sequence || 0,
                 share_room_options: 0,
@@ -435,23 +428,10 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/share_room", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as ShareRoomBody
         const viewerId = body.viewer_id
-        console.log(`[MULTI] share_room body:`, JSON.stringify(body))
         console.log(`[MULTI] share_room: viewer=${viewerId} room=${body.room_number} shareTypes=${JSON.stringify(body.share_type_list)}`)
         if (!viewerId || isNaN(viewerId)) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid request body."
         })
-
-        // Fallback: if room_number is empty, find room by host_viewer_id
-        let roomNumber: string = body.room_number
-        if (!roomNumber) {
-            const rooms = getRooms(body.category, undefined)
-            const hostRoom = rooms.find(r => r.host_viewer_id === viewerId)
-            if (hostRoom) {
-                roomNumber = hostRoom.room_number
-                console.log(`[MULTI] share_room fallback: hostRoom=${roomNumber}`)
-            }
-        }
-
         const sid = await getSession(viewerId.toString())
         if (!sid) return reply.status(400).send({
             "error": "Bad Request", "message": "Invalid viewer id."
