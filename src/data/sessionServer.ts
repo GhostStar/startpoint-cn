@@ -441,7 +441,7 @@ function buildRealParty(playerId: number, party: PlayerParty): any {
         if (!charId) return [1]  // Option None
         const dbChar = getPlayerCharacterSync(playerId, charId)
         if (!dbChar) return [1]
-        // mana nodes: intentionally empty — CN client CDN ManaNodeTable lookup incompatible
+        // mana nodes: intentionally empty — CN client GeneralManaNodeLogic CDN lookup incompatible
         const manaNodeIds: number[] = []
         // ex boost from DB
         let exBoost: any = [1]
