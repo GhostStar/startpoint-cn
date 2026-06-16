@@ -101,7 +101,7 @@
     function renderSeedRow(p, rarity, isTestSeed) {
         const tag = p.tag||'未测试';
         const cold = tag==='冷血躲避球';
-        const canTest = !cold && tag!=='未测试';
+        const canTest = !cold;
         return `<div class="seed-row${cold?' cold':''}">
             <span class="${cold?'':'pur'}" style="width:70px">${p.seed}</span>
             <span class="text-on-surface-variant" style="font-size:0.7rem;width:16px">${TAG_NAMES[tag]}</span>
