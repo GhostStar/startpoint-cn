@@ -1,188 +1,185 @@
 <!doctype html>
 <html lang="zh">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link rel="stylesheet" href="/public/tailwind.css">
-    <title>种子验证器 - Starpoint</title>
-    <meta http-equiv="refresh" content="10">
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/public/tailwind.css"><title>种子验证器 - Starpoint</title>
     <style>
+        .card { padding: 1rem; border: 1px solid var(--color-outline-variant); border-radius: 1.5rem; margin-bottom: 1rem; }
         .stat { padding: 0.5rem 1rem; border: 1px solid var(--color-outline-variant); border-radius: 0.75rem; display: inline-block; margin: 0.25rem; }
         .stat .label { color: var(--color-on-surface-variant); font-size: 0.7rem; text-transform: uppercase; }
-        .stat .value { font-size: 1.3rem; font-weight: bold; }
-        .unk { color: #6e7681; } .p1 { color: #d29922; } .p2 { color: #d29922; } .ok { color: #3fb950; } .bad { color: #f85149; }
-        .pur { color: #a371f7; }
+        .stat .value { font-size: 1.2rem; font-weight: bold; }
+        .unk{color:#6e7681} .p1{color:#d29922} .ok{color:#3fb950} .pur{color:#a371f7}
         .progress { height: 8px; background: var(--color-surface-container-high); border-radius: 4px; overflow: hidden; max-width: 500px; margin: 0.5rem 0; }
         .progress div { height: 100%; float: left; transition: width 0.5s; }
-        .bar-ok { background: #3fb950; } .bar-p2 { background: #d29922; } .bar-p1 { background: #9a6b0a; }
-        .bar-pur { background: #a371f7; } .bar-bad { background: #f85149; } .bar-unk { background: #6e7681; }
-        table { border-collapse: collapse; width: 100%; max-width: 700px; margin-top: 0.5rem; font-size: 0.85rem; }
-        th, td { padding: 0.25rem 0.5rem; border: 1px solid var(--color-outline-variant); text-align: left; }
-        th { background: var(--color-surface-container-low); }
+        .bar-ok{background:#3fb950} .bar-p1{background:#d29922} .bar-unk{background:#6e7681}
         .mode-btn { padding: 0.5rem 1rem; border-radius: 2rem; border: 1px solid var(--color-outline-variant); cursor: pointer; font-size: 0.9rem; background: transparent; color: var(--color-on-surface); }
         .mode-btn.active { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); font-weight: bold; }
         .prio-btn { padding: 0.25rem 0.75rem; border-radius: 1rem; border: 1px solid var(--color-outline-variant); cursor: pointer; font-size: 0.8rem; background: transparent; color: var(--color-on-surface); }
         .prio-btn.active { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); }
+        .refresh-btn { padding: 0.5rem 1rem; border-radius: 2rem; border: 1px solid var(--color-outline-variant); cursor: pointer; background: transparent; color: var(--color-on-surface); font-size: 0.9rem; }
+        .refresh-btn:hover { background: var(--color-surface-container-high); }
+        .seed-row { padding: 0.25rem 0; border-bottom: 1px solid var(--color-outline-variant); font-size: 0.8rem; display: flex; flex-wrap: wrap; gap: 0.25rem; align-items: center; }
+        .seed-row.cold { opacity: 0.4; text-decoration: line-through; }
+        .tag-btn { padding: 0.1rem 0.4rem; border-radius: 0.75rem; border: 1px solid var(--color-outline-variant); cursor: pointer; font-size: 0.7rem; background: transparent; color: var(--color-on-surface); }
+        .tag-btn.active-hot { background: #f85149; color: #fff; border-color: #f85149; }
+        .tag-btn.active-normal { background: var(--color-primary); color: var(--color-on-primary); border-color: var(--color-primary); }
+        .tag-btn.active-cold { background: #6e7681; color: #fff; border-color: #6e7681; }
+        .test-btn { padding: 0.1rem 0.5rem; border-radius: 0.75rem; border: 1px solid var(--color-outline-variant); cursor: pointer; font-size: 0.7rem; background: transparent; color: var(--color-on-surface); }
+        .test-btn.active { background: #a371f7; color: #fff; border-color: #a371f7; }
+        .test-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; padding: 0.5rem 0; font-size: 0.85rem; }
+        .test-bar .clear { cursor: pointer; color: #f85149; font-size: 0.8rem; }
+        .col3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+        @media(max-width:900px){.col3{grid-template-columns:1fr}}
     </style>
 </head>
 <body class="bg-background text-on-surface relative mt-16 m-auto max-w-screen-2xl min-h-screen box-border flex flex-col items-start px-3 pb-3">
-    <header class="flex gap-3 items-center md:justify-start justify-center mb-3 w-full">
-        <img src="/public/img/logo.png" class="w-9 h-9">
-        <h1 class="text-4xl mt-4 font-black mb-4 text-on-background">Starpoint</h1>
-    </header>
+    <header class="flex gap-3 items-center md:justify-start justify-center mb-3 w-full"><img src="/public/img/logo.png" class="w-9 h-9"><h1 class="text-4xl mt-4 font-black mb-4 text-on-background">Starpoint</h1></header>
     <div class="md:grid md:grid-cols-sidebar flex flex-col gap-5 w-full h-fit">
         <nav class="px-3 py-5 gap-3 flex flex-col bg-surface-container-low rounded-3xl h-fit w-full">
-            <a href="/" class="px-5 py-3 flex gap-3 items-center rounded-full hover:bg-surface-container-high text-on-surface text-lg transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" class="fill-on-surface"><path d="M520-600v-240h320v240H520ZM120-440v-400h320v400H120Zm400 320v-400h320v400H520Zm-400 0v-240h320v240H120Zm80-400h160v-240H200v240Zm400 320h160v-240H600v240Zm0-480h160v-80H600v80ZM200-200h160v-80H200v80Zm160-320Zm240-160Zm0 240ZM360-280Z"/></svg>首页</a>
-            <a href="/player" class="px-5 py-3 flex gap-3 items-center rounded-full hover:bg-surface-container-high text-on-surface text-lg transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" class="fill-on-surface"><path d="M40-160v-112q0-34 17.5-62.5T104-378q62-31 126-46.5T360-440q66 0 130 15.5T616-378q29 15 46.5 43.5T680-272v112H40Zm720 0v-120q0-44-24.5-84.5T666-434q51 6 96 20.5t84 35.5q36 20 55 44.5t19 53.5v120H760ZM360-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47Z"/></svg>玩家</a>
-            <a href="/mail" class="px-5 py-3 flex gap-3 items-center rounded-full hover:bg-surface-container-high text-on-surface text-lg transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" class="fill-on-surface"><path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Z"/></svg>发送邮件</a>
-            <div class="px-5 py-3 flex gap-3 items-center bg-primary rounded-full w-full font-bold text-on-primary text-lg">
-                <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" class="fill-on-primary"><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg>种子</div>
+            <a href="/" class="px-5 py-3 flex gap-3 items-center rounded-full hover:bg-surface-container-high text-on-surface text-lg transition-colors"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" class="fill-on-surface"><path d="M520-600v-240h320v240H520ZM120-440v-400h320v400H120Zm400 320v-400h320v400H520Zm-400 0v-240h320v240H120Zm80-400h160v-240H200v240Zm400 320h160v-240H600v240Zm0-480h160v-80H600v80ZM200-200h160v-80H200v80Zm160-320Zm240-160Zm0 240ZM360-280Z"/></svg>首页</a>
+            <a href="/player" class="px-5 py-3 flex gap-3 items-center rounded-full hover:bg-surface-container-high text-on-surface text-lg transition-colors"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" class="fill-on-surface"><path d="M40-160v-112q0-34 17.5-62.5T104-378q62-31 126-46.5T360-440q66 0 130 15.5T616-378q29 15 46.5 43.5T680-272v112H40Zm720 0v-120q0-44-24.5-84.5T666-434q51 6 96 20.5t84 35.5q36 20 55 44.5t19 53.5v120H760ZM360-480q-66 0-113-47t-47-113q0-66 47-113t113-47q66 0 113 47t47 113q0 66-47 113t-113 47Z"/></svg>玩家</a>
+            <a href="/mail" class="px-5 py-3 flex gap-3 items-center rounded-full hover:bg-surface-container-high text-on-surface text-lg transition-colors"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" class="fill-on-surface"><path d="M160-160q-33 0-56.5-23.5T80-240v-480q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v480q0 33-23.5 56.5T800-160H160Z"/></svg>发送邮件</a>
+            <div class="px-5 py-3 flex gap-3 items-center bg-primary rounded-full w-full font-bold text-on-primary text-lg"><svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" class="fill-on-primary"><path d="M480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg>种子</div>
         </nav>
-
         <article class="w-full flex flex-col gap-4">
             <h1 class="text-4xl font-bold text-on-background">种子验证器</h1>
+            <button class="refresh-btn" onclick="load()">刷新</button>
 
-            <!-- Mode & Priority -->
+            <!-- Mode -->
             <div class="flex flex-wrap gap-3 items-center">
+                <span class="text-sm text-on-surface-variant">模式:</span>
                 <button id="btnUnknown" class="mode-btn active" onclick="setMode('unknown')">测试池</button>
                 <button id="btnPurified" class="mode-btn" onclick="setMode('purified')">净化池</button>
-                <span class="text-on-surface-variant mx-2">|</span>
-                <span class="text-sm text-on-surface-variant">优先级:</span>
-                <button id="prioAll" class="prio-btn active" onclick="setPrio('all')">全部</button>
-                <button id="prio5" class="prio-btn" onclick="setPrio('5')">★5优先</button>
-                <button id="prio4" class="prio-btn" onclick="setPrio('4')">★4优先</button>
-                <button id="prio3" class="prio-btn" onclick="setPrio('3')">★3优先</button>
             </div>
 
-            <!-- Progress bar -->
-            <div class="progress" id="progressBar">
-                <div class="bar-ok" id="barOk" style="width:0%"></div>
-                <div class="bar-pur" id="barPur" style="width:0%"></div>
-                <div class="bar-p2" id="barP2" style="width:0%"></div>
-                <div class="bar-p1" id="barP1" style="width:0%"></div>
-                <div class="bar-bad" id="barBad" style="width:0%"></div>
-                <div class="bar-unk" id="barUnk" style="width:0%"></div>
+            <!-- Test Pool -->
+            <div class="card" id="testSection">
+                <h2 class="text-lg font-semibold text-on-surface-variant mb-2">测试池</h2>
+                <div class="flex flex-wrap gap-2 items-center mb-2">
+                    <span class="text-xs text-on-surface-variant">优先级:</span>
+                    <button id="prioAll" class="prio-btn active" onclick="setPrio('all')">全部</button>
+                    <button id="prio5" class="prio-btn" onclick="setPrio('5')">★5</button>
+                    <button id="prio4" class="prio-btn" onclick="setPrio('4')">★4</button>
+                    <button id="prio3" class="prio-btn" onclick="setPrio('3')">★3</button>
+                </div>
+                <div class="progress"><div class="bar-ok" id="barOk" style="width:0"></div><div class="bar-p1" id="barP1" style="width:0"></div><div class="bar-unk" id="barUnk" style="width:0"></div></div>
+                <div id="testStats"></div><p id="testSummary" class="text-xs text-on-surface-variant mt-1"></p>
             </div>
 
-            <div id="stats"></div>
-            <p id="summary" class="text-sm text-on-surface-variant"></p>
+            <!-- Purified Pool -->
+            <div class="card" id="purifiedSection">
+                <h2 class="text-lg font-semibold text-on-surface-variant mb-2">惊险池</h2>
 
-            <!-- Purified 三栏 -->
-            <div id="purifiedSection" style="display:none">
-                <h3 class="text-lg font-semibold text-on-surface-variant">惊险种子 (PURIFIED)</h3>
-                <div style="display:flex; gap:2rem; flex-wrap:wrap" id="purifiedCards"></div>
-            </div>
+                <!-- Stats -->
+                <div id="purifiedCards" class="flex flex-wrap gap-3 mb-3"></div>
 
-            <!-- Blocked -->
-            <div>
-                <h3 class="text-lg font-semibold text-on-surface-variant">BLOCKED (待净化)</h3>
-                <div id="blockedInfo" class="text-xs text-on-surface-variant"></div>
-                <table id="blockedTable" style="display:none">
-                    <thead><tr><th>#</th><th>Seed</th><th>设备★</th><th>字符★</th><th>状态</th></tr></thead>
-                    <tbody id="blockedBody"></tbody>
-                </table>
-            </div>
+                <!-- Test seed bar -->
+                <div id="testBar" class="test-bar mb-3"></div>
 
-            <!-- Verified -->
-            <div>
-                <h3 class="text-lg font-semibold text-on-surface-variant">VERIFIED</h3>
-                <div id="verifiedInfo" class="text-xs text-on-surface-variant"></div>
-                <table id="verifiedTable" style="display:none">
-                    <thead><tr><th>#</th><th>Seed</th></tr></thead>
-                    <tbody id="verifiedBody"></tbody>
-                </table>
+                <!-- Three-column list -->
+                <div class="col3" id="purifiedColumns">
+                    <div><h3 class="text-sm font-semibold mb-1" style="color:#f85149">★3 惊险 <span id="col3Count">(0)</span></h3><div id="col3"></div></div>
+                    <div><h3 class="text-sm font-semibold mb-1" style="color:#d29922">★4 惊险 <span id="col4Count">(0)</span></h3><div id="col4"></div></div>
+                    <div><h3 class="text-sm font-semibold mb-1" style="color:#3fb950">★5 惊险 <span id="col5Count">(0)</span></h3><div id="col5"></div></div>
+                </div>
             </div>
         </article>
     </div>
-
     <script>
     function fmt(n) { return n.toLocaleString(); }
+    async function setMode(m) { await fetch('/api/seeds/mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mode:m})});load(); }
+    async function setPrio(p) { await fetch('/api/seeds/mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({priority:p})});load(); }
 
-    async function setMode(m) {
-        await fetch('/api/seeds/mode', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({mode:m}) });
+    async function setTag(seed, tag) {
+        await fetch('/api/seeds/tag',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seed,tag})});
         load();
     }
-    async function setPrio(p) {
-        await fetch('/api/seeds/mode', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({priority:p}) });
+
+    async function setTestSeed(seed, rarity) {
+        await fetch('/api/seeds/test-seed',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seed,rarity})});
         load();
+    }
+
+    async function clearTestSeed(rarity) {
+        await fetch('/api/seeds/test-seed',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({rarity})});
+        load();
+    }
+
+    function tagName(t) { return { '热血躲避球': '热血', '普通躲避球': '普通', '冷血躲避球': '冷血' }[t] || t; }
+    function tagClass(t) { return { '热血躲避球': 'active-hot', '普通躲避球': 'active-normal', '冷血躲避球': 'active-cold' }[t] || ''; }
+
+    function renderSeedRow(p, rarity, isTestSeed) {
+        const tag = p.tag || '普通躲避球';
+        const cold = tag === '冷血躲避球';
+        return `<div class="seed-row${cold?' cold':''}">
+            <span class="${cold?'':'pur'}" style="width:70px">${p.seed}</span>
+            <span class="text-on-surface-variant" style="font-size:0.7rem;width:32px">${tagName(tag)}</span>
+            <button class="tag-btn ${tagClass('热血躲避球')}" onclick="setTag(${p.seed},'热血躲避球')">热</button>
+            <button class="tag-btn ${tagClass('普通躲避球')}" onclick="setTag(${p.seed},'普通躲避球')">普</button>
+            <button class="tag-btn ${tagClass('冷血躲避球')}" onclick="setTag(${p.seed},'冷血躲避球')">冷</button>
+            <button class="test-btn ${isTestSeed?'active':''}" onclick="setTestSeed(${p.seed},${rarity})" ${cold?'disabled':''}>★${rarity}测试</button>
+        </div>`;
     }
 
     async function load() {
-        const res = await fetch('/api/seeds/stats');
-        const s = await res.json();
+        const res = await fetch('/api/seeds/stats'); const s = await res.json();
+        const res2 = await fetch('/api/seeds/list'); const data = await res2.json();
 
-        // Mode buttons
-        document.getElementById('btnUnknown').className = s.mode === 'unknown' ? 'mode-btn active' : 'mode-btn';
-        document.getElementById('btnPurified').className = s.mode === 'purified' ? 'mode-btn active' : 'mode-btn';
+        // Mode
+        document.getElementById('btnUnknown').className = 'mode-btn'+(s.mode==='unknown'?' active':'');
+        document.getElementById('btnPurified').className = 'mode-btn'+(s.mode==='purified'?' active':'');
 
-        // Priority buttons
-        ['All','5','4','3'].forEach(p => {
-            const el = document.getElementById('prio'+p);
-            if (el) el.className = 'prio-btn' + (s.priority === p.toLowerCase() ? ' active' : '');
-        });
+        // Priority
+        ['All','5','4','3'].forEach(p => { const el=document.getElementById('prio'+p); if(el)el.className='prio-btn'+(s.priority===p.toLowerCase()?' active':''); });
 
-        // Stats
-        document.getElementById('stats').innerHTML = `
+        // Test pool
+        document.getElementById('testStats').innerHTML = `
             <span class="stat"><span class="label unk">UNKNOWN</span><br><span class="value unk">${fmt(s.unknown)}</span></span>
-            <span class="stat"><span class="label p1">PENDING·1</span><br><span class="value p1">${s.pending1}</span></span>
-            <span class="stat"><span class="label p2">PENDING·2</span><br><span class="value p2">${s.pending2}</span></span>
+            <span class="stat"><span class="label p1">PENDING</span><br><span class="value p1">${fmt(s.pending)}</span></span>
             <span class="stat"><span class="label ok">VERIFIED</span><br><span class="value ok">${fmt(s.verified)}</span></span>
-            <span class="stat"><span class="label pur">PURIFIED</span><br><span class="value pur">${fmt(s.purified_total)}</span></span>
-            <span class="stat"><span class="label bad">BLOCKED</span><br><span class="value bad">${s.blocked}</span></span>
         `;
-        document.getElementById('summary').innerHTML = `安全率 ${s.accuracy}% | 已测 ${fmt(s.tested)} | 覆盖率 ${s.coverage}%`;
-
-        // Progress bar
+        document.getElementById('testSummary').textContent = `安全率 ${s.accuracy}% | 已测 ${fmt(s.tested)} | 覆盖率 ${s.coverage}%`;
         const t = s.total;
-        document.getElementById('barOk').style.width = (s.verified/t*100)+'%';
-        document.getElementById('barPur').style.width = (s.purified_total/t*100)+'%';
-        document.getElementById('barP2').style.width = (s.pending2/t*100)+'%';
-        document.getElementById('barP1').style.width = (s.pending1/t*100)+'%';
-        document.getElementById('barBad').style.width = (s.blocked/t*100)+'%';
-        document.getElementById('barUnk').style.width = (s.unknown/t*100)+'%';
+        document.getElementById('barOk').style.width=(s.verified/t*100)+'%';
+        document.getElementById('barP1').style.width=(s.pending/t*100)+'%';
+        document.getElementById('barUnk').style.width=(s.unknown/t*100)+'%';
 
-        // Purified cards
-        if (s.purified_total > 0) {
-            document.getElementById('purifiedSection').style.display = '';
-            const total = s.purified_total;
-            document.getElementById('purifiedCards').innerHTML = `
-                <div class="stat"><span class="label" style="color:#f85149">★3 惊险</span><br><span class="value" style="color:#f85149">${s.purified_r3}</span><br><span class="text-xs text-on-surface-variant">${total>0?Math.round(s.purified_r3/total*100):0}%</span></div>
-                <div class="stat"><span class="label" style="color:#d29922">★4 惊险</span><br><span class="value" style="color:#d29922">${s.purified_r4}</span><br><span class="text-xs text-on-surface-variant">${total>0?Math.round(s.purified_r4/total*100):0}%</span></div>
-                <div class="stat"><span class="label" style="color:#3fb950">★5 惊险</span><br><span class="value" style="color:#3fb950">${s.purified_r5}</span><br><span class="text-xs text-on-surface-variant">${total>0?Math.round(s.purified_r5/total*100):0}%</span></div>
-            `;
-        } else {
-            document.getElementById('purifiedSection').style.display = 'none';
+        // Purified stats
+        const total = s.purified_total;
+        document.getElementById('purifiedCards').innerHTML = total > 0 ? `
+            <div class="stat"><span class="label pur">★3 惊险</span><br><span class="value pur">${s.purified_r3}</span><span class="text-xs text-on-surface-variant ml-1">${Math.round(s.purified_r3/total*100)}%</span></div>
+            <div class="stat"><span class="label pur">★4 惊险</span><br><span class="value pur">${s.purified_r4}</span><span class="text-xs text-on-surface-variant ml-1">${Math.round(s.purified_r4/total*100)}%</span></div>
+            <div class="stat"><span class="label pur">★5 惊险</span><br><span class="value pur">${s.purified_r5}</span><span class="text-xs text-on-surface-variant ml-1">${Math.round(s.purified_r5/total*100)}%</span></div>
+            <span class="text-sm text-on-surface-variant self-center">共 <b class="pur">${total}</b> 个</span>
+        ` : `<span class="text-sm text-on-surface-variant">暂无惊险种子</span>`;
+
+        // Test seed bar
+        const tsArr = s.test_seeds || [null,null,null];
+        const purified = data.purified || [];
+        const purifyMap = {};
+        purified.forEach(p => purifyMap[p.seed] = p);
+
+        let tsHtml = '<span class="text-sm text-on-surface-variant">测试种子:</span> ';
+        [3,4,5].forEach(r => {
+            const ts = tsArr[r-3];
+            const tag = ts && purifyMap[ts] ? purifyMap[ts].tag : '普通躲避球';
+            tsHtml += `★${r}=`;
+            if (ts) {
+                tsHtml += `<span class="pur">seed:${ts}</span> <span style="color:#888;font-size:0.7rem">${tagName(tag)}</span> <span class="clear" onclick="clearTestSeed(${r})">✕</span> `;
+            } else {
+                tsHtml += `[无] `;
+            }
+        });
+        document.getElementById('testBar').innerHTML = tsHtml;
+
+        // Three columns
+        for (const r of [3,4,5]) {
+            const items = purified.filter(p => p.rarity === r);
+            document.getElementById('col'+r+'Count').textContent = `(${items.length})`;
+            document.getElementById('col'+r).innerHTML = items.length > 0
+                ? items.map(p => renderSeedRow(p, r, tsArr[r-3] === p.seed)).join('')
+                : '<div class="text-xs text-on-surface-variant" style="padding:0.25rem 0">暂无</div>';
         }
-
-        // Blocked list
-        const res2 = await fetch('/api/seeds/list');
-        const data = await res2.json();
-
-        const blocked = data.blocked || [];
-        document.getElementById('blockedInfo').textContent = blocked.length > 0 ? `共 ${blocked.length} 个` : '暂无';
-        if (blocked.length > 0) {
-            document.getElementById('blockedTable').style.display = '';
-            document.getElementById('blockedBody').innerHTML = blocked.map((b, i) => {
-                const hasDevice = b.device !== null;
-                const status = hasDevice
-                    ? `<span class="pur">→ 下次净化</span>`
-                    : `<span class="bad">等待 crash</span>`;
-                return `<tr><td>${i+1}</td><td class="bad">${b.seed}</td><td>${b.device||'?'}</td><td>${b.char||'?'}</td><td>${status}</td></tr>`;
-            }).join('');
-        } else { document.getElementById('blockedTable').style.display = 'none'; }
-
-        // Verified list
-        const verified = data.verified || [];
-        document.getElementById('verifiedInfo').textContent = verified.length > 0 ? `共 ${verified.length} 个` : '暂无';
-        if (verified.length > 0) {
-            document.getElementById('verifiedTable').style.display = '';
-            document.getElementById('verifiedBody').innerHTML = verified.slice(0, 50).map((s, i) =>
-                `<tr><td>${i+1}</td><td class="ok">${s}</td></tr>`
-            ).join('');
-        } else { document.getElementById('verifiedTable').style.display = 'none'; }
     }
 
     load();

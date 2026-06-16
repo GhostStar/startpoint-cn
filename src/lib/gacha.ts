@@ -148,7 +148,10 @@ export function rewardPlayerGachaDrawResultSync(
                     const seedKey = String(6 - rarity)
                     const seedPool: number[] = (movieSeeds as any)[seedKey]?.[String(movieType)] || []
                     const fallbackPool: number[] = (movieSeeds as any)[seedKey]?.["0"] || []
-                    const pool = seedPool.length > 0 ? seedPool : fallbackPool
+                    const basePool = seedPool.length > 0 ? seedPool : fallbackPool
+                    // Inject cross-pool purified seeds (SIM may classify seed in wrong pool)
+                    const purifiedSeeds = seedValidator.getPurifiedForRarity(rarity)
+                    const pool = Array.from(new Set([...basePool, ...purifiedSeeds]))
                     // Use seed validator with pool mode support
                     const seed = pool.length > 0
                         ? seedValidator.getSeed(rarity, pool, characterId)
