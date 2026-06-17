@@ -476,6 +476,7 @@ const routes = async (fastify: FastifyInstance) => {
 
         for (const updateInfo of body.party_info_list) {
                 const parsed = parsePartyId(updateInfo.party_id)
+            console.log(`[PARTY] edit: player=${playerId} id=${updateInfo.party_id} -> group=${parsed.groupId} slot=${parsed.slot} name="${updateInfo.party_name}" chars=${updateInfo.character_ids?.filter(Boolean).length || 0}`)
             updatePlayerPartySync(
                 playerId,
                 parsed.slot,
@@ -503,6 +504,19 @@ const routes = async (fastify: FastifyInstance) => {
             "data": {
                 "mail_arrived": false
             }
+        })
+    })
+
+    fastify.post("/check_word", async (request: FastifyRequest, reply: FastifyReply) => {
+        const body = request.body as { viewer_id: number, word: string }
+        const viewerId = body.viewer_id
+        if (!viewerId || isNaN(viewerId)) return reply.status(400).send({
+            "error": "Bad Request", "message": "Invalid request body."
+        })
+        reply.header("content-type", "application/x-msgpack")
+        return reply.status(200).send({
+            "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+            "data": { "check_passed": true }
         })
     })
 }

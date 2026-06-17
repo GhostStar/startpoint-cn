@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { generateDataHeaders } from "../../utils";
-import { insertAccount, insertDefaultPlayerSync, getPlayerSync, insertSessionWithToken, updateAccountSync, deleteSession, getDeviceBindingSync, insertDeviceBindingSync } from "../../data/wdfpData";
+import { insertAccount, insertDefaultPlayerSync, getPlayerSync, insertSessionWithToken, updateAccountSync, deleteSession, getDeviceBindingSync, insertDeviceBindingSync, deleteDeviceBindingSync, getAccount } from "../../data/wdfpData";
 import { SessionType } from "../../data/types";
 import { saveAccountDefaultPlayer } from "../../data/activeAccount";
 
@@ -71,11 +71,24 @@ const routes = async (fastify: FastifyInstance) => {
         const binding = getDeviceBindingSync(deviceId)
 
         if (binding) {
-            // Known device → reuse account
-            accountId = binding.account_id
-            newAccount = false
-            updateAccountSync({ id: accountId, lastLoginTime: new Date() })
-            try { deleteSession(String(accountId)) } catch (_) {}
+            // Known device — verify account still exists
+            const accountExists = await getAccount(binding.account_id)
+            if (accountExists) {
+                accountId = binding.account_id
+                newAccount = false
+                updateAccountSync({ id: accountId, lastLoginTime: new Date() })
+                try { deleteSession(String(accountId)) } catch (_) {}
+            } else {
+                // Account was deleted — clean up stale binding and create new account
+                deleteDeviceBindingSync(deviceId)
+                const account = await insertAccount({
+                    appId: "wf_cn", idpAlias: "", idpCode: "leiting", idpId: "", status: "normal"
+                })
+                accountId = account.id
+                const player = insertDefaultPlayerSync(accountId)
+                saveAccountDefaultPlayer(accountId, player.id)
+                insertDeviceBindingSync(deviceId, accountId)
+            }
         } else {
             // New device → create account
             const account = await insertAccount({

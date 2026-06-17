@@ -116,9 +116,21 @@ const routes = async (fastify: FastifyInstance) => {
             if (getAccountPlayersSync(a.id).includes(pid)) { accountId = a.id; break }
         }
         if (accountId && getAccountPlayersSync(accountId).length <= 1) {
-            // Last save — delete entire account
+            // Last save — delete entire account + device binding + default player mapping
             deletePlayerSync(pid)
             deleteAccountSync(accountId)
+            // Clean up device bindings to prevent stale mapping on re-login
+            try {
+                const db = require("../../data/wdfpData").getDb()
+                db.prepare(`DELETE FROM device_bindings WHERE account_id = ?`).run(accountId)
+            } catch (_) {}
+            // Remove stale default player mapping
+            try {
+                const { readState, writeState } = require("../../data/activeAccount")
+                const state = readState()
+                delete state.defaultPlayers[accountId]
+                writeState(state)
+            } catch (_) {}
         } else {
             deletePlayerSync(pid)
         }
@@ -139,6 +151,13 @@ const routes = async (fastify: FastifyInstance) => {
         const db = require("../../data/wdfpData").getDb()
         db.prepare(`DELETE FROM device_bindings WHERE account_id = ?`).run(accountId)
         deleteAccountSync(accountId)
+        // Remove stale default player mapping
+        try {
+            const { readState, writeState } = require("../../data/activeAccount")
+            const state = readState()
+            delete state.defaultPlayers[accountId]
+            writeState(state)
+        } catch (_) {}
         return reply.redirect('/player')
     })
 
