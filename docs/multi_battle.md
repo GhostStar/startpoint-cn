@@ -611,6 +611,7 @@ const NPC_TEMPLATES = {
 | `TypeError #1034` | Type coercion in `commandReceived()` | character/equipment 未用 Option `[0, val]` / `[1]` 格式包裹 | 所有 party 字段使用 Option 包裹 |
 | `S1000` | `通信が終了されました` | TCP 连接意外关闭 | 正常关闭不处理 |
 | `C8601` | `指定的Key不存在。key=2023013102` | 活动面板加载时，CDN master 数据缺少 `daily_challenge_point_campaign[2023013102]` | 通行证功能暂不实现，已清空所有角色 `daily_challenge_point_list`，默认存档不再写入该数据 |
+| `C8601` | `key=0, ManaNodeTable` — 联机战斗玛那板 | `getAwakeLevelByManaNodes` 内联函数绕过缓存，以 `characterId=0` 查 CDN | `mana_node_ids: []` 规避，详见 [§13](#13-联机玛那板-c8601-深度分析) |
 | `H404` | `disband_room` 端点不存在 | 未实现该端点 | 已实现 `POST /multi_battle_quest/disband_room` |
 | `H404` | `event/raid/summary` + 5 个 Raid 端点 | 未实现 | 已实现全部 7 个 Raid 端点（含 summary/ranking_reward/party/ranking/ranking:party/battle:start/get_boss），battle:start 为联机桩 |
 | `H404` | `shop/bulk_buy` + `get_campaign_lineup_id` + `set_campaign_lineup_id` | 未实现 | 已实现桩 — bulk_buy 返回空，两个 campaign lineup 返回 stub |
@@ -651,6 +652,8 @@ const NPC_TEMPLATES = {
 8. **EX Boost（增幅）感叹号**: 客户端 `canExBoost()` 不检查 `ex_boost` 字段（已强化状态），只检查角色满级 + 元素匹配 + 道具足够。即使 Tier 3 强化完毕，只要背包还有 EX 道具，感叹号就显示。属正常游戏行为。
 
 9. **抽卡动画种子表（C3032）**: 详见 [`docs/C3032_gacha_seeds.md`](./C3032_gacha_seeds.md) — 完整的前因后果、源码位置、修复路径
+
+10. **联机战斗玛那板（C8601 key=0）—— 已确认无法修复**: 详见 [§13 联机玛那板 C8601 深度分析](#13-联机玛那板-c8601-深度分析)。联机战斗中所有角色（含房主自身）的 `mana_node_ids` **必须为 `[]`**，任何非空值都触发 C8601。官方游戏大概率也发送 `[]` 给 NPC，而房主的 party 在联机中走 `BattleCharacterLogic`（非 `OwnedCharacterLogic`），也受同一 bug 影响。
 
 7. **外传故事 quest 数据**: 已从 CN 源 `wf-assets-cn/orderedmap/quest/` 完全导入全部 20 个 quest 分类，共 5,158 关，覆盖所有 CN 事件组。
 
@@ -940,3 +943,144 @@ is_initial = !resVer  // 无 RES_VER 头 = 首次下载 = 弹出模式选择
 | C8702 | `data.files_list:null` | `files_list` 字段缺失（必须为 String） |
 | ClientError 20100 | Asset initial version not found | `full=null` 且本地无 info.json |
 | "Full Asset 不存在" | 响应缺少 full 字段 | `full=null` 且 `initialVersion=None` |
+
+---
+
+## 13. 联机玛那板 C8601 深度分析
+
+### 13.1 现象
+
+联机战斗中，TCP party 数据的 `mana_node_ids` 字段**必须为 `[]`**。任何非空值（`[0]`、`[2201]`、真实解锁节点列表等）都会触发 C8601：
+
+```
+ERR:C8601|指定的Key不存在。key=0, app-storage:/asset/.../upload/1d/222e5126...
+```
+
+### 13.2 崩溃堆栈
+
+```
+MasterBinaryMap.getIndex(key=0)
+  → MasterMapBase.get(0)
+    → GeneralManaNodeLogic.get_values()
+      → get_kind()
+        → _getAbility()
+          → get_ability()
+            → getPlusValueByManaNodes()
+              → get_actionSkillEvolution()
+                → resolvePathCollection()
+```
+
+### 13.3 根因
+
+**`getAwakeLevelByManaNodes`** —— 一个 Haxe 编译器内联函数，存在于运行时堆栈中但**不存在于任何 `.as` 或 `.pcode` 文件**中。
+
+v2.1.125 反编译代码中，`getPlusValueByManaNodes` 正确设置了 `manaNodeMasterTable` 缓存：
+```as3
+// GeneralCharacterLogic.as:381
+manaNodeMasterTable = ManaNodeTable.get_data().get(id);  // 设缓存
+
+// 循环内调用 get_ability()
+while(...) {
+    node.get_ability() → get_values()
+        → generalCharacter.manaNodeMasterTable  // 命中了缓存，不走 CDN ✅
+}
+```
+
+但手机实际字节码中，`getAwakeLevelByManaNodes` 内联代码**绕过了缓存**，固定传入 `characterId=0` 查 CDN → `ManaNodeTable.get(0)` → key=0 不存在 → C8601。
+
+### 13.4 CDN 表确认
+
+| 表 | JSON 条目数 | Key 范围 | key=0 存在？ |
+|------|:---:|------|:---:|
+| `mana_node.json` | 495 | 1 ~ 999999 | ❌ |
+| `character.json` | 505 | 1 ~ 999999 | ❌ |
+
+两个表的 CDN 源数据都**没有 key=0 条目**，任何 `get(0)` 调用都会崩。
+
+崩溃时访问的 CDN 文件 `1d/222e5126fc7ebe3f22c7efe87325f73742eb4f` 通过 `SHA1(path+salt)` 遍历了 `wf-assets-cn/orderedmap/` 下全部 2115 个文件，未匹配到任何已知表名。
+
+### 13.5 官方 vs 私服——为什么官方不崩
+
+官方游戏中，房主的 party 数据由**客户端** `PlayerLogic.getMate()` → `getBattleParty()` → `getBattleCharacter()` 序列化后经 TCP 发送。私服中由**服务端** `buildRealParty()` 直接从 DB 构造后注入 TCP Welcome/Mates。
+
+| 对比维度 | 官方 | 私服 |
+|----------|------|------|
+| 房主 party 数据来源 | 客户端 `OwnedCharacterLogic` | 服务端 `buildRealParty()` |
+| NPC party 数据来源 | 服务端构造 | 服务端 `buildRealParty()`（相同） |
+| `mana_node_ids` 格式 | `abilities` (multiplied_id 数组) | `manaNodeIds` (multiplied_id 数组) |
+| 格式一致性 | — | ✅ 与 `getBattleCharacter()` 一致 |
+| 联机中角色类型 | `BattleCharacterLogic`（从 mate 数据创建） | `BattleCharacterLogic`（从 mate 数据创建） |
+| 在联机中是否走 `OwnedCharacterLogic` | ❌ 不走 | ❌ 不走 |
+
+官方 NPC 大概率发送 `mana_node_ids: []`。官方房主自身角色在联机中也走 `BattleCharacterLogic`（非 `OwnedCharacterLogic`），处于同一个 bug 的影响范围内。官方如何规避尚无法确认。
+
+### 13.6 已排除的修复方向
+
+| 方向 | 结果 |
+|------|------|
+| 服务端修改数据格式 | ❌ 格式与 `getBattleCharacter()` 一致，AB 对照无误 |
+| CDN ManaNodeTable 加 key=0 dummy | ❌ 无法确认文件对应关系，可能影响单机 |
+| 战斗协议注入 | ❌ 战斗 TCP 协议无角色能力消息 |
+| APK 补丁分析 | ✅ 确认补丁不涉及玛那板逻辑（仅 DevConfig + bundle stub + beacon） |
+| `buildDefaultParty()` id=0 修复 | ✅ 防御性修复已实施（空位改 `[1]`），但不解决主问题 |
+| `GeneralCharacterLogic` 构造函数崩溃 | ❌ 堆栈确认崩在 `get_values()`，非构造函数 |
+| `get_values()` pcode 验证 | ✅ 与 .as 源码完全一致，理论不应崩 |
+| 仅恢复房主 mana_node、NPC 设 `[]` | ❌ 房主在联机中也走 `BattleCharacterLogic`，同受影响 |
+| 纯服务端缓存注入 | ❌ `/load` 无缓存字段，TCP 无能力消息，缓存 per-call 不跨场景持久 |
+| 恢复流程（Resume）绕过 | ❌ Select 和 Resume 在 `mana_node_ids` 处理上完全一致 |
+
+### 13.7 房间入口路径：7 条合 1
+
+所有进入联机房间的方式最终汇聚到同一代码路径：
+
+```
+开房 (create_room)         ┐
+房间号加入 (search_room)    │
+邀请令牌加入 (verify_token) │
+关注/活动加入               ├──→ LoadingTaskKind.EnterCooprationRoom
+App恢复房间 (restore_room)  │         ↓
+战斗结算回房                │    SocketConnectionTask
+房间断线重连                ┘         ↓
+                                EnterRoomService.run()
+                                      ↓
+                                 TCP 握手 → socketInput_ready()
+                                      ↓
+                                 PlayerLogic.getMate()
+                                      ↓
+                                 getBattleParty() → getBattleCharacter()
+                                      ↓
+                                 { mana_node_ids: abilities, ... }
+```
+
+**没有第二条路径。** `CooperationRoomConnectionReason` 的 `Select`（新建）和 `Resume`（恢复）在发 party 数据时行为完全一致——都调用 `getMate()`，都携带 `mana_node_ids`。
+
+### 13.8 `misc_data` 与房间恢复的关系
+
+`misc_data` 的 `partyForEachQuest` 已知会残留旧 session 的队伍选择（导致 C2337），但它**不存储房间恢复数据**。`RestoreState.CooperationRoom` 由 `GlobalLoadingTask.processRestoreState`（case 4）触发，仅在客户端闪退后应用重新启动时生效，不影响正常新建/加入流程。
+
+### 13.9 相关代码位置
+
+| 文件 | 行 | 说明 |
+|------|:---|------|
+| `sessionServer.ts` | 453-478 | `buildRealParty()` — mana_node_ids 数据源 |
+| `sessionServer.ts` | 440-451 | `buildDefaultParty()` — id=0 潜在崩溃 |
+| `sessionServer.ts` | 589-601 | 房主 party 构造流程 |
+| `sessionServer.ts` | 634-640 | Welcome/Mates 消息发送 |
+| `GeneralCharacterLogic.as` | 79-103 | 构造函数 — `CharacterTable.get(id)` |
+| `GeneralCharacterLogic.as` | 376-427 | `getPlusValueByManaNodes` — 缓存逻辑 |
+| `GeneralManaNodeLogic.as` | 102-121 | `get_values()` — C8601 触发点 |
+| `BattleCharacterLogic.as` | 77-93 | 构造函数 — `abilities = param1.mana_node_ids` |
+| `BattleCharacterLogic.as` | 1326-1339 | `getLearnedManaNodes()` — 构造 ManaNodeLogic |
+| `BattleCharacterLogic.as` | 732-734 | `get_actionSkillEvolution()` — 入口 |
+| `BattlePartyLogic.as` | 344-423 | `getUnitedCharacterPeeks` — 创建 BattleCharacterLogic |
+| `MasterBinaryMap.as` | 63-76 | `getIndex()` — C8601 抛出点 |
+| `BattleServerMessage.as` | 1-50 | 战斗协议 — 无角色能力消息 |
+| `RestoreState.as` | 49-51 | `CooperationRoom` — 闪退恢复状态 |
+| `GlobalLoadingTask.as` | 317-334 | `restoreRoomRemoteInput` → Resume |
+| `GlobalLoadingTask.as` | 432-466 | `processRestoreState` — 恢复路由 |
+| `CooperationRoomConnectionReason.as` | 1-35 | Select/Resume 枚举 |
+| `EnterRoomService.as` | 136-176 | `socketInput_ready` — 发送 mate party |
+| `PlayerLogic.as` | 1379-1401 | `getMate()` — 构造 mate 数据 |
+| `CooperationRoomSocketContact.as` | 249-264 | `startBattle` — 传递 continuationData |
+| `MultiQuestStartLoadingTask.as` | 116-204 | `run()` — 找自己 party + 发 quest_start |
+| `MultiQuestStartLoadingTask.as` | 252-264 | `remoteFinishedHandler` → BattleSource 创建 |
