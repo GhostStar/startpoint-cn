@@ -168,12 +168,12 @@
         // Test pool
         document.getElementById('testStats').innerHTML =
             '<span class="stat"><span class="label unk">UNKNOWN</span><br><span class="value unk">'+fmt(s.unknown)+'</span></span>'
-            + '<span class="stat"><span class="label p1">PENDING</span><br><span class="value p1">'+fmt(s.mov_pending)+'</span></span>'
-            + '<span class="stat"><span class="label ok">VERIFIED</span><br><span class="value ok">'+fmt(s.mov_verified)+'</span></span>';
+            + '<span class="stat"><span class="label p1">PENDING</span><br><span class="value p1">'+fmt(s.pending)+'</span></span>'
+            + '<span class="stat"><span class="label ok">VERIFIED</span><br><span class="value ok">'+fmt(s.verified)+'</span></span>';
         document.getElementById('testSummary').textContent = '安全率 '+s.accuracy+'% | 已测 '+fmt(s.tested)+' | 覆盖率 '+s.coverage+'%';
         var tt = s.total;
-        document.getElementById('barOk').style.width=(s.mov_verified/tt*100)+'%';
-        document.getElementById('barP1').style.width=(s.mov_pending/tt*100)+'%';
+        document.getElementById('barOk').style.width=(s.verified/tt*100)+'%';
+        document.getElementById('barP1').style.width=(s.pending/tt*100)+'%';
         document.getElementById('barUnk').style.width=(s.unknown/tt*100)+'%';
     }
 
