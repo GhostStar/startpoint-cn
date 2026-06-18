@@ -375,9 +375,20 @@ const routes = async (fastify: FastifyInstance) => {
         }
 
         // validate that the player has enough materials to unlock these nodes
-        // TODO: Allow the usage of paidMana
-        const newMana = player.freeMana - manaCost
-        if (0 > newMana) return reply.status(400).send({
+        // Deduct free_mana first, then paid_mana
+        let remaining = manaCost
+        let newFreeMana = player.freeMana
+        let newPaidMana = player.paidMana
+        if (remaining <= newFreeMana) {
+            newFreeMana -= remaining
+            remaining = 0
+        } else {
+            remaining -= newFreeMana
+            newFreeMana = 0
+            newPaidMana -= remaining
+            remaining = 0
+        }
+        if (newFreeMana < 0 || newPaidMana < 0) return reply.status(400).send({
             "error": "Bad Request",
             "message": "Not enough mana."
         })
@@ -394,10 +405,11 @@ const routes = async (fastify: FastifyInstance) => {
             itemsCosts[itemId] = newAmount
         }
 
-        // deduct mana
+        // deduct mana (free first, then paid)
         updatePlayerSync({
             id: playerId,
-            freeMana: newMana
+            freeMana: newFreeMana,
+            paidMana: newPaidMana
         })
 
         // deduct item amounts
@@ -452,7 +464,8 @@ const routes = async (fastify: FastifyInstance) => {
             }),
             "data": {
                 "user_info": {
-                    "free_mana": newMana
+                    "free_mana": newFreeMana,
+                    "paid_mana": newPaidMana
                 },
                 "character_list": [
                     {
