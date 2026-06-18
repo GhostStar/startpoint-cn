@@ -180,10 +180,14 @@ function parseC3032Beacon(loc: string): void {
     const starDigits = [...loc.matchAll(/â(\d)/g)];
     const ballRarity = starDigits.length > 0 ? parseInt(starDigits[0][1], 10) : 3;
     const charRarity = starDigits.length > 1 ? parseInt(starDigits[1][1], 10) : 3;
-    seedValidator.recordDeviceData(badSeed, ballRarity, charRarity);
+    // Extract play= field (0=no animation, 1=played) — APK 04e patch v2
+    const playMatch = loc.match(/play=(\d)/);
+    const didPlay = playMatch ? playMatch[1] === '1' : null;
+    seedValidator.recordDeviceData(badSeed, ballRarity, charRarity, didPlay);
     seedValidator.blockSeed(badSeed);
     seedValidator.autoPurify(movieId);
-    console.log(`[BEACON] C3032 → purified seed ${badSeed} ★${ballRarity} [${movieId}]`);
+    const playStr = didPlay === true ? ' play=1' : didPlay === false ? ' play=0' : '';
+    console.log(`[BEACON] C3032 → purified seed ${badSeed} ★${ballRarity}${playStr} [${movieId}]`);
 }
 
 fastify.post("/debug", async (request, reply) => {

@@ -25,7 +25,7 @@ const TEST_SEED_TIMEOUT_MS = 10 * 60 * 1000;
 export type PoolMode = 'unknown' | 'purified';
 export type SeedTag = '未测试' | '热血躲避球' | '普通躲避球' | '冷血躲避球';
 
-interface PurifiedEntry { r: number; tag: SeedTag }
+interface PurifiedEntry { r: number; tag: SeedTag; play?: boolean }
 
 /** 每个卡池独立的状态（purified/verified/pending，不含 testSeeds） */
 class MoviePool {
@@ -73,6 +73,7 @@ export class SeedValidator {
     private pools: Map<string, MoviePool> = new Map();
     private blocked: Set<number> = new Set();
     private deviceData: Map<number, number> = new Map();
+    private playData: Map<number, boolean> = new Map();
     /** 全局测试种子 — 不区分 movie 配置 */
     private testSeeds: (number | null)[] = [null, null, null];
     private testTimestamps: (number | null)[] = [null, null, null];
@@ -135,14 +136,21 @@ export class SeedValidator {
     private saveConfig(): void { writeFileSync(CONFIG_FILE, JSON.stringify({ mode: this.mode, selectedMovieId: this.selectedMovieId }, null, 2), "utf-8"); }
 
     // C3032
-    recordDeviceData(seed: number, ballRarity: number, _charRarity: number): void { this.deviceData.set(seed, ballRarity); this.saveDeviceData(); }
+    recordDeviceData(seed: number, ballRarity: number, _charRarity: number, didPlay?: boolean | null): void {
+        this.deviceData.set(seed, ballRarity);
+        if (didPlay !== undefined && didPlay !== null) this.playData.set(seed, didPlay);
+        this.saveDeviceData();
+    }
     blockSeed(seed: number): void { if (this.blocked.has(seed)) return; this.blocked.add(seed); this.saveBlocked(); }
     autoPurify(movieId: string): number {
         let count = 0; const toDelete: number[] = [];
         for (const seed of this.blocked) {
             const ball = this.deviceData.get(seed);
             const r = ball ? ball - 3 : 0; // default ★3 if device data unavailable
-            this.pool(movieId).purified.set(seed, { r, tag: '未测试' });
+            const play = this.playData.get(seed);
+            const entry: PurifiedEntry = { r, tag: '未测试' };
+            if (play !== undefined) entry.play = play;
+            this.pool(movieId).purified.set(seed, entry);
             toDelete.push(seed); count++;
         }
         for (const s of toDelete) {
@@ -234,8 +242,8 @@ export class SeedValidator {
         };
     }
 
-    getPurifiedList(movieId: string): { seed: number; rarity: number; tag: SeedTag }[] {
-        return Array.from(this.pool(movieId).purified.entries()).map(([s, e]) => ({ seed: s, rarity: e.r + 3, tag: e.tag }));
+    getPurifiedList(movieId: string): { seed: number; rarity: number; tag: SeedTag; play?: boolean }[] {
+        return Array.from(this.pool(movieId).purified.entries()).map(([s, e]) => ({ seed: s, rarity: e.r + 3, tag: e.tag, play: e.play }));
     }
 }
 
