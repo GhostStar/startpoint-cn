@@ -81,7 +81,7 @@
     async function selectCfg(id) { await fetch('/api/seeds/mode',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({selectedMovieId:id})});currentMovieId=id;load(); }
     async function setTag(seed,tag,movieId) { await fetch('/api/seeds/tag',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seed,tag,movieId:movieId||currentMovieId})});load(); }
     async function setTestSeed(seed,rarity) { await fetch('/api/seeds/test-seed',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({seed,rarity})});load(); }
-    async function clearTestSeed(rarity) { await fetch('/api/seeds/test-seed',{method:'DELETE',headers:{'Content-Type':'application/json'},body:JSON.stringify({rarity})});load(); }
+    async function clearTestSeed(rarity) { await fetch('/api/seeds/test-seed?rarity='+rarity,{method:'DELETE'});load(); }
 
     var TAG = ['未测试','热血躲避球','普通躲避球','冷血躲避球'];
     var TAG_S = ['未','热','普','冷'];
