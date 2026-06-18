@@ -161,6 +161,22 @@ export function rewardPlayerGachaDrawResultSync(
                         ? (characterGacha.guaranteeMovieName || characterGacha.movieName || "normal")
                         : (characterGacha.movieName || "normal")
 
+                    // rarity_5_guarantee: isRarity5=true → ball.rarity forced to 2, moviePlayable=false
+                    // Client skips ALL physics. Seed is irrelevant — use characterId*1000.
+                    const movieConfig = MOVIE_CONFIGS[movieId];
+                    if (movieConfig?.threshold?.isRarity5) {
+                        const draw: GachaCharacterDraw = {
+                            "character_id": characterId,
+                            "movie_id": movieId,
+                            "seed": characterId * 1000,
+                            "entry_count": 1
+                        }
+                        draws.push(draw)
+                        characters.set(characterId, giveResult.character)
+                        console.log(`[GACHA] rarity=${rarity}★ seed=${characterId * 1000} movie=${movieId} charId=${characterId} [SKIP]`)
+                        continue
+                    }
+
                     // Load movie-specific seed pool (e.g., gacha_movie_seeds_fes.json)
                     // seed pool key: "1"=★5, "2"=★4, "3"=★3
                     const seedKey = String(6 - rarity)
