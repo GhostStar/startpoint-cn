@@ -134,24 +134,20 @@ export class SeedValidator {
 
         const p = this.pool(movieId);
 
-        // ② 净化池（仅净化池模式 + play=1）
         if (this.mode === 'purified') {
+            // 纯净模式：优先可播放种子
+            // ② 净化池（play=1，按 rarity 匹配）
             const pur = pool.find(s => { const e = p.purified.get(s); return e && e.r === ri && e.tag !== '冷血躲避球'; });
             if (pur !== undefined) return pur;
-            console.log(`[SEED] No purified ★${rarity} play=1 in [${movieId}]`);
+
+            // ③ 已确认可播放的种子（PLAY beacon: play=1 known）
+            const play = pool.find(s => p.confirmedPlay.has(s));
+            if (play !== undefined) return play;
         }
 
-        // ③ 已确认可播放的种子（PLAY beacon: play=1 known）
-        const confPlay = pool.find(s => p.confirmedPlay.has(s));
-        if (confPlay !== undefined) return confPlay;
-
-        // ④ 未测试种子（优先发送，扩展 confirmed 池）
+        // 两种模式共用：④ 未测试种子
         const unknown = pool.find(s => !p.confirmed.has(s) && !p.purified.has(s));
         if (unknown !== undefined) return unknown;
-
-        // ⑤ 已确认种子（兜底：unknown 耗尽时复用）
-        const conf = pool.find(s => p.confirmed.has(s));
-        if (conf !== undefined) return conf;
 
         // ⑤ 兜底
         return characterId * 1000;
