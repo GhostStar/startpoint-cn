@@ -136,8 +136,8 @@ class MersenneTwister {
         const magic = -1727483681; // 0x9908B0DF
         mt[i] = (mt[(i + 397) % MT_LENGTH] ^ (y2 >>> 1) ^ (y2 & 1 ? magic : 0)) | 0;
 
-        // Tempering
-        y = mt[i] | 0;
+        // Tempering (on PRE-TWIST y — matches AS3 which tempers _loc2_
+        // that was read before the twist on line int(mt[_loc1_]))
         y ^= y >>> 11;
         y ^= (y << 7) & 0x9D2C5680; // -1658038656
         y ^= (y << 15) & 0xEFC60000; // -272236544
@@ -622,14 +622,15 @@ export class GachaSimulator {
     /**
      * Main update loop — one physics frame.
      *
-     * FallingField.update() flow:
-     *   1. Gravity + integrate (Box2D semi-implicit Euler)
-     *   2. Pin contacts (sensor — no bounce, just marked contacted)
-     *   3. Amulet contacts (end-of-frame distance, sensor → rarity upgrade)
-     *   4. Exit detection
+     * FallingField.update() via World.step():
+     *   1. Amulet contacts: pre-motion distance check (Phase A narrowPhase.detect)
+     *   2. Gravity + integrate: Box2D semi-implicit Euler
+     *   3. Pin contacts: sensor distance check (no bounce)
+     *   4. Wall collision + exit detection
      *
-     * Ball ShapeCircle.sensor=true → constraint solver skips contact resolution.
-     * Ball passes through pins without bouncing. Pin detection is contact logging only.
+     * Pre-motion amulet check matches client Phase A (before ball moves).
+     * Amulets with sensor=true have disabled=true → solver skips,
+     * but onBeginBodyContact still fires via isBodyContactCreated().
      */
     step(): void {
         if (this.finished) return;
@@ -638,7 +639,29 @@ export class GachaSimulator {
         const c = cfg.field;
         const cb = cfg.ball;
 
-        // ---- Phase 1: Gravity + Integrate (Box2D semi-implicit Euler) ----
+        // ---- Phase 1: Amulet contact detection at pre-motion position ----
+        // Matches client World.step() Phase A: broadPhase + narrowPhase.detect()
+        // checks circle overlap at the CURRENT (pre-integration) position.
+        const contactDist = cb.radius + cfg.amulet.radius;
+        const contactDistSq = contactDist * contactDist;
+        for (const amu of this.amulets) {
+            if (amu.contacted || amu.forceContacted) continue;
+            const dx = this.ballX - amu.x;
+            const dy = this.ballY - amu.y;
+            if (amu.placeId === AmuletPlaceId.Bar) {
+                if (Math.abs(dy) < contactDist) {
+                    amu.contacted = true;
+                    this.handleAmuletContact(amu);
+                }
+            } else {
+                if (dx * dx + dy * dy < contactDistSq) {
+                    amu.contacted = true;
+                    this.handleAmuletContact(amu);
+                }
+            }
+        }
+
+        // ---- Phase 2: Gravity + Integrate (Box2D semi-implicit Euler) ----
         this.ballVx += c.gravityX;
         this.ballVy += c.gravityY;
 
@@ -648,9 +671,6 @@ export class GachaSimulator {
         this.frameCount++;
 
         // ---- Phase 3: Pin contact detection (sensor → no bounce) ----
-        // Ball has sensor=true → constraint solver skips contact resolution.
-        // Pins are marked contacted but do NOT affect ball trajectory.
-        // FallingField.update(): Vx *= pinHR where pinHR = 0.7/0.7 = 1.0 (no-op).
         for (const pin of this.pins) {
             if (pin.contacted) continue;
             const dx = this.ballX - pin.x;
@@ -661,33 +681,7 @@ export class GachaSimulator {
             }
         }
 
-        // ---- Phase 4: Amulet sensor contact detection ----
-        // After world.step(), client checks isBodyContactCreated for each amulet.
-        // This is a distance check at end-of-frame position (sensors don't bounce).
-        // CCD mid-frame crossings are rare for gacha physics — simple post-step
-        // distance check covers the vast majority of contact cases.
-        const contactDist = cb.radius + cfg.amulet.radius;
-        const contactDistSq = contactDist * contactDist;
-        for (const amu of this.amulets) {
-            if (amu.contacted || amu.forceContacted) continue;
-            const dx = this.ballX - amu.x;
-            const dy = this.ballY - amu.y;
-            if (amu.placeId === AmuletPlaceId.Bar) {
-                // Full-width: only Y distance matters
-                if (Math.abs(dy) < contactDist) {
-                    amu.contacted = true;
-                    this.handleAmuletContact(amu);
-                }
-            } else {
-                // Circle: full distance check
-                if (dx * dx + dy * dy < contactDistSq) {
-                    amu.contacted = true;
-                    this.handleAmuletContact(amu);
-                }
-            }
-        }
-
-        // ---- Phase 5: Wall collision ----
+        // ---- Phase 4: Wall collision ----
         const wr = c.wallRestitution;
         if (this.ballX - cb.radius < 0) {
             this.ballX = cb.radius;
@@ -698,7 +692,7 @@ export class GachaSimulator {
             this.ballVx = -this.ballVx * wr;
         }
 
-        // ---- Phase 6: Exit detection (FallingField.update lines 157-168) ----
+        // ---- Phase 5: Exit detection ----
         if (this.ballY > c.height + cb.radius) {
             if (this.pendingFinish < 0) {
                 this.pendingFinish = 5;
