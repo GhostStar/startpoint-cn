@@ -486,8 +486,10 @@ function buildRealParty(playerId: number, party: PlayerParty): any {
         if (!charId) return [1]  // Option None
         const dbChar = getPlayerCharacterSync(playerId, charId)
         if (!dbChar) return [1]
-        // mana_node_ids from DB — may trigger C8601 (key=0) in multi-battle, to be analyzed
-        const manaNodeIds = getPlayerCharacterManaNodesSync(playerId, charId)
+        // mana_node_ids in IntMap format {"multiplied_id": 0, ...} to match client OwnedCharacterLogic serialization
+        const rawNodes = getPlayerCharacterManaNodesSync(playerId, charId)
+        const manaNodeMap: Record<string, number> = {}
+        for (const id of rawNodes) manaNodeMap[String(id)] = 0
         // ex boost from DB
         let exBoost: any = [1]
         if (dbChar.exBoost && dbChar.exBoost.abilityIdList && dbChar.exBoost.abilityIdList.length > 0) {
@@ -503,7 +505,7 @@ function buildRealParty(playerId: number, party: PlayerParty): any {
             evolution_level: dbChar.evolutionLevel,
             exp: dbChar.exp,
             over_limit_step: dbChar.overLimitStep,
-            mana_node_ids: manaNodeIds,
+            mana_node_ids: manaNodeMap,
             ex_boost: exBoost,
             illustration_settings: illustration
         }]
