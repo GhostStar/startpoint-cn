@@ -115,12 +115,13 @@ export class SeedValidator {
         this.saveConfirm();
     }
 
-    // 种子已发送（无 crash → 默认确认）
-    markSent(movieId: string, seed: number): void {
+    // 种子已发送（无 crash → 默认确认，带上稀有度信息）
+    markSent(movieId: string, seed: number, rarity?: number): void {
         const p = this.pool(movieId);
         if (p.pendingPool.has(seed) || p.playPool.has(seed) || p.confirmPool.has(seed)) return;
-        this.confirm(movieId, seed);
-        console.log(`[SEED] CONFIRM [${movieId}] seed=${seed}`);
+        const r = rarity !== undefined ? rarity - 3 : null;
+        this.confirm(movieId, seed, r);
+        console.log(`[SEED] CONFIRM [${movieId}] seed=${seed} r=${r !== null ? '★'+(r+3) : 'null'}`);
     }
 
     // Tag

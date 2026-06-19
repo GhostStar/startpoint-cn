@@ -194,7 +194,7 @@ export function rewardPlayerGachaDrawResultSync(
                 drawIndex += 1
 
                 // Mark seed as TESTING (pending verification)
-                seedValidator.markSent(movieId, seed)
+                seedValidator.markSent(movieId, seed, rarity)
 
                 console.log(`[GACHA] rarity=${rarity}★ seed=${seed} movie=${movieId} charId=${characterId}`)
 
