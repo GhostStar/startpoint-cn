@@ -113,7 +113,8 @@ export class SeedValidator {
             this.savePlay();
             return;
         }
-        p.confirmPool.delete(seed);
+        // r is known from C3032 → promote to confirmPool immediately
+        if (r !== null) this.confirm(movieId, seed, r);
         p.pendingPool.set(seed, r);
         this.saveConfirm();
     }
