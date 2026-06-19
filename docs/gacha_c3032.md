@@ -387,7 +387,7 @@ Scanned 200001 seeds in 14s (~15K seeds/sec)
 | Web 管理 | ✅ 三模式切换 + 组选择器 + 5 列 purified（★3/★4/★4保底/★5/★5保底）+ 标签管理 |
 | playMovie 预测 | ✅ client PLAY beacon 100% 准确。purified play=1 种子天然可靠 |
 | gacha 抽卡去重 | ✅ flat array 按原始随机顺序，不再 group 同一角色 |
-| 自然模式 | ✅ 默认：10% PURIFIED_PLAY_RATE，模拟客户端真实播放率 |
+| 自然模式 | ✅ drawIndex=0 强制 playPool（对齐客户端），后续 10%。⚠️ normal_guarantee ~7% 播放率未对齐（playMovie=0.9299 vs 0.8995） |
 | gacha.ts | ✅ 池模式 + 优先级 + 惊险种子 + 跨池注入 |
 | 惊险种子 | 🔄 从头测试（500K 种子，play= beacon 已部署） |
 | 自动净化 | ✅ C3032 → recordDeviceData → autoPurify |

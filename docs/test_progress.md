@@ -101,7 +101,7 @@
 | F1070 pendingPlay 池 | 无 patch APK 测试缓存：/crash(r已知)+markSent(r=null)。换 patch 后重测得 play 状态 |
 | F1071 净化池 5 列 | ★3 / ★4 / ★4保底 / ★5 / ★5保底——按 movie 来源 (_guarantee 后缀) 分列 |
 | F1072 自然模式优先级 | playPool(10%) > confirmPool > testPool。优先保证零 C3032 |
-| F1073 池子重命名 | unknown→testPool, confirmed→confirmPool, purified+confirmedPlay→playPool, pendingPlay→pendingPool |
+| F1074 drawIndex=0 对齐 | 第 1 抽强制 playPool（客户端 drawIndex=0 永远播动画）。normal_guarantee ~7% 未对齐 |
 | F1060 RNG tempering 修复 | `randomUInt()` tempering 从 post-twist 值改为 pre-twist 值（匹配 AS3），精度 17% → 85% |
 | F1061 threshold.amulets 越界 | `?? 0` → `!== undefined`（匹配 AS3 Number(undefined)=NaN），fes_guarantee 37% → 90% |
 | F1062 play= beacon 字段 | APK patch: C3032 beacon 加入 `play=1|0`（client moviePlayable），服务端解析存储 |
