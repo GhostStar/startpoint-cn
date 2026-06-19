@@ -21,6 +21,7 @@ const CONFIRMED_FILE = join(ASSETS_DIR, "confirmed_seeds.json");
 const PURIFIED_FILE = join(ASSETS_DIR, "purified_seeds.json");
 const CONFIG_FILE = join(ASSETS_DIR, "pool_config.json");
 const TEST_SEEDS_FILE = join(ASSETS_DIR, "test_seeds.json");
+const BACKLOG_FILE = join(ASSETS_DIR, "seed_backlog.json");
 
 export type PoolMode = 'natural' | 'play' | 'test';
 export type SeedTag = '未测试' | '热血躲避球' | '普通躲避球' | '冷血躲避球';
@@ -32,7 +33,8 @@ class MoviePool {
     confirmPool: Map<number, number | null> = new Map();
     playPool: Map<number, PlayEntry> = new Map();
     pendingPool: Map<number, number | null> = new Map();
-    sentSeeds: Map<number, number | null> = new Map(); // 已发未验证（seed → r）
+    sentSeeds: Map<number, number | null> = new Map();
+    seedBacklog: number[] = []; // 优先测试队列（FIFO）
 }
 
 // ============================================================================
@@ -55,6 +57,7 @@ export class SeedValidator {
         // Load play pool from purified_seeds.json (legacy — now merged with _play)
         try { if (existsSync(PURIFIED_FILE)) { const o = JSON.parse(readFileSync(PURIFIED_FILE, "utf-8")); for (const [mid, seeds] of Object.entries(o)) { if (typeof seeds !== 'object' || seeds === null) continue; const p = this.pool(mid); for (const [s, e] of Object.entries(seeds as any)) { const entry: PlayEntry = { r: (e as any).r ?? 0, tag: (e as any).tag || '未测试', play: true }; p.confirmPool.delete(Number(s)); p.playPool.set(Number(s), entry); } } } } catch (_) {}
         try { if (existsSync(TEST_SEEDS_FILE)) { const a = JSON.parse(readFileSync(TEST_SEEDS_FILE, "utf-8")); if (Array.isArray(a)) { this.testSeeds = [null, null, null]; for (let i = 0; i < 3; i++) if (typeof a[i] === 'number') this.testSeeds[i] = a[i]; } } } catch (_) {}
+        try { if (existsSync(BACKLOG_FILE)) { const o = JSON.parse(readFileSync(BACKLOG_FILE, "utf-8")); for (const [mid, seeds] of Object.entries(o)) { if (Array.isArray(seeds)) this.pool(mid).seedBacklog = seeds; } } } catch (_) {}
         try { if (existsSync(CONFIG_FILE)) { const c = JSON.parse(readFileSync(CONFIG_FILE, "utf-8")); if (c.selectedMovieId) this.selectedMovieId = c.selectedMovieId; } } catch (_) {}
         this.mode = 'natural';
         let pl = 0, cf = 0; for (const m of this.pools.values()) { pl += m.playPool.size; cf += m.confirmPool.size; }
@@ -71,6 +74,8 @@ export class SeedValidator {
     // 确认（play=0 或无 C3032，rarity 已修正）
     confirm(movieId: string, seed: number, r?: number | null): void {
         const p = this.pool(movieId);
+        p.sentSeeds.delete(seed);
+        const bi = p.seedBacklog.indexOf(seed); if (bi >= 0) p.seedBacklog.splice(bi, 1);
         if (p.playPool.has(seed)) return;
         if (p.confirmPool.has(seed)) {
             // If seed already confirmed with null r, update with known r
@@ -87,6 +92,7 @@ export class SeedValidator {
     addPlay(movieId: string, seed: number, r: number, didPlay?: boolean | null): void {
         const p = this.pool(movieId);
         p.sentSeeds.delete(seed);
+        const bi = p.seedBacklog.indexOf(seed); if (bi >= 0) p.seedBacklog.splice(bi, 1);
         if (didPlay === true) {
             p.confirmPool.delete(seed);
             p.pendingPool.delete(seed);
@@ -106,6 +112,7 @@ export class SeedValidator {
     addPending(movieId: string, seed: number, r: number | null): void {
         const p = this.pool(movieId);
         p.sentSeeds.delete(seed);
+        const bi = p.seedBacklog.indexOf(seed); if (bi >= 0) p.seedBacklog.splice(bi, 1);
         // If seed is in playPool, fix its r value (from C3032 ground truth)
         const e = p.playPool.get(seed);
         if (e) {
@@ -177,6 +184,14 @@ export class SeedValidator {
             const candidates = avail.filter(s => { const e = p.playPool.get(s); return e && e.r === ri && e.tag !== '冷血躲避球'; });
             return rand(candidates);
         };
+
+        // ② 优先测试队列（FIFO——跳过 sentSeeds 和不在 pool 中的种子）
+        while (p.seedBacklog.length > 0) {
+            const cur = p.seedBacklog[0];
+            if (!p.sentSeeds.has(cur) && pool.includes(cur)) break;
+            p.seedBacklog.shift(); // 已发送或不在池中 → 移除
+        }
+        if (p.seedBacklog.length > 0) return p.seedBacklog[0];
 
         if (this.mode === 'play') { const pur = withTrace(pickPlay(), 'play'); if (pur !== undefined) return pur; }
 
