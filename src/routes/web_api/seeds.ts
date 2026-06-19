@@ -38,15 +38,15 @@ const routes = async (fastify: FastifyInstance) => {
         const s = seedValidator.stats(mid);
         const totalSeeds = countAllSeeds();
         const movieTotal = mid ? countMovieSeeds(mid) : 0;
-        const known = s.confirmed_total + s.purified_total;
-        const perMovieKnown = (s.confirmed || 0) + (s.mov_total || 0);
+        const known = s.confirm_total + s.play_total;
+        const perMovieKnown = (s.confirm || 0) + (s.mov_play || 0);
         reply.status(200).send({
             unknown: mid ? Math.max(0, movieTotal - perMovieKnown) : totalSeeds - known,
             movie_total: movieTotal,
-            confirmed: s.confirmed, confirmed_play: s.confirmed_play, confirmed_total: s.confirmed_total,
-            pending_play: s.pending_play || 0, pending_play_total: s.pending_play_total || 0,
-            purified_r3: s.purified_r3, purified_r4: s.purified_r4, purified_r5: s.purified_r5, purified_total: s.purified_total,
-            mov_r3: s.mov_r3, mov_r4: s.mov_r4, mov_r5: s.mov_r5, mov_total: s.mov_total,
+            confirm: s.confirm, confirm_total: s.confirm_total,
+            play_r3: s.play_r3, play_r4: s.play_r4, play_r5: s.play_r5, play_total: s.play_total,
+            mov_play: s.mov_play,
+            pending: s.pending || 0, pending_total: s.pending_total || 0,
             test_seeds: s.test_seeds,
             mode: s.mode,
             selectedMovieId: s.selectedMovieId, movieIds: s.movieIds,
@@ -57,7 +57,7 @@ const routes = async (fastify: FastifyInstance) => {
 
     fastify.get("/list", async (request: FastifyRequest, reply: FastifyReply) => {
         const mid = (request.query as any).movieId || seedValidator.getSelectedMovieId() || 'fes';
-        reply.status(200).send({ purified: seedValidator.getPurifiedList(mid), movieId: mid });
+        reply.status(200).send({ play: seedValidator.getPlayList(mid), movieId: mid });
     });
 
     fastify.post("/mode", async (request: FastifyRequest, reply: FastifyReply) => {

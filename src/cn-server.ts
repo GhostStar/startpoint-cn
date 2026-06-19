@@ -183,9 +183,9 @@ function parseC3032Beacon(loc: string): void {
     const r = ballRarity - 3; // 0=★3, 1=★4, 2=★5
     // purify only if play=1 (both rarity correct + confirmed playable)
     // otherwise → confirmed (rarity known correct, but not playable or play unknown)
-    seedValidator.purify(movieId, badSeed, r, didPlay === true);
+    seedValidator.addPlay(movieId, badSeed, r, didPlay === true);
     const playStr = didPlay === true ? ' play=1' : didPlay === false ? ' play=0' : '';
-    console.log(`[BEACON] C3032 → ${didPlay === true ? 'purified' : 'confirmed'} seed ${badSeed} ★${ballRarity}${playStr} [${movieId}]`);
+    console.log(`[BEACON] C3032 → ${didPlay === true ? 'play' : 'confirm'} seed ${badSeed} ★${ballRarity}${playStr} [${movieId}]`);
 }
 
 // PLAY beacon — every draw reports play=1|0 (APK 04e Patch 5)
@@ -200,8 +200,8 @@ function parsePlayBeacon(loc: string): void {
         const playMatch = loc.match(/play=(\d)/);
         const didPlay = playMatch ? playMatch[1] === '1' : false;
         if (didPlay) {
-            seedValidator.confirmPlay(movieId, seed);
-            console.log(`[PLAY] confirmed_play seed=${seed} movie=${movieId}`);
+            seedValidator.addPlay(movieId, seed, 0, true);
+            console.log(`[PLAY] playPool seed=${seed} movie=${movieId}`);
         } else {
             seedValidator.confirm(movieId, seed);
         }

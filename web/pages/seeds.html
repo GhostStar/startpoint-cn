@@ -56,23 +56,23 @@
                 <div id="cfgSummary" class="flex flex-wrap gap-3"></div>
             </div>
 
-            <!-- ====== 净化池 ====== -->
-            <div class="card" id="purifiedSection">
-                <h2 class="text-lg font-semibold text-on-surface-variant mb-2">净化池 <span class="text-xs" style="color:#888">（testSeed > 同稀有度）</span></h2>
+            <!-- ====== 播放池 ====== -->
+            <div class="card" id="playSection">
+                <h2 class="text-lg font-semibold text-on-surface-variant mb-2">播放池 <span class="text-xs" style="color:#888">（testSeed > 同稀有度）</span></h2>
                 <div id="testSeedBar" class="flex flex-wrap gap-3 items-center mb-3" style="font-size:0.85rem"></div>
-                <div class="col5" id="purifiedColumns" style="display:none">
+                <div class="col5" id="playColumns" style="display:none">
                     <div><h3 class="text-sm font-semibold mb-1" style="color:#f85149">★3 <span id="col3Count">(0)</span></h3><div id="col3"></div></div>
                     <div><h3 class="text-sm font-semibold mb-1" style="color:#d29922">★4 <span id="col4Count">(0)</span></h3><div id="col4"></div></div>
                     <div><h3 class="text-sm font-semibold mb-1" style="color:#b0882c">★4保底 <span id="col4bCount">(0)</span></h3><div id="col4b"></div></div>
                     <div><h3 class="text-sm font-semibold mb-1" style="color:#3fb950">★5 <span id="col5Count">(0)</span></h3><div id="col5"></div></div>
                     <div><h3 class="text-sm font-semibold mb-1" style="color:#2ea043">★5保底 <span id="col5bCount">(0)</span></h3><div id="col5b"></div></div>
                 </div>
-                <div id="purifiedEmpty" class="text-xs text-on-surface-variant">暂无净化种子</div>
+                <div id="playEmpty" class="text-xs text-on-surface-variant">暂无播放种子</div>
             </div>
 
             <!-- ====== 测试池 ====== -->
             <div class="card" id="testSection">
-                <h2 class="text-lg font-semibold text-on-surface-variant mb-2">测试池 <span class="text-xs" style="color:#888">（不播放 > 待测播放 > 未知种子）</span></h2>
+                <h2 class="text-lg font-semibold text-on-surface-variant mb-2">测试池 <span class="text-xs" style="color:#888">（确认池 > 等待校验 > 测试池）</span></h2>
                 <div class="progress"><div class="bar-ok" id="barOk" style="width:0"></div><div class="bar-play" id="barPlay" style="width:0"></div><div class="bar-unk" id="barUnk" style="width:0"></div></div>
                 <div id="testStats"></div><p id="testSummary" class="text-xs text-on-surface-variant mt-1"></p>
             </div>
@@ -129,19 +129,19 @@
             mode: allStats[0].mode,
             test_seeds: allStats[0].test_seeds,
             movieIds: allStats[0].movieIds,
-            confirmed: 0, confirmed_play: 0, unknown: 0, mov_total: 0,
-            purified_total: 0, purified_r3: 0, purified_r4: 0, purified_r5: 0,
-            total: 0, tested: 0, coverage: 0
+            confirm: 0, play_total: 0, unknown: 0, mov_play: 0, pending: 0,
+            total: 0, tested: 0, coverage: 0,
+            play_r3: 0, play_r4: 0, play_r5: 0
         };
         for (var st of allStats) {
-            s.confirmed += st.confirmed || 0;
-            s.confirmed_play += st.confirmed_play || 0;
+            s.confirm += st.confirm || 0;
+            s.play_total += st.play_total || 0;
             s.unknown += st.unknown || 0;
-            s.mov_total += st.mov_total || 0;
-            s.purified_total += st.purified_total || 0;
-            s.purified_r3 += st.purified_r3 || 0;
-            s.purified_r4 += st.purified_r4 || 0;
-            s.purified_r5 += st.purified_r5 || 0;
+            s.mov_play += st.mov_play || 0;
+            s.pending += st.pending || 0;
+            s.play_r3 += st.play_r3 || 0;
+            s.play_r4 += st.play_r4 || 0;
+            s.play_r5 += st.play_r5 || 0;
             s.total += st.movie_total || st.total || 0;
             s.tested += st.tested || 0;
         }
@@ -156,21 +156,21 @@
         GROUPS.forEach(function(g){ ch += '<button class="cfg-btn'+(g.id===group.id?' active':'')+'" onclick="selectCfg(\''+g.id+'\')">'+g.name+'</button> '; });
         document.getElementById('cfgSelector').innerHTML = ch;
 
-        var t = s.mov_total;
+        var t = s.mov_play;
         document.getElementById('cfgSummary').innerHTML =
-            '<span class="stat"><span class="label pur">净化</span><br><span class="value pur">'+t+'</span></span>'
-            + '<span class="stat"><span class="label ok">确认</span><br><span class="value ok">'+s.confirmed+'</span></span>';
+            '<span class="stat"><span class="label pur">播放池</span><br><span class="value pur">'+t+'</span></span>'
+            + '<span class="stat"><span class="label ok">确认池</span><br><span class="value ok">'+s.confirm+'</span></span>';
 
         // Test seed bar
         var tsArr = s.test_seeds || [null,null,null];
-        var allPurified = [];
+        var allPlay = [];
         for (var m of group.movies) {
             var listRes = await fetch('/api/seeds/list?movieId=' + m);
             var data = await listRes.json();
-            (data.purified || []).forEach(function(p){ p._movie = m; allPurified.push(p); });
+            (data.play || []).forEach(function(p){ p._movie = m; allPlay.push(p); });
         }
-        var purified = allPurified;
-        var pMap = {}; purified.forEach(function(p){pMap[p.seed]=p;});
+        var playList = allPlay;
+        var pMap = {}; playList.forEach(function(p){pMap[p.seed]=p;});
 
         var tsH = '<span class="text-xs text-on-surface-variant">testSeed:</span> ';
         [3,4,5].forEach(function(r){
@@ -186,31 +186,31 @@
         });
         document.getElementById('testSeedBar').innerHTML = tsH;
 
-        // Purified columns (5 columns: ★3 ★4 ★4保底 ★5 ★5保底)
+        // Play columns (5 columns: ★3 ★4 ★4保底 ★5 ★5保底)
         if (t > 0) {
-            document.getElementById('purifiedColumns').style.display = '';
-            document.getElementById('purifiedEmpty').style.display = 'none';
+            document.getElementById('playColumns').style.display = '';
+            document.getElementById('playEmpty').style.display = 'none';
             [{col:'col3',r:3,g:false},{col:'col4',r:4,g:false},{col:'col4b',r:4,g:true},{col:'col5',r:5,g:false},{col:'col5b',r:5,g:true}].forEach(function(cfg){
-                var items = purified.filter(function(p){ return p.rarity===cfg.r && p._movie.endsWith('_guarantee')===cfg.g; });
+                var items = playList.filter(function(p){ return p.rarity===cfg.r && p._movie.endsWith('_guarantee')===cfg.g; });
                 document.getElementById(cfg.col+'Count').textContent = '('+items.length+')';
                 document.getElementById(cfg.col).innerHTML = items.length>0
                     ? items.map(function(p){return renderSeedRow(p, cfg.r, tsArr[cfg.r-3]===p.seed);}).join('')
                     : '<div class="text-xs text-on-surface-variant" style="padding:0.25rem 0">暂无</div>';
             });
         } else {
-            document.getElementById('purifiedColumns').style.display = 'none';
-            document.getElementById('purifiedEmpty').style.display = '';
+            document.getElementById('playColumns').style.display = 'none';
+            document.getElementById('playEmpty').style.display = '';
         }
 
         // Test pool
         document.getElementById('testStats').innerHTML =
-            '<span class="stat"><span class="label ok">不播放</span><br><span class="value ok">'+fmt(s.confirmed)+'</span></span>'
-            + '<span class="stat"><span class="label" style="color:#3fb950">待测播放</span><br><span class="value" style="color:#3fb950">'+fmt(s.pending_play||0)+'</span></span>'
-            + '<span class="stat"><span class="label unk">未知</span><br><span class="value unk">'+fmt(s.unknown)+'</span></span>';
+            '<span class="stat"><span class="label ok">确认池</span><br><span class="value ok">'+fmt(s.confirm)+'</span></span>'
+            + '<span class="stat"><span class="label" style="color:#3fb950">等待校验</span><br><span class="value" style="color:#3fb950">'+fmt(s.pending||0)+'</span></span>'
+            + '<span class="stat"><span class="label unk">测试池</span><br><span class="value unk">'+fmt(s.unknown)+'</span></span>';
         document.getElementById('testSummary').textContent = '已测 '+fmt(s.tested)+' | 覆盖率 '+s.coverage+'%';
         var tt = s.total;
-        document.getElementById('barOk').style.width=(s.confirmed/tt*100)+'%';
-        document.getElementById('barPlay').style.width=((s.pending_play||0)/tt*100)+'%';
+        document.getElementById('barOk').style.width=(s.confirm/tt*100)+'%';
+        document.getElementById('barPlay').style.width=((s.pending||0)/tt*100)+'%';
         document.getElementById('barUnk').style.width=(s.unknown/tt*100)+'%';
     }
 
