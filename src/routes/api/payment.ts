@@ -4,7 +4,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { getPlayerSync, getSession, updatePlayerSync } from "../../data/wdfpData";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
-import { generateDataHeaders } from "../../utils";
+import { generateDataHeaders, getServerTime } from "../../utils";
 import { getConfigSync } from "../../lib/assets";
 import paymentProducts from "../../../assets/payment_products.json";
 
@@ -12,8 +12,10 @@ interface PaymentProduct {
     store_product_id: string
     charge_vmoney_num: number
     free_vmoney_num: number
-    display_name: string
-    description: string
+    start_time: number
+    end_time: number
+    age_limit: boolean
+    monthly_alert: boolean
 }
 
 const PRODUCTS: Record<string, PaymentProduct> = paymentProducts as Record<string, PaymentProduct>
@@ -34,40 +36,53 @@ const routes = async (fastify: FastifyInstance) => {
             "error": "Bad Request", "message": "Invalid viewer id."
         })
 
-        const itemList = Object.values(PRODUCTS).map(p => ({
-            store_product_id: p.store_product_id,
-            charge_vmoney_num: p.charge_vmoney_num,
-            free_vmoney_num: p.free_vmoney_num,
-            display_name: p.display_name,
-            description: p.description
-        }))
-
-        console.log(`[PAYMENT] item_list: ${itemList.length} products for viewer ${viewerId}`)
-
+        // Payment disabled on private server — return empty list
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
             "data_headers": generateDataHeaders({ viewer_id: viewerId }),
-            "data": { "payment_item_list": itemList }
+            "data": {
+                "payment_item_list": [],
+                "refund_penalty_status": null
+            }
         })
     })
 
     fastify.post("/start", async (request: FastifyRequest, reply: FastifyReply) => {
-        const body = request.body as { viewer_id: number, product_id: string, api_count: number }
+        const body = request.body as {
+            viewer_id: number
+            api_count: number
+            payment?: { product_id: string }
+        }
         const viewerId = body.viewer_id
-        const productId = body.product_id
+        // Leiting SDK wraps product_id in nested payment object
+        const productId = body.payment?.product_id || (body as any).product_id
 
         if (!viewerId || isNaN(viewerId) || !productId) {
-            console.warn(`[PAYMENT-START] invalid request`)
-            return reply.status(400).send({ "error": "Bad Request", "message": "Invalid request body." })
+            console.warn(`[PAYMENT-START] invalid request, body: ${JSON.stringify(body)}`)
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+                "data": {}
+            })
         }
 
         const session = await getSession(viewerId.toString())
-        if (!session) return reply.status(400).send({ "error": "Bad Request", "message": "Invalid viewer id." })
+        if (!session) {
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+                "data": {}
+            })
+        }
 
         const product = PRODUCTS[productId]
         if (!product) {
             console.warn(`[PAYMENT-START] unknown product: ${productId}`)
-            return reply.status(400).send({ "error": "Bad Request", "message": "Unknown product." })
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+                "data": {}
+            })
         }
 
         console.log(`[PAYMENT-START] viewer ${viewerId}, product: ${productId} (paid=${product.charge_vmoney_num} free=${product.free_vmoney_num})`)
@@ -82,21 +97,40 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/finish", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as {
             viewer_id: number
-            product_id: string
-            receipt: string
-            signature?: string
             api_count: number
+            product_id?: string
+            receipt?: string
+            signature?: string
+            payment?: {
+                original_receipt?: string
+                signature?: string
+                currency_code?: string
+                price_number?: number
+                transaction_id?: string
+            }
+            deviceInfo?: any
         }
         const viewerId = body.viewer_id
-        const productId = body.product_id
+        // Leiting SDK wraps receipt in nested payment object
+        const receipt = body.receipt || body.payment?.original_receipt || ""
 
-        if (!viewerId || isNaN(viewerId) || !productId) {
-            console.warn(`[PAYMENT-FINISH] invalid request`)
-            return reply.status(400).send({ "error": "Bad Request", "message": "Invalid request body." })
+        if (!viewerId || isNaN(viewerId)) {
+            console.warn(`[PAYMENT-FINISH] invalid viewer_id`)
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+                "data": {}
+            })
         }
 
         const session = await getSession(viewerId.toString())
-        if (!session) return reply.status(400).send({ "error": "Bad Request", "message": "Invalid viewer id." })
+        if (!session) {
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+                "data": {}
+            })
+        }
 
         const playerId = resolvePlayerIdSync(session.accountId)!
         if (!playerId) return reply.status(500).send({ "error": "Internal Server Error", "message": "No player bound to account." })
@@ -104,10 +138,16 @@ const routes = async (fastify: FastifyInstance) => {
         const player = getPlayerSync(playerId)
         if (!player) return reply.status(500).send({ "error": "Internal Server Error", "message": "Player not found." })
 
+        // Determine product_id from pending payment
+        const productId = body.product_id || ""
         const product = PRODUCTS[productId]
         if (!product) {
-            console.warn(`[PAYMENT-FINISH] unknown product: ${productId}`)
-            return reply.status(400).send({ "error": "Bad Request", "message": "Unknown product." })
+            console.warn(`[PAYMENT-FINISH] unknown product: ${productId}, receipt: ${receipt}`)
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+                "data": {}
+            })
         }
 
         const paidVmoney = Math.max(0, isFinite(product.charge_vmoney_num) ? product.charge_vmoney_num : 0)
@@ -142,9 +182,30 @@ const routes = async (fastify: FastifyInstance) => {
                 "after_vmoney": afterPaid,
                 "after_free_vmoney": afterFree,
                 "first_payment": times === 1,
+                "first_time": times === 1,
                 "purchased_times_list": { [productId]: times },
-                "monthly_payment_total": 0
+                "monthly_payment_total": 0,
+                "monthly_charge_bonus_info": null,
+                "premium_bonus_list": null
             }
+        })
+    })
+
+    // Leiting SDK: report purchase result from native SDK callback
+    fastify.post("/report_purchase_result", async (request: FastifyRequest, reply: FastifyReply) => {
+        const body = request.body as {
+            viewer_id: number
+            api_count: number
+            order_id: string
+            status: string
+            result_code: string
+            result_msg: string
+        }
+        console.log(`[PAYMENT-REPORT] order=${body.order_id} status=${body.status}`)
+        reply.header("content-type", "application/x-msgpack")
+        return reply.status(200).send({
+            "data_headers": generateDataHeaders({ viewer_id: body.viewer_id }),
+            "data": {}
         })
     })
 }

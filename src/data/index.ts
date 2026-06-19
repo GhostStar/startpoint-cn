@@ -4,8 +4,8 @@ import path from "path";
 import { updateBeforeInit as updateWdfpDataBefore, updateAfterInit as updateWdfpDataAfter} from "./updaters/wdfpData";
 import initWdfpData from "./initializers/wdfpData";
 
-const rootDir = process.cwd();
-const dataDir = path.join(rootDir,"/.database" )
+// Use __dirname so DB path is relative to the source file, not process.cwd()
+const dataDir = path.resolve(__dirname, "../../.database")
 const versionFileExtension = ".version"
 if (!existsSync(dataDir)) {
     // make the data directory since it doesn't exist

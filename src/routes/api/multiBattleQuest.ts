@@ -795,7 +795,7 @@ const routes = async (fastify: FastifyInstance) => {
                     "free_vmoney": playerData.freeVmoney + (clearReward?.user_info.free_vmoney || 0) + (sPlusClearReward?.user_info.free_vmoney || 0) + scoreRewardsResult.user_info.free_vmoney,
                     "rank_point": newRankPoint,
                     "stamina": playerData.stamina,
-                    "stamina_heal_time": getServerTime(playerData.staminaHealTime),
+                    "stamina_heal_time": getServerTime(),
                     "boost_point": newBoostPoint,
                     "boss_boost_point": newBossBoostPoint
                 },

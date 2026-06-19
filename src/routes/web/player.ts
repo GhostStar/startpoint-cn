@@ -151,6 +151,7 @@ const routes = async (fastify: FastifyInstance) => {
             { key: 'freeMana', label: 'Mana(免费)', value: player.freeMana },
             { key: 'paidMana', label: 'Mana(付费)', value: player.paidMana },
             { key: 'stamina', label: '体力', value: player.stamina },
+            { key: 'partySlot', label: '队伍槽', value: player.partySlot },
             { key: 'rankPoint', label: 'Rank', value: player.rankPoint },
             { key: 'starCrumb', label: '星屑', value: player.starCrumb },
             { key: 'bondToken', label: '羁绊证', value: player.bondToken },

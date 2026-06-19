@@ -546,17 +546,17 @@ const routes = async (fastify: FastifyInstance) => {
 
         // Compute real-time stamina using client formula
         const staminaHealTimeSec = player.staminaHealTime.getTime() / 1000
-        const serverTimeSec = getServerTime()
-        const elapsed = (serverTimeSec - staminaHealTimeSec) / recoverySeconds
+        const nowSec = Math.floor(Date.now() / 1000)
+        const elapsed = (nowSec - staminaHealTimeSec) / recoverySeconds
         const currentStamina = Math.min(Math.max(0, player.stamina + Math.floor(elapsed)), maxOverflow)
 
         // Already at max
         if (currentStamina >= maxOverflow) {
             console.log(`[RECOVER-STAMINA] player ${playerId} already at max (${currentStamina} >= ${maxOverflow})`)
-            return reply.status(400).send({
-                "error": "Bad Request",
-                "code": 2102,
-                "message": "Already at max stamina."
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({ viewer_id: viewerId, result_code: 2102 }),
+                "data": {}
             })
         }
 
@@ -564,9 +564,10 @@ const routes = async (fastify: FastifyInstance) => {
         const freeVmoney = player.freeVmoney
         if (freeVmoney < recoveryCost) {
             console.warn(`[RECOVER-STAMINA] player ${playerId} insufficient vmoney: ${freeVmoney} < ${recoveryCost}`)
-            return reply.status(400).send({
-                "error": "Bad Request",
-                "message": "Insufficient star diamonds."
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({ viewer_id: viewerId, result_code: 0 }),
+                "data": {}
             })
         }
 
@@ -577,7 +578,7 @@ const routes = async (fastify: FastifyInstance) => {
         updatePlayerSync({
             id: playerId,
             stamina: afterStamina,
-            staminaHealTime: getServerDate(),
+            staminaHealTime: new Date(),
             freeVmoney: freeVmoney - recoveryCost
         })
 

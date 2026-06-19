@@ -124,6 +124,11 @@ export function serializePartyGroupList(
                 "current_battle_power": party.currentBattlePower ?? 0,
                 "before_battle_power": party.beforeBattlePower ?? 0
             }
+            // Debug: log first party's character_ids format
+            if (Number(groupId) === 1 && Number(slot) === 1) {
+                const charIds = list[globalPartyId].character_ids
+                console.log(`[PARTY-DEBUG] group=${groupId} slot=${slot} globalId=${globalPartyId} character_ids=${JSON.stringify(charIds)} types=${charIds?.map(c => typeof c + ':' + c).join(',')}`)
+            }
         }
         console.log(`[PARTY-SER] group=${groupId} slots=${Object.keys(group.list).length} keys=${Object.keys(list).slice(0,3).join(',')}...`)
         serialized[groupId] = {
@@ -266,7 +271,7 @@ export function serializePlayerData(
     const clientData: ClientPlayerData = {
         "user_info": {
             "stamina": playerData.stamina,
-            "stamina_heal_time": getServerTime(playerData.staminaHealTime),
+            "stamina_heal_time": getServerTime(),
             "boost_point": playerData.boostPoint,
             "boss_boost_point": playerData.bossBoostPoint,
             "transition_state": playerData.transitionState,
@@ -459,7 +464,7 @@ export function getDefaultPlayerData(): Omit<Player, 'id'> {
     // Default values aligned with CN client PlayerSaveDataTools.createDummy()
     return {
         stamina: 10,
-        staminaHealTime: now,
+        staminaHealTime: new Date(),
         boostPoint: 10,
         bossBoostPoint: 3,
         transitionState: 0,

@@ -143,6 +143,14 @@ fastify.post(`${apiPrefix}/channels/channel_leiting_pay/query_unfinish_order`, a
     stubMsgpackReply(reply, { order_id: "" });
 });
 
+fastify.post(`${apiPrefix}/channels/channel_leiting_pay/query_purcharge`, async (_request, reply) => {
+    stubMsgpackReply(reply, { status: 3 });  // 3 = purchase success
+});
+
+fastify.post(`${apiPrefix}/channels/channel_leiting_pay/set_unfinish_order_status`, async (_request, reply) => {
+    stubMsgpackReply(reply, {});
+});
+
 // PassCard (修行之道): get current pass card data
 fastify.post(`${apiPrefix}/Pass_card/get_pass_card`, async (_request, reply) => {
     stubMsgpackReply(reply, { point: 0, is_buy: false, all_received_record: [] });
@@ -307,7 +315,7 @@ fastify.setNotFoundHandler((request, reply) => {
     reply.status(404).send({ error: "Not Found" });
 });
 
-const host = process.env.CN_LISTEN_HOST ?? "localhost";
+const host = process.env.CN_LISTEN_HOST ?? "0.0.0.0";
 const port = parseInt(process.env.CN_LISTEN_PORT ?? "8001");
 
 fastify.listen({ port, host }, (err, address) => {

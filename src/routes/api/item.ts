@@ -3,7 +3,7 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { getPlayerItemSync, getPlayerSync, getSession, updatePlayerItemSync, updatePlayerSync } from "../../data/wdfpData";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { getConfigSync } from "../../lib/assets";
-import { generateDataHeaders, getServerDate, getServerTime } from "../../utils";
+import { generateDataHeaders, getServerTime } from "../../utils";
 import itemData from "../../../assets/item_data.json";
 
 interface ItemEffectInfo {
@@ -110,8 +110,8 @@ const routes = async (fastify: FastifyInstance) => {
 
         // Compute real-time stamina
         const staminaHealTimeSec = player.staminaHealTime.getTime() / 1000
-        const serverTimeSec = getServerTime()
-        const elapsed = (serverTimeSec - staminaHealTimeSec) / recoverySeconds
+        const nowSec = Math.floor(Date.now() / 1000)
+        const elapsed = (nowSec - staminaHealTimeSec) / recoverySeconds
         const currentStamina = Math.min(Math.max(0, player.stamina + Math.floor(elapsed)), maxOverflow)
 
         if (currentStamina >= maxOverflow) {
@@ -128,10 +128,16 @@ const routes = async (fastify: FastifyInstance) => {
         updatePlayerSync({
             id: playerId,
             stamina: afterStamina,
-            staminaHealTime: getServerDate()
+            staminaHealTime: new Date()
         })
 
         console.log(`[ITEM-USE] player ${playerId}: stamina ${currentStamina}->${afterStamina} (+${totalStaminaRecovery}), items: ${JSON.stringify(itemUpdates)}`)
+
+        // Build item_list as IntMap<int> (client expects { itemId: count })
+        const itemListMap: Record<number, number> = {}
+        for (const upd of itemUpdates) {
+            itemListMap[upd.id] = upd.newCount
+        }
 
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
@@ -141,7 +147,7 @@ const routes = async (fastify: FastifyInstance) => {
                     "stamina": afterStamina,
                     "stamina_heal_time": getServerTime()
                 },
-                "item_list": itemUpdates.map(u => ({ id: u.id, number: u.newCount }))
+                "item_list": itemListMap
             }
         })
     })

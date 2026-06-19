@@ -4,7 +4,7 @@ import { getQuestFromCategorySync, getRushEventFolderClearRewards } from "../../
 import { getCharactersEvolutionImgLevels, givePlayerCharactersExpSync } from "../../lib/character";
 import { givePlayerRewardsSync, givePlayerRewardSync, givePlayerScoreRewardsSync } from "../../lib/quest";
 import { BattleQuest, EquipmentItemReward, PlayerRewardResult, QuestCategory } from "../../lib/types";
-import { generateDataHeaders, getServerDate, getServerTime } from "../../utils";
+import { generateDataHeaders, getServerTime } from "../../utils";
 import { rushEventFolderMaxRounds } from "./rushEvent";
 import { RushEventBattleType, UserRushEventPlayedParty } from "../../data/types";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
@@ -523,7 +523,7 @@ const routes = async (fastify: FastifyInstance) => {
                     "free_vmoney": playerData.freeVmoney + (clearReward?.user_info.free_vmoney || 0) + (sPlusClearReward?.user_info.free_vmoney || 0) + scoreRewardsResult.user_info.free_vmoney,
                     "rank_point": newRankPoint,
                     "stamina": playerData.stamina,
-                    "stamina_heal_time": getServerTime(playerData.staminaHealTime),
+                    "stamina_heal_time": getServerTime(),
                     "boost_point": newBoostPoint,
                     "boss_boost_point": newBossBoostPoint
                 },
@@ -670,6 +670,7 @@ const routes = async (fastify: FastifyInstance) => {
 
         // Deduct stamina cost
         const staminaCost = entryCost?.stamina ?? 0
+        let afterStamina = 0
         if (staminaCost > 0) {
             const player = getPlayerSync(playerId)
             if (!player) {
@@ -691,9 +692,14 @@ const routes = async (fastify: FastifyInstance) => {
             updatePlayerSync({
                 id: playerId,
                 stamina: newStamina,
-                staminaHealTime: getServerDate()
+                staminaHealTime: new Date()
             })
+            afterStamina = newStamina
             console.log(`[BATTLE-START] stamina: ${currentStamina} -> ${newStamina} (cost: ${staminaCost})`)
+        } else {
+            // No stamina deduction, read current stamina for response
+            const player = getPlayerSync(playerId)
+            afterStamina = player?.stamina ?? 0
         }
 
         // add to active quests table
@@ -725,7 +731,9 @@ const routes = async (fastify: FastifyInstance) => {
             "data_headers": dataHeaders,
             "data": {
                 "user_info": {
-                    "last_main_quest_id": body.quest_id
+                    "last_main_quest_id": body.quest_id,
+                    "stamina": afterStamina,
+                    "stamina_heal_time": getServerTime()
                 },
                 "category_id": body.category,
                 "is_multi": "single",
