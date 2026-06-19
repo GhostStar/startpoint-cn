@@ -653,7 +653,7 @@ const routes = async (fastify: FastifyInstance) => {
         }
 
         // Deduct entry cost (ticket/item)
-        const questKey = String(questId)
+        const questKey = `${category}_${questId}`
         const entryCost = (questEntryCosts as Record<string, {itemId: number, itemCount: number, stamina: number}>)[questKey]
         console.log(`[BATTLE] start entry: questId=${questId} questKey=${questKey} entryCost=${JSON.stringify(entryCost)}`)
         if (entryCost && entryCost.itemId > 0) {
