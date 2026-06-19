@@ -1,7 +1,12 @@
 {
-  "fes": {},
+  "fes": {
+    "10099190": 1,
+    "10366283": 0
+  },
   "fes_pend": {},
-  "fes_guarantee": {},
+  "fes_guarantee": {
+    "10096767": 1
+  },
   "fes_guarantee_pend": {},
   "normal": {},
   "normal_pend": {},
