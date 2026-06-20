@@ -233,7 +233,7 @@ export interface PlayerQuestProgress {
     highScore?: number
     clearRank?: number
     bestElapsedTimeMs?: number
-    unlocked: boolean
+    unlocked?: boolean
 }
 
 export interface RawPlayerGachaInfo {

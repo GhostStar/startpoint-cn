@@ -42,7 +42,8 @@ interface QuestStatistics {
         unison_characters: ({ id: (number | null) } | null)[],
         characters: ({ id: (number | null) } | null)[],
         equipments: ({ id: (number | null) } | null)[],
-        ability_soul_ids: (number | null)[]
+        ability_soul_ids: (number | null)[],
+        leader?: ({ id: (number | null) } | null)
     }
 }
 
