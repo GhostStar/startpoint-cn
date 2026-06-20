@@ -20,9 +20,9 @@ def load_json(path):
 
 ROOT = os.path.dirname(PROJECT_ROOT)
 print("Loading data sources...")
-cn_gacha = load_json(os.path.join(ROOT, "wf-assets-cn", "orderedmap", "gacha", "gacha.json"))
-cn_fc = load_json(os.path.join(ROOT, "wf-assets-cn", "orderedmap", "gacha", "gacha_feature_content.json"))
-cn_chars = load_json(os.path.join(ROOT, "wf-assets-cn", "orderedmap", "character", "character.json"))
+cn_gacha = load_json(os.path.join(SCRIPT_DIR, "../assets/cdndata/gacha.json"))
+cn_fc = load_json(os.path.join(SCRIPT_DIR, "../assets/cdndata/gacha_feature_content.json"))
+cn_chars = load_json(os.path.join(SCRIPT_DIR, "../assets/cdndata/character.json"))
 
 # Global equipment gacha IDs for detection
 global_eq_ids = {'3','5000','5001','5002','5003','5004','5005','5006','5007','5008','5009','5010','5011','5012','5013','5014','5015','5016','5017','5018','5019','5020','5021','5022','5023','5024','5025','5026','5027','5028','5029','5030','5031','5032','5033','5034','5035','5036','5037','5038'}
@@ -247,7 +247,7 @@ for gid, rows in cn_gacha.items():
     generated += 1
 
 # Write output
-out_path = os.path.join(ROOT, "starpoint-cn", "assets", "gacha.json")
+out_path = os.path.join(SCRIPT_DIR, "../assets/gacha.json")
 with open(out_path, 'w', encoding='utf-8') as f:
     json.dump(output, f, ensure_ascii=False, indent=2)
 

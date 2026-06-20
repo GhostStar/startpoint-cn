@@ -30,7 +30,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
  */
 const fs = __importStar(require("fs"));
 const path = __importStar(require("path"));
-const WF_ASSETS_CN = path.resolve(__dirname, "../../wf-assets-cn/orderedmap/shop/boss_coin_shop.json");
+const WF_ASSETS_CN = path.resolve(__dirname, "../../assets/cdndata/boss_coin_shop.json");
 const OUTPUT_SHOP = path.resolve(__dirname, "../assets/boss_coin_shop.json");
 const OUTPUT_CATMAP = path.resolve(__dirname, "../assets/boss_coin_shop_item_category_map.json");
 const EXISTING = path.resolve(__dirname, "../assets/boss_coin_shop_existing.json");
