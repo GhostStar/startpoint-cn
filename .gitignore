@@ -17,13 +17,6 @@ build
 .cn-cdn.env
 web/public/comic/
 
-# Seed validator runtime data
-assets/blocked_seeds.json
-assets/verified_seeds.json
-assets/pending_seeds.json
-assets/confirmed_seeds.json
-assets/purified_seeds.json
-
 # Local env (commit .env.example only)
 .env
 
