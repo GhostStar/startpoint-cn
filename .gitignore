@@ -21,4 +21,12 @@ web/public/comic/
 assets/blocked_seeds.json
 assets/verified_seeds.json
 assets/pending_seeds.json
+assets/confirmed_seeds.json
+assets/purified_seeds.json
+
+# Local env (commit .env.example only)
+.env
+
+# mitmproxy traffic captures (may contain real tokens/PII — local only)
+docs/cn-traffic/
 
