@@ -130,6 +130,7 @@ export type ClearRewards = Record<string, Reward>
 export interface ScoreReward {
     name: string,
     type: ScoreRewardType,
+    position?: number, // orderedmap position (preserved from CDN), used as drop_score_reward_ids index
 }
 
 export interface CommonScoreReward extends ScoreReward {

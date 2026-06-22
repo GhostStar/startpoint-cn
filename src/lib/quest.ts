@@ -36,9 +36,10 @@ export function givePlayerScoreRewardsSync(
     if (scoreRewards != null && groupId != null) {
         const dropMultiplier = parseFloat(process.env.DROP_MULTIPLIER || '1')
         console.log(`[QUEST] givePlayerScoreRewards group=${groupId} items=${scoreRewards.length} pid=${playerId}`)
-        let rewardIndex = 0
+        let seqIndex = 0
         for (const scoreReward of scoreRewards) {
-            rewardIndex += 1;
+            seqIndex += 1;
+            const rewardIndex = scoreReward.position ?? seqIndex;
             switch (scoreReward.type) {
                 case ScoreRewardType.ITEM: {
                     const reward = scoreReward as CommonScoreReward
