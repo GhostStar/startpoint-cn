@@ -372,6 +372,24 @@ Player 页面 `/player/:id` → 「恢复挑战次数」按钮：
 
 **修复**: 从 orderedmap quest 数据自动生成 3,021 条目覆盖 17 类别。
 
+## 存档复制 Party 数据一致性 ✅ 已修复
+
+**症状**: clone 后编队界面 C2337（PartyId 找不到），C8601（color_id=0 无效）。
+
+**根因**: `deserializePlayerData` 未将 globalPartyId 转回 group-local slot；party group 自动创建时 color_id 硬编码为 0。
+
+**修复**: 
+- `utils.ts:713` — 反序列化时 `slot = (globalPartyId - 1) % 10 + 1`
+- `party.ts:127` — color_id 默认值 `0` → `15`
+
+## 副本通关装备不立即显示 ✅ 已修复
+
+**症状**: 首次通关奖励装备保存到 DB 但响应中缺失，重登后才显示。
+
+**根因**: `equipment_list` 仅含评分奖励装备，通关/S+通关/狂热奖励装备未合并。
+
+**修复**: `singleBattleQuest.ts:558`, `multiBattleQuest.ts:829` — 合并所有来源。
+
 ---
 
 **最后更新：2026-06-23**（详细变更见 [CHANGELOG.md](./CHANGELOG.md)）
