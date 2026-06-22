@@ -7,7 +7,6 @@ import { generateDataHeaders } from "../../utils"
 import { randomInt } from "crypto"
 import { clientSerializeDate } from "../../data/utils"
 import { resolvePlayerIdSync } from "../../data/activeAccount";
-import { characterExpCaps } from "../../lib/character"
 import { characterMaxOverLimits } from "./character"
 
 interface ExBoostDrawBody {
@@ -106,11 +105,12 @@ const drawExpBoost = async (request: FastifyRequest, reply: FastifyReply, autoAc
         "message": "Not enough of item."
     })
 
-    // ensure that the requested character is level 100
+    // ensure the character is at max over limit step (aligned with client isMaxOverLimitStep)
     const rarity = characterAssetData.rarity
-    if (characterExpCaps[rarity][characterMaxOverLimits[rarity]] > characterData.exp) return reply.status(400).send({
+    const maxOver = characterMaxOverLimits[rarity]
+    if (maxOver === undefined || characterData.overLimitStep < maxOver) return reply.status(400).send({
         "error": "Bad Request",
-        "message": "Character not level 100."
+        "message": "Character not at max over limit step."
     })
 
     // get the status pools
@@ -183,12 +183,23 @@ const drawExpBoost = async (request: FastifyRequest, reply: FastifyReply, autoAc
                     {
                         "character_id": characterId,
                         "viewer_id": viewerId,
+                        "entry_count": characterData.entryCount,
+                        "evolution_level": characterData.evolutionLevel,
+                        "over_limit_step": characterData.overLimitStep,
+                        "protection": characterData.protection,
+                        "exp": characterData.exp,
+                        "stack": characterData.stack,
+                        "mana_board_index": characterData.manaBoardIndex,
+                        "bond_token_list": characterData.bondTokenList.map(bt => ({
+                            "mana_board_index": bt.manaBoardIndex,
+                            "status": bt.status
+                        })),
                         "ex_boost": {
                             "status_id": drawResult.statusId,
                             "ability_id_list": drawResult.abilityIdList
                         },
                         "create_time": clientSerializeDate(characterData.joinTime),
-                        "update_time": clientSerializeDate(characterData.updateTime),
+                        "update_time": clientSerializeDate(new Date()),
                         "join_time": clientSerializeDate(characterData.joinTime)
                     }
                 ],
@@ -295,12 +306,23 @@ const routes = async (fastify: FastifyInstance) => {
                     {
                         "character_id": characterId,
                         "viewer_id": viewerId,
+                        "entry_count": characterData.entryCount,
+                        "evolution_level": characterData.evolutionLevel,
+                        "over_limit_step": characterData.overLimitStep,
+                        "protection": characterData.protection,
+                        "exp": characterData.exp,
+                        "stack": characterData.stack,
+                        "mana_board_index": characterData.manaBoardIndex,
+                        "bond_token_list": characterData.bondTokenList.map(bt => ({
+                            "mana_board_index": bt.manaBoardIndex,
+                            "status": bt.status
+                        })),
                         "ex_boost": {
                             "status_id": drawResult.statusId,
                             "ability_id_list": drawResult.abilityIdList
                         },
                         "create_time": clientSerializeDate(characterData.joinTime),
-                        "update_time": clientSerializeDate(characterData.updateTime),
+                        "update_time": clientSerializeDate(new Date()),
                         "join_time": clientSerializeDate(characterData.joinTime)
                     }
                 ],
