@@ -1,5 +1,5 @@
 # 多人战斗（Multi Battle Quest）联机系统文档
-> 状态: 已实现(Phase 2)   关键文件: src/routes/cn/multiRoom.ts, src/lib/sessionServer.ts   相关端点: /api/index.php/multi_battle_quest/*
+> 状态: NPC共斗完善 + 战斗恢复数据层就绪   关键文件: src/data/sessionServer.ts, src/data/multiRoom.ts, src/routes/api/multiBattleQuest.ts   相关端点: /api/index.php/multi_battle_quest/*
 
 ## 1. API 端点规范
 
@@ -752,83 +752,88 @@ const NPC_TEMPLATES = {
 
 ## 9. 联机功能实现进度
 
-### 9.1 阶段 1 — 创建房间 + TCP 握手 ✅（当前阶段）
+### 9.1 阶段 1 — 创建房间 + TCP 握手 ✅
 
 | 功能 | 状态 | 说明 |
 |------|:---:|------|
 | `get_rooms` | ✅ | 11 字段格式已对齐客户端 |
 | `create_room` | ✅ | 房号生成、从 DB 读取 `leaderCharacterId` |
 | `search_room` | ✅ | 按房号搜索 |
-| `select_room` | ✅ | 返回 TCP 会话 IP:8003 |
-| `prepare` | ✅ | |
+| `select_room` | ✅ | 返回 TCP 会话 IP:8003；房间不存在→raising_state=9 |
+| `prepare` | ✅ | 同上 |
 | TCP server (port 8003) | ✅ | XMLSocket null-terminated JSON |
 | 握手 Accept | ✅ | typepacker `[0, roomId, ""]` |
-| Welcome + Mates | ✅ | `[1,[0,yourself,[yourself]]]` + `[1,[1,[yourself]]]`，避免 C15202 |
+| Welcome + Mates | ✅ | `[1,[0,yourself,[yourself]]]` + `[1,[1,[yourself]]]` |
 | Heartbeat/AckHeartbeat | ✅ | 5 秒间隔 |
-| Bye → disbandRoom | ✅ | |
-| `yourself` 从 DB 读数据 | ✅ | name/rank/degreeId/role 从玩家存档读取 |
-| 进入空白房间 | ✅ | 房主自己，无 NPC，"招募"按钮可见 |
+| Bye → disbandRoom | ✅ | 最后客户端断开→删除房间 |
+| `restore_room` | ✅ | 断线恢复，房间不存在→raising_state=9 |
+| `share_room` | ✅ | 桩 |
+| `verify_access_token` | ✅ | 桩 |
+| `publish_room` | ✅ | CN 微社区分享，返回 `{}` |
+| `attention/action` | ✅ | 桩，返回 `{priority_action_score:0, priority_playing_score:0}` |
+| `attention/logger` | ✅ | 桩，返回 `{}` |
 
-### 9.2 阶段 2 — NPC 加入 + 房主自动准备 ❌（待实施）
+### 9.2 阶段 2 — NPC 加入 + 自动连战 ✅
 
 | 功能 | 状态 | 说明 |
 |------|:---:|------|
-| 招募按钮协议调研 | ❌ | 客户端点"招募"后发什么消息？`EnterComs(10)`？HTTP `summon`？ |
-| NPC 加入房间 | ❌ | Mates 更新为 [yourself, NPC1, NPC2] |
-| 房主自动准备 | ❌ | 非房主成员全部 Ready → 房主 state=[1] |
-| `StartBattle → Start(members)` | ❌ | members 含完整 mate 对象数组 |
-| 完整战斗流程 | ❌ | summon → start → 战斗 → finish |
+| `summon` NPC mate 数据 | ✅ | HTTP 下发 mate1/mate2 |
+| NPC 加入房间（EnterComs） | ✅ | Mates 更新为 [host, NPC1, NPC2] |
+| NPC 自动 Ready | ✅ | NPC_READY_DELAY_MS 后各自 StateChanged(Ready) |
+| 房主准备倒计时 | ✅ | NPC_HOST_READY_COUNTDOWN_MS 延迟后 auto-ready |
+| `StartBattle → Start(members)` | ✅ | members 含完整 mate 对象数组 |
+| 战斗结算后返回房间 | ✅ | finish→raising_state=1，room TCP 存活→可再战 |
+| 房间断线恢复 | ✅ | TCP 断线→disband，restore_room 返回 9 |
+| 自动招募 NPC（进入房间时） | ✅ | NPC_AUTO_JOIN_DELAY_MS 后自动 EnterComs |
+| 战斗协议完善 | ✅ | SceneReady(tag=0)+Finalize(tag=1)+Measurement(tag=2) |
 
-### 9.3 待完成 — 辅助端点
+### 9.3 环境变量
 
-| 端点 | 状态 | 说明 |
+| 变量 | 默认值 | 说明 |
+|------|--------|------|
+| `SESSION_PORT` | 8003 | TCP 会话端口 |
+| `SESSION_HOST` | 0.0.0.0 | TCP 绑定地址 |
+| `MULTI_ROOM_EXPIRY_MS` | 600000 | 空闲房间过期（ms），默认 10min |
+| `MULTI_BATTLE_ROOM_EXPIRY_MS` | 300000 | 战斗中房间无活动过期（ms），默认 5min |
+| `MULTI_ROOM_CLEAN_INTERVAL_MS` | 60000 | 过期检查间隔（ms） |
+| `NPC_JOIN_DELAY_MS` | 2000 | NPC 加入房间延迟（ms） |
+| `NPC_READY_DELAY_MS` | 500 | NPC 准备延迟（ms） |
+| `NPC_AUTO_JOIN_DELAY_MS` | 1000 | 进房后自动招募 NPC 延迟（ms），0=关闭 |
+| `NPC_HOST_READY_COUNTDOWN_MS` | 3000 | 房主准备倒计时（ms），0=立即准备 |
+
+### 9.4 房间生命周期
+
+```
+create_room → raising_state=1 (Ready)
+  → TCP 握手 → room TCP 连接
+     → 自动招募 NPC (NPC_AUTO_JOIN_DELAY_MS)
+        → NPC 加入 + Ready
+           → 房主准备倒计时 (NPC_HOST_READY_COUNTDOWN_MS)
+              → 房主 Ready → 客户端 autoStart ~2s → 开战 raising_state=4
+                 ├─ finish → raising_state=1 (room TCP 存活, 可再战)
+                 ├─ abort → disbandRoom()
+                 └─ TCP 断线 → disbandRoom() (官方行为)
+
+清理: MULTI_ROOM_EXPIRY_MS 空闲超时 + MULTI_BATTLE_ROOM_EXPIRY_MS 战斗超时
+```
+
+### 9.5 战斗恢复数据层（Phase 3 基础）
+
+| 功能 | 状态 | 说明 |
 |------|:---:|------|
-| `summon` | ✅ | NPC mate1/mate2 数据下发 |
-| `start` (multi) | ✅ | |
-| `finish` (multi) | ✅ | |
-| `abort` (multi) | ✅ | |
-| `play_continue` | ✅ | |
-| `restore_room` | ⚠️ | 房间不存在时返回 fallback |
-| `share_room` | ⚠️ | 桩 |
-| `verify_access_token` | ⚠️ | 桩 |
-| `micro_community` | ⚠️ | 桩 |
-| `disband_room` | ✅ | 客户端调用→200 |
+| DB 表 `players_active_quests` | ✅ | 持久化 active quest |
+| `play_id` / `continue_count` 追踪 | ✅ | start 写入，play_continue 递增 |
+| `/load` 返回 `unfinished_quest_list` | ✅ | 客户端启动时检测未完成战斗 |
+| `unfinished_multi_quest_list` | ✅ | 多人战斗独立列表 |
 
-### 9.4 已知 Bug
+### 9.6 已知限制
 
 | 问题 | 状态 | 说明 |
 |------|:---:|------|
-| C8700 | ⚠️ | MsgPack uint32 (`ce`) 编码 >65535 的值，客户端解码为 null。当前用 `leaderCharacterId` 规避 |
-| 退出后弹 H404 | ✅ 已实现 | `disband_room` HTTP 端点 |
+| C8700 stale room | ⚠️ | 残留房间导致 get_rooms 崩溃，重启即清理 |
 | 消息 TCP 合并 | ⚠️ | 100ms/200ms 延迟规避 |
-| C15202 (mates 不含自己) | ✅ 已修复 | `mates: [yourself]` |
-| C5603 (握手 #1034) | ✅ 已修复 | 切换为 `useEnumIndex` 数组格式 |
-| #1009 (fixIllustrationSettings) | ✅ 已修复 | 字段命名 + Option 包裹 |
-
----
-
-## 10. 附：Web 面板 & 存档管理
-
-### 10.1 存档切换 + 账号默认玩家
-
-Web 面板 `/player` 页面点击「激活存档」时，会调用 `saveAccountDefaultPlayer(accountId, playerId)` 持久化到 `active_account.json`。
-
-手机客户端 `/load` 端点读取 `getAccountDefaultPlayer(accountId)` 优先加载该存档，fallback 到 `ORDER BY id DESC` 的最新玩家。
-
-### 10.2 cloneSave 端点
-
-```
-POST /api/server/cloneSave?playerId=X&accountId=Y
-```
-
-读取源玩家数据 → 创建新玩家 → 反序列化合并 → 设为账号默认。
-
-### 10.3 新增端点汇总
-
-| 端点 | 方法 | 说明 |
-|------|------|------|
-| `/api/server/newSave?accountId=X` | POST | 创建空存档 |
-| `/api/server/cloneSave?playerId=X&accountId=Y` | POST | 克隆存档到指定账号 |
+| raising_state=2 未启用 | — | NPC 单人模式不需要，等多人联机时加入 |
+| 战斗恢复（RestoreState.Battle） | 待测 | DB 层已就绪，客户端 UI 流程待验证 |
 
 ---
 
