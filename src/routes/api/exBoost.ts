@@ -8,7 +8,7 @@ import { randomInt } from "crypto"
 import { clientSerializeDate } from "../../data/utils"
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { characterMaxOverLimits } from "./character"
-import orderedExAbility from "../../../../wf-assets-cn/orderedmap/ex_boost/ex_ability.json"
+import orderedExAbility from "../../../assets/ex_ability.json"
 
 interface ExBoostDrawBody {
     character_id: number,
