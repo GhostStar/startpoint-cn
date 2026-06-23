@@ -13,10 +13,12 @@
 //   Client2Server: Notify=0, Broadcast=1, Send=2
 //   ReadyState: Preparation=0, Ready=1
 //   HandshakeResult: Accept=0, Denied=1, Reconnect=2, Exception=3, Complete=4
+//   BattleNotifyMessage: SceneReady=0, Finalize=1, Measurement=2, LineSpeedWarning=3, Heartbeat=4
+//   BattleServerMessage: Leave=0, BattleStart=1, Finalized=2, Measurement=3, LineSpeedWarning=4
 
 import * as net from "net";
 import { MultiRoom } from "../lib/types";
-import { disbandRoom, getRoom } from "./multiRoom";
+import { disbandRoom, getRoom, updateRoomState } from "./multiRoom";
 import { getSession, getAccountPlayers, getPlayerSync, getPlayerPartyGroupListSync, getPlayerCharacterSync, getPlayerCharacterManaNodesSync, getPlayerEquipmentSync, updatePlayerSync } from "./wdfpData";
 import { PartyCategory, PlayerParty, PlayerCharacter, PlayerEquipment } from "./types";
 import playerRankTable from "../../assets/cdndata/player_rank.json";
@@ -44,7 +46,10 @@ const SESSION_HOST = process.env.SESSION_HOST || "0.0.0.0";
 // NPC recruit timing (env-configurable, defaults)
 const NPC_JOIN_DELAY_MS = parseInt(process.env.NPC_JOIN_DELAY_MS || "2000");
 const NPC_READY_DELAY_MS = parseInt(process.env.NPC_READY_DELAY_MS || "500");
-const HOST_READY_DELAY_MS = parseInt(process.env.NPC_HOST_READY_DELAY_MS || "500");
+// NPC auto-join on Enter (0 = disabled)
+const NPC_AUTO_JOIN_DELAY_MS = parseInt(process.env.NPC_AUTO_JOIN_DELAY_MS || "1000");
+// Host ready countdown after NPCs are ready (0 = instant ready)
+const NPC_HOST_READY_COUNTDOWN_MS = parseInt(process.env.NPC_HOST_READY_COUNTDOWN_MS || "3000");
 
 // Calculate rank level from rankPoint using CDN threshold table
 function getRankLevel(rankPoint: number): number {
@@ -79,10 +84,18 @@ function removeClient(client: SessionClient) {
     const set = roomClients.get(client.roomNumber);
     if (set) {
         set.delete(addr);
-        if (set.size === 0) {
+        const remaining = set.size
+        if (remaining === 0) {
             roomClients.delete(client.roomNumber);
-            disbandRoom(client.roomNumber);
-            console.log(`[SESSION] room ${client.roomNumber} disbanded (all clients disconnected)`);
+            // Battle TCP disconnect alone does not end the room
+            if (!client.isBattle) {
+                disbandRoom(client.roomNumber);
+                console.log(`[SESSION] room ${client.roomNumber} disbanded (all clients disconnected)`);
+            } else {
+                console.log(`[SESSION] battle disconnected from room ${client.roomNumber} (room kept)`);
+            }
+        } else {
+            console.log(`[SESSION] client removed: viewer=${client.viewerId} room=${client.roomNumber} remaining=${remaining}`);
         }
     }
 }
@@ -179,6 +192,12 @@ function handleNotify(client: SessionClient, msg: any[]) {
                 // Send Welcome + Mates with client's own party
                 sendJson(client.socket, [1, [0, yours, [yours]]]);
                 setTimeout(() => sendJson(client.socket, [1, [1, [yours]]]), 100);
+                // Auto-join NPCs in NPC-only mode (only host, no other players)
+                if (NPC_AUTO_JOIN_DELAY_MS > 0 && client.mates.length === 1) {
+                    setTimeout(() => {
+                        handleEnterComs(client, [{ name: "开心超人" }, { name: "名字真难取" }])
+                    }, NPC_AUTO_JOIN_DELAY_MS)
+                }
             }
             break;
 
@@ -281,19 +300,34 @@ function disconnectClient(client: SessionClient) {
 }
 
 // Battle protocol (cooperation_battle socklet)
-// BattleNotifyMessage: SceneReady=4?, Heartbeat=?, Finalize=?
-// BattleServerMessage: BattleStart=1
+// BattleNotifyMessage: SceneReady=0, Finalize=1, Measurement=2, LineSpeedWarning=3, Heartbeat=4
+// BattleServerMessage: Leave=0, BattleStart=1, Finalized=2, Measurement=3, LineSpeedWarning=4
 function handleBattleNotify(client: SessionClient, msg: any[]) {
     const tag = msg[0];
     switch (tag) {
-        case 4: // Heartbeat (battle)
-            sendJson(client.socket, [1, [10, String(client.roomNumber)]]);
-            break;
-        case 5: // SceneReady → respond with BattleStart
+        case 0: // SceneReady → respond with BattleStart
             console.log(`[SESSION] battle SceneReady: room=${client.roomNumber}`)
-            // MeetingServer2Client.Message(BattleServerMessage.BattleStart)
-            // BattleStart index=1, parameterless → [1]
+            // BattleServer2Client.Message(BattleServerMessage.BattleStart=1)
             sendJson(client.socket, [1, [1]]);
+            break;
+        case 1: // Finalize → respond with Finalized
+            console.log(`[SESSION] battle Finalize: room=${client.roomNumber}`)
+            // BattleServer2Client.Message(BattleServerMessage.Finalized=2)
+            sendJson(client.socket, [1, [2]]);
+            break;
+        case 2: // Measurement → echo back
+            {
+                const params = msg[1];
+                const frame = params?.[0] ?? 0;
+                const clientTime = params?.[1] ?? 0;
+                const serverTime = Date.now();
+                console.log(`[SESSION] battle Measurement: room=${client.roomNumber} frame=${frame}`)
+                // BattleServer2Client.Message(BattleServerMessage.Measurement=3)
+                sendJson(client.socket, [1, [3, frame, clientTime, serverTime]]);
+            }
+            break;
+        case 4: // Heartbeat
+            sendJson(client.socket, [1, [10, String(client.roomNumber)]]);
             break;
         default:
             console.log(`[SESSION] battle unhandled Notify: ${tag}`, JSON.stringify(msg).substring(0, 100));
@@ -395,13 +429,17 @@ function handleEnterComs(client: SessionClient, coms: any[]) {
         }
     }, NPC_JOIN_DELAY_MS + NPC_READY_DELAY_MS)
 
-    // 3. Host auto-ready after NPCs
+    // 3. Host ready after countdown (internal delay, no TCP notifications during countdown)
+    const hostReadyAt = NPC_JOIN_DELAY_MS + NPC_READY_DELAY_MS + NPC_HOST_READY_COUNTDOWN_MS
+    if (NPC_HOST_READY_COUNTDOWN_MS > 0) {
+        console.log(`[SESSION] EnterComs: host ready in ${Math.round(NPC_HOST_READY_COUNTDOWN_MS / 1000)}s room=${client.roomNumber}`)
+    }
     setTimeout(() => {
         host.state = [1]
         client.isReady = true
         sendJson(client.socket, [1, [2, host.connectionId, [1]]])
-        console.log(`[SESSION] EnterComs: host auto-ready viewer=${client.viewerId} cid=${host.connectionId}`)
-    }, NPC_JOIN_DELAY_MS + NPC_READY_DELAY_MS + HOST_READY_DELAY_MS)
+        console.log(`[SESSION] host auto-ready: viewer=${client.viewerId} cid=${host.connectionId}`)
+    }, hostReadyAt)
 }
 
 export function startSessionServer(): Promise<void> {
@@ -608,14 +646,17 @@ async function handleHandshake(socket: net.Socket, data: string, remoteAddr: str
         isBattle: false
     };
 
+    const isReconnect = (roomClients.get(String(roomNumber))?.size ?? 0) > 0
     addClient(client);
-    console.log(`[SESSION] client added: viewer=${viewerId} room=${roomNumber} (room total=${roomClients.get(roomNumber)?.size ?? 0})`);
+    console.log(`[SESSION] client added: viewer=${viewerId} room=${roomNumber} total=${roomClients.get(roomNumber)?.size} ${isReconnect ? '[RECONNECT]' : '[NEW]'}`);
 
     const hostConnectionId = `${roomNumber}-host`;
 
     // Send Accept (roomId, roomNumber) — client uses params[0] as myConnectionId
     console.log(`[SESSION] handshake OK viewer=${viewerId} room=${roomNumber} name=${playerName}`)
     sendJson(socket, [0, hostConnectionId, roomNumber]);
+    // Host entered TCP room → raising_state 2→1 (Ready for guests)
+    updateRoomState(String(roomNumber), 1);
 
     // Build host party from real DB data (use room host_party_id from create_room, fallback to DB playerPartySlot)
     // party_id is a global PartyId: (groupIndex * 10 + slot), where groupIndex is 0-based

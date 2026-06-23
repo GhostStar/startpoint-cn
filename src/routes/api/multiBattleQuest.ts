@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { deletePlayerRushEventPlayedPartyListSync, getPlayerRushEventPlayedPartiesSync, getPlayerRushEventSync, getPlayerSingleQuestProgressSync, getPlayerSync, getSession, insertPlayerQuestProgressSync, insertPlayerRushEventClearedFolderSync, insertPlayerRushEventPlayedPartySync, updatePlayerQuestProgressSync, updatePlayerRushEventSync, updatePlayerSync } from "../../data/wdfpData";
+import { deletePlayerRushEventPlayedPartyListSync, getPlayerRushEventPlayedPartiesSync, getPlayerRushEventSync, getPlayerSingleQuestProgressSync, getPlayerSync, getSession, insertPlayerQuestProgressSync, insertPlayerRushEventClearedFolderSync, insertPlayerRushEventPlayedPartySync, deletePlayerActiveQuestSync, updatePlayerActiveQuestContinueCountSync, updatePlayerQuestProgressSync, updatePlayerRushEventSync, updatePlayerSync } from "../../data/wdfpData";
 import { getQuestFromCategorySync, getRushEventFolderClearRewards } from "../../lib/assets";
 import { getCharactersEvolutionImgLevels, givePlayerCharactersExpSync } from "../../lib/character";
 import { givePlayerRewardsSync, givePlayerRewardSync, givePlayerScoreRewardsSync } from "../../lib/quest";
@@ -292,10 +292,28 @@ const routes = async (fastify: FastifyInstance) => {
         })
 
         const room = body.room_number ? getRoom(body.room_number) : getRoomByToken(body.access_token || "")
-        if (!room) return reply.status(400).send({
-            "error": "Bad Request", "message": "Room doesn't exist."
-        })
+        if (!room) {
+            console.log(`[MULTI] select_room: room not found, return raising_state=9`)
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+                "data": {
+                    application_update_url: "",
+                    category_id: 0,
+                    host_entry_time: 0,
+                    ip_address: getDisplayHost(),
+                    port: parseInt(process.env.SESSION_PORT || "8003"),
+                    quest_id: 0,
+                    raising_state: 9,
+                    room_number: body.room_number || "",
+                    room_sequence: 0,
+                    share_room_options: 0,
+                    is_pickup: null
+                }
+            })
+        }
 
+        console.log(`[MULTI] select_room: room found, raising_state=${room.raising_state}`)
         updateHostEntryTime(room.room_number)
 
         reply.header("content-type", "application/x-msgpack")
@@ -319,11 +337,29 @@ const routes = async (fastify: FastifyInstance) => {
         })
 
         const room = body.room_number ? getRoom(body.room_number) : getRoomByToken(body.access_token || "")
-        if (!room) return reply.status(400).send({
-            "error": "Bad Request", "message": "Room doesn't exist."
-        })
+        if (!room) {
+            console.log(`[MULTI] prepare: room not found, return raising_state=9`)
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+                "data": {
+                    application_update_url: "",
+                    category_id: 0,
+                    host_entry_time: 0,
+                    ip_address: getDisplayHost(),
+                    port: parseInt(process.env.SESSION_PORT || "8003"),
+                    quest_id: 0,
+                    raising_state: 9,
+                    room_number: body.room_number || "",
+                    room_sequence: 0,
+                    share_room_options: 0,
+                    is_pickup: null
+                }
+            })
+        }
 
         // prepare → select_room (client will call select_room after prepare)
+        console.log(`[MULTI] prepare: room found, raising_state=${room.raising_state}`)
         updateHostEntryTime(room.room_number)
 
         reply.header("content-type", "application/x-msgpack")
@@ -404,17 +440,27 @@ const routes = async (fastify: FastifyInstance) => {
         const displayHost = getDisplayHost()
         const sessionPort = parseInt(process.env.SESSION_PORT || "8003")
 
+        if (room) {
+            console.log(`[MULTI] restore_room: room found, raising_state=${room.raising_state} host=${room.host_viewer_id}`)
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+                "data": serializeRoomConnection(room)
+            })
+        }
+
+        console.log(`[MULTI] restore_room: room not found, return raising_state=9`)
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
             "data_headers": generateDataHeaders({ viewer_id: viewerId }),
-            "data": room ? serializeRoomConnection(room) : {
+            "data": {
                 application_update_url: "",
                 category_id: 0,
                 host_entry_time: 0,
                 ip_address: displayHost,
                 port: sessionPort,
                 quest_id: 0,
-                raising_state: 9,  // Disbanded — tells client room is gone, don't retry
+                raising_state: 9,
                 room_number: body.room_number,
                 room_sequence: body.room_sequence || 0,
                 share_room_options: 0,
@@ -515,6 +561,28 @@ const routes = async (fastify: FastifyInstance) => {
         })
     })
 
+    // ---- publish_room (CN micro community share) ----
+    fastify.post("/publish_room", async (request: FastifyRequest, reply: FastifyReply) => {
+        const body = request.body as { viewer_id: number, room_number: string, api_count: number }
+        const viewerId = body.viewer_id
+        console.log(`[MULTI] publish_room: viewer=${viewerId} room=${body.room_number}`)
+        if (!viewerId || isNaN(viewerId)) {
+            console.log(`[MULTI] publish_room: 400 invalid viewer_id=${viewerId}`)
+            return reply.status(400).send({
+                "error": "Bad Request", "message": "Invalid request body."
+            })
+        }
+        const sid = await getSession(viewerId.toString())
+        if (!sid) return reply.status(400).send({
+            "error": "Bad Request", "message": "Invalid viewer id."
+        })
+        reply.header("content-type", "application/x-msgpack")
+        return reply.status(200).send({
+            "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+            "data": {}
+        })
+    })
+
     // ---- start (multi) ----
     fastify.post("/start", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as MultiStartBody
@@ -558,7 +626,9 @@ const routes = async (fastify: FastifyInstance) => {
             isMulti: true,
             roomNumber: room_number,
             matePlayerIds: mate_player_ids,
-            mateComIds
+            mateComIds,
+            playId: body.play_id,
+            continueCount: 0
         })
 
         // update player last quest id
@@ -617,12 +687,14 @@ const routes = async (fastify: FastifyInstance) => {
 
         // delete active quest
         delete activeQuests[playerId]
+        deletePlayerActiveQuestSync(playerId)
 
-        // disband room if this is the host
+        // keep room alive for "return to room" after battle
         if (activeQuestData.roomNumber) {
             const room = getRoom(activeQuestData.roomNumber)
             if (room && room.host_player_id === playerId) {
-                disbandRoom(activeQuestData.roomNumber)
+                updateRoomState(room.room_number, 1)
+                console.log(`[MULTI] finish: room ${activeQuestData.roomNumber} reset to raising_state=1`)
             }
         }
 
@@ -880,9 +952,11 @@ const routes = async (fastify: FastifyInstance) => {
                 const room = getRoom(activeQuestData.roomNumber)
                 if (room && room.host_player_id === ctx.playerId) {
                     disbandRoom(activeQuestData.roomNumber)
+                    console.log(`[MULTI] abort: room ${activeQuestData.roomNumber} disbanded (host abandoned)`)
                 }
             }
             delete activeQuests[ctx.playerId]
+            deletePlayerActiveQuestSync(ctx.playerId)
         }
 
         const headers = generateDataHeaders({ viewer_id: body.viewer_id })
@@ -937,6 +1011,11 @@ const routes = async (fastify: FastifyInstance) => {
             freeVmoney: setNewFreeVmoney,
             vmoney: newVmoney
         })
+
+        // increment continue count for battle recovery
+        const activeData = activeQuests[ctx.playerId]
+        activeData!.continueCount++
+        updatePlayerActiveQuestContinueCountSync(ctx.playerId, activeData!.continueCount)
 
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({

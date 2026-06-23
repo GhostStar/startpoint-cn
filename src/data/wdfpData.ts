@@ -43,6 +43,8 @@ export type { RawPlayerMail, MailAttachment, RawReceiveHistory } from "./domains
 // Rush event re-exports
 export { deserializeRushEvent, getDefaultPlayerRushEventSync, getPlayerRushEventSync, getPlayerRushEventListSync, getRushEventEndlessRankingListSync, getPlayerIdFromRushEventEndlessRankSync, insertPlayerRushEventSync, insertPlayerRushEventListSync, updatePlayerRushEventSync, getPlayerRushEventClearedFoldersSync, getPlayerRushEventListClearedFoldersSync, insertPlayerRushEventClearedFolderSync, insertPlayerRushEventClearedFolderListSync, getPlayerRushEventPlayedPartiesSync, getPlayerRushEventListPlayedPartiesSync, getPlayerRushEventNextEndlessBattleRoundSync, insertPlayerRushEventPlayedPartySync, insertPlayerRushEventPlayedPartyListSync, deletePlayerRushEventPlayedPartyListSync, deletePlayerRushEventPlayedPartySync, deletePlayerRushEventPlayedPartiesUntilSync, updatePlayerRushEventPlayedPartySync, deserializePlayerRushEventPlayedParty, serializePlayerRushEventPlayedParty } from "./domains/rushEvent";
 import { insertPlayerRushEventListSync, insertPlayerRushEventClearedFolderListSync, insertPlayerRushEventPlayedPartyListSync } from "./domains/rushEvent";
+// Active quest (unfinished battle recovery)
+export { getPlayerActiveQuestSync, insertPlayerActiveQuestSync, deletePlayerActiveQuestSync, updatePlayerActiveQuestContinueCountSync } from "./domains/quest_active";
 
 const db = getDatabase(Database.WDFP_DATA)
 

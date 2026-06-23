@@ -445,7 +445,9 @@ const routes = async (fastify: FastifyInstance) => {
             useBoostPoint: false,
             useBossBoostPoint: false,
             isAutoStartMode: isAutoStartMode,
-            isMulti: false
+            isMulti: false,
+            playId: body.play_id,
+            continueCount: 0
         })
 
         const headers = generateDataHeaders({

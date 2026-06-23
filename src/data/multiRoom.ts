@@ -26,22 +26,36 @@ const rooms = new Map<string, MultiRoom>();
 // Global room sequence counter
 let roomSequence = 1;
 
-// Room expiry time: 10 minutes of inactivity
-const ROOM_EXPIRY_MS = 10 * 60 * 1000;
+// Room expiry time: configurable via env, default 10 minutes
+const ROOM_EXPIRY_MS = parseInt(process.env.MULTI_ROOM_EXPIRY_MS || "600000");
+const BATTLE_ROOM_EXPIRY_MS = parseInt(process.env.MULTI_BATTLE_ROOM_EXPIRY_MS || "300000");
+const CLEAN_INTERVAL_MS = parseInt(process.env.MULTI_ROOM_CLEAN_INTERVAL_MS || "60000");
 
 // Clean up expired rooms periodically
 function cleanExpiredRooms() {
     const now = Date.now();
+    const timeOffset = now - getServerTime() * 1000;
     let cleaned = 0;
     for (const [roomNumber, room] of rooms) {
-        if (now - room.created_at > ROOM_EXPIRY_MS && room.raising_state <= 2) {
+        const age = now - room.created_at;
+        // Idle rooms (Ready/Recruiting): expire by creation time (both real ms)
+        if (age > ROOM_EXPIRY_MS && room.raising_state <= 2) {
             rooms.delete(roomNumber);
             cleaned++;
+            continue;
+        }
+        // Battle rooms: expire by last activity time (host_entry_time is simulated s → convert to real ms)
+        if (room.raising_state === 4) {
+            const hostEntryAge = now - (room.host_entry_time * 1000 + timeOffset);
+            if (hostEntryAge > BATTLE_ROOM_EXPIRY_MS) {
+                rooms.delete(roomNumber);
+                cleaned++;
+            }
         }
     }
     if (cleaned > 0) console.log(`[MULTI] expired rooms cleaned: ${cleaned}`);
 }
-setInterval(cleanExpiredRooms, 60_000);
+setInterval(cleanExpiredRooms, CLEAN_INTERVAL_MS);
 
 // Static access token (not used for auth in private server)
 const STATIC_ACCESS_TOKEN = "multi_access_token";

@@ -429,4 +429,20 @@ export default function init(
         PRIMARY KEY (player_id, shop_item_id),
         FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
     )`).run()
+
+    database.prepare(`CREATE TABLE IF NOT EXISTS players_active_quests (
+        player_id INTEGER PRIMARY KEY,
+        play_id TEXT NOT NULL,
+        quest_id INTEGER NOT NULL,
+        category INTEGER NOT NULL,
+        use_boss_boost_point INTEGER NOT NULL DEFAULT 0,
+        use_boost_point INTEGER NOT NULL DEFAULT 0,
+        is_auto_start_mode INTEGER NOT NULL DEFAULT 0,
+        is_multi INTEGER NOT NULL DEFAULT 0,
+        room_number TEXT,
+        entry_item_id INTEGER,
+        event_id INTEGER,
+        continue_count INTEGER NOT NULL DEFAULT 0,
+        FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
+    )`).run()
 }

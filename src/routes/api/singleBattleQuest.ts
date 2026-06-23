@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { deletePlayerRushEventPlayedPartyListSync, getPlayerDailyChallengePointListSync, getPlayerItemSync, getPlayerRushEventPlayedPartiesSync, getPlayerRushEventSync, getPlayerSingleQuestProgressSync, getPlayerSync, getSession, givePlayerItemSync, insertPlayerQuestProgressSync, insertPlayerRushEventClearedFolderSync, insertPlayerRushEventPlayedPartySync, updatePlayerDailyChallengePointSync, updatePlayerEquipmentSync, updatePlayerItemSync, updatePlayerQuestProgressSync, updatePlayerRushEventSync, updatePlayerSync, upsertPlayerCarnivalEventRecordSync } from "../../data/wdfpData";
+import { deletePlayerRushEventPlayedPartyListSync, getPlayerActiveQuestSync, insertPlayerActiveQuestSync, deletePlayerActiveQuestSync, updatePlayerActiveQuestContinueCountSync, getPlayerDailyChallengePointListSync, getPlayerItemSync, getPlayerRushEventPlayedPartiesSync, getPlayerRushEventSync, getPlayerSingleQuestProgressSync, getPlayerSync, getSession, givePlayerItemSync, insertPlayerQuestProgressSync, insertPlayerRushEventClearedFolderSync, insertPlayerRushEventPlayedPartySync, updatePlayerDailyChallengePointSync, updatePlayerEquipmentSync, updatePlayerItemSync, updatePlayerQuestProgressSync, updatePlayerRushEventSync, updatePlayerSync, upsertPlayerCarnivalEventRecordSync } from "../../data/wdfpData";
 import { getQuestFromCategorySync, getRushEventFolderClearRewards } from "../../lib/assets";
 import { getCharactersEvolutionImgLevels, givePlayerCharactersExpSync } from "../../lib/character";
 import { givePlayerRewardsSync, givePlayerRewardSync, givePlayerScoreRewardsSync } from "../../lib/quest";
@@ -108,7 +108,9 @@ export interface ActiveQuest {
     matePlayerIds?: number[],
     mateComIds?: number[],
     entryItemId?: number,
-    eventId?: number
+    eventId?: number,
+    playId: string,
+    continueCount: number
 }
 
 const continueVmoneyCost = 50;
@@ -117,6 +119,21 @@ export const activeQuests: Record<number, ActiveQuest> = {}
 
 export function insertActiveQuest(playerId: number, quest: ActiveQuest) {
     activeQuests[playerId] = quest
+    // Persist to DB for battle recovery across server restarts
+    insertPlayerActiveQuestSync(playerId, {
+        playerId,
+        playId: quest.playId,
+        questId: quest.questId,
+        category: quest.category,
+        useBossBoostPoint: quest.useBossBoostPoint,
+        useBoostPoint: quest.useBoostPoint,
+        isAutoStartMode: quest.isAutoStartMode,
+        isMulti: quest.isMulti,
+        roomNumber: quest.roomNumber ?? null,
+        entryItemId: quest.entryItemId ?? null,
+        eventId: quest.eventId ?? null,
+        continueCount: quest.continueCount
+    })
 }
 
 const routes = async (fastify: FastifyInstance) => {
@@ -167,6 +184,7 @@ const routes = async (fastify: FastifyInstance) => {
 
         // delete the active quest data from global record
         delete activeQuests[playerId]
+        deletePlayerActiveQuestSync(playerId)
 
         // calculate clear rank (only if quest has rank time thresholds)
         const clearTime = body.elapsed_time_ms
@@ -606,6 +624,7 @@ const routes = async (fastify: FastifyInstance) => {
 
         // delete existing active quest
         delete activeQuests[playerId]
+        deletePlayerActiveQuestSync(playerId)
 
         return reply.status(200).send({
             "data_headers": headers,
@@ -717,7 +736,9 @@ const routes = async (fastify: FastifyInstance) => {
             useBossBoostPoint: useBossBoostPoint,
             isAutoStartMode: isAutoStartMode,
             isMulti: false,
-            entryItemId: entryCost?.itemId
+            entryItemId: entryCost?.itemId,
+            playId: body.play_id,
+            continueCount: 0
         }
 
         // update player last party slot
@@ -796,6 +817,10 @@ const routes = async (fastify: FastifyInstance) => {
             freeVmoney: setNewFreeVmoney,
             vmoney: newVmoney
         })
+
+        // increment continue count for battle recovery
+        activeQuestData.continueCount++
+        updatePlayerActiveQuestContinueCountSync(playerId, activeQuestData.continueCount)
 
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({

@@ -755,3 +755,34 @@ export interface PlayerCarnivalEventRecord {
     previousCharacterIds: (number | null)[] | null
     previousUnisonCharacterIds: (number | null)[] | null
 }
+
+// Active quest (unfinished battle recovery)
+export interface RawPlayerActiveQuest {
+    player_id: number
+    play_id: string
+    quest_id: number
+    category: number
+    use_boss_boost_point: number
+    use_boost_point: number
+    is_auto_start_mode: number
+    is_multi: number
+    room_number: string | null
+    entry_item_id: number | null
+    event_id: number | null
+    continue_count: number
+}
+
+export interface PlayerActiveQuest {
+    playerId: number
+    playId: string
+    questId: number
+    category: number
+    useBossBoostPoint: boolean
+    useBoostPoint: boolean
+    isAutoStartMode: boolean
+    isMulti: boolean
+    roomNumber: string | null
+    entryItemId: number | null
+    eventId: number | null
+    continueCount: number
+}

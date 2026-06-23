@@ -301,7 +301,9 @@ const routes = async (fastify: FastifyInstance) => {
             useBoostPoint: false,
             isAutoStartMode: body.is_auto_start_mode,
             isMulti: false,
-            eventId: raidEventId
+            eventId: raidEventId,
+            playId: body.play_id,
+            continueCount: 0
         })
 
         reply.header("content-type", "application/x-msgpack");

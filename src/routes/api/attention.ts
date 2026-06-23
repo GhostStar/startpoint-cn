@@ -1,5 +1,3 @@
-// Handles the insertion of mana into characters.
-
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { getAccountPlayers, getPlayerSync, getSession } from "../../data/wdfpData";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
@@ -10,6 +8,18 @@ interface CheckBody {
     holding_number: number
     retry_count: number
     request_number: number
+}
+
+interface ActionBody {
+    viewer_id: number
+    priority_factors: string[]
+    api_count: number
+}
+
+interface LoggerBody {
+    viewer_id: number
+    client_logs: any[]
+    api_count: number
 }
 
 const routes = async (fastify: FastifyInstance) => {
@@ -68,6 +78,46 @@ const routes = async (fastify: FastifyInstance) => {
                     "return_attention_max_num": 3
                 }
             }
+        })
+    })
+
+    // ---- action (stub: NPC-only, no real matching) ----
+    fastify.post("/action", async (request: FastifyRequest, reply: FastifyReply) => {
+        const body = request.body as ActionBody
+        const viewerId = body.viewer_id
+        if (!viewerId || isNaN(viewerId)) {
+            console.log(`[ATTENTION] action: 400 invalid viewer_id=${viewerId}`)
+            return reply.status(400).send({
+                "error": "Bad Request", "message": "Invalid request body."
+            })
+        }
+        console.log(`[ATTENTION] action: viewer=${viewerId} factors=${body.priority_factors?.length ?? 0}`)
+        console.log(`[ATTENTION] action: factors_detail=${JSON.stringify(body.priority_factors)}`)
+        reply.header("content-type", "application/x-msgpack")
+        return reply.status(200).send({
+            "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+            "data": {
+                "priority_action_score": 0,
+                "priority_playing_score": 0
+            }
+        })
+    })
+
+    // ---- logger (stub: NPC-only, discard logs) ----
+    fastify.post("/logger", async (request: FastifyRequest, reply: FastifyReply) => {
+        const body = request.body as LoggerBody
+        const viewerId = body.viewer_id
+        if (!viewerId || isNaN(viewerId)) {
+            console.log(`[ATTENTION] logger: 400 invalid viewer_id=${viewerId}`)
+            return reply.status(400).send({
+                "error": "Bad Request", "message": "Invalid request body."
+            })
+        }
+        console.log(`[ATTENTION] logger: viewer=${viewerId} logs=${body.client_logs?.length ?? 0}`)
+        reply.header("content-type", "application/x-msgpack")
+        return reply.status(200).send({
+            "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+            "data": {}
         })
     })
 }
