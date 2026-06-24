@@ -136,12 +136,15 @@ function broadcastToRoom(roomNumber: string, obj: any, exceptViewerId?: number) 
     }
 }
 
-function relayToBattleRoom(roomNumber: string, fromViewerId: number, obj: any) {
+function relayToBattleRoom(roomNumber: string, fromCid: string, obj: any) {
     const set = battleClients.get(roomNumber)
     if (!set) return
+    console.log(`[SESSION] relay tag=${obj[0]} room=${roomNumber} from=${fromCid} targets=${set.size}`)
     for (const cid of set) {
-        const c = cidToBattleClient.get(cid)
-        if (c && c.viewerId !== fromViewerId && c.isBattle) sendJson(c.socket, obj)
+        if (cid !== fromCid) {
+            const c = cidToBattleClient.get(cid)
+            if (c && c.isBattle) sendJson(c.socket, obj)
+        }
     }
 }
 
@@ -201,16 +204,20 @@ function handleClient2Server(client: SessionClient, msg: any[]) {
                 else handleNotify(client, msg[1]);
             }
             break;
-        case 1: // Broadcast
+        case 1: // Broadcast → relay as BattleServer2Client.Messages(2, senderId, array)
             if (client.isBattle) {
-                relayToBattleRoom(client.roomNumber, client.viewerId, [2, [String(client.viewerId), msg[1]]])
+                console.log(`[SESSION] battle Broadcast from cid=${client.connectionId} len=${JSON.stringify(msg[1])?.length}`)
+                relayToBattleRoom(client.roomNumber, client.connectionId, [2, client.connectionId, msg[1]])
                 sendJson(client.socket, [1, [3, 0, 0, Date.now()]]);
             }
             break;
-        case 2: // Send
+        case 2: // Send → relay as BattleServer2Client.Send(3, senderId, message) when not Heartbeat
             if (client.isBattle) {
-                const subTag = msg[1]?.[0]
-                if (subTag !== 2) relayToBattleRoom(client.roomNumber, client.viewerId, [3, [String(client.viewerId), msg[1]]])
+                const sendMsg = msg[2]
+                if (sendMsg) {
+                    console.log(`[SESSION] battle Send from cid=${client.connectionId}`)
+                    relayToBattleRoom(client.roomNumber, client.connectionId, [3, client.connectionId, sendMsg])
+                }
                 sendJson(client.socket, [1, [3, 0, 0, Date.now()]]);
             }
             break;
@@ -336,6 +343,7 @@ function handleBattleNotify(client: SessionClient, msg: any[]) {
                 const set = battleClients.get(client.roomNumber)
                 if (set) for (const cid of set) {
                     const c = cidToBattleClient.get(cid)
+                    console.log(`[SESSION] BattleStart → cid=${cid} found=${!!c}`)
                     if (c) sendJson(c.socket, [1, [1]])
                 }
             }
