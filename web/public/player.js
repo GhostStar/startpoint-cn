@@ -124,3 +124,19 @@ document.addEventListener('click', async function (e) {
         }
     });
 })();
+
+// Equipment search filter
+(function() {
+    const input = document.getElementById('equipSearch');
+    if (!input) return;
+    input.addEventListener('input', function() {
+        const q = this.value.toLowerCase().trim();
+        const table = this.closest('section').querySelector('tbody');
+        if (!table) return;
+        const rows = table.querySelectorAll('tr');
+        for (const row of rows) {
+            const text = row.textContent.toLowerCase();
+            row.style.display = q === '' || text.includes(q) ? '' : 'none';
+        }
+    });
+})();

@@ -6,6 +6,7 @@ import { getAllPlayersSync, getPlayerSync, getPlayerCharactersSync, getPlayerIte
 import { getActivePlayerId, getSelectedAccountId, getAccountDefaultPlayer } from "../../data/activeAccount";
 import characterTable from "../../../docs/generated/character_table.json";
 import itemLookup from "../../../assets/item_lookup.json";
+import equipmentLookup from "../../../assets/equipment_lookup.json";
 
 interface CharInfo { name: string; title: string; rarity: string; element: string }
 const charLookup: Record<number, CharInfo> = {}
@@ -223,13 +224,20 @@ const routes = async (fastify: FastifyInstance) => {
         const equipment = getPlayerEquipmentListSync(parsedPlayerId);
         let equipHtml = '';
         for (const [eqId, eq] of Object.entries(equipment)) {
+            const info = (equipmentLookup as Record<string, { name: string; rarity: string; category: string }>)[eqId];
+            const name = info ? htmlEscape(info.name) : '-';
+            const rarity = info ? info.rarity : '-';
+            const cat = info ? info.category : '-';
             equipHtml += `<tr>
-                <td class="p-1">${eqId}</td>
+                <td class="p-1">${name}</td>
+                <td class="p-1 text-xs text-on-surface-variant">${eqId}</td>
+                <td class="p-1 text-xs text-on-surface-variant">${rarity}★</td>
+                <td class="p-1 text-xs text-on-surface-variant">${cat}</td>
                 <td class="p-1">${eq.level}</td>
                 <td class="p-1">${eq.enhancementLevel}</td>
             </tr>`;
         }
-        html = html.replace("{{equipRows}}", equipHtml || '<tr><td colspan="3" class="text-on-surface-variant p-2">暂无装备</td></tr>');
+        html = html.replace("{{equipRows}}", equipHtml || '<tr><td colspan="6" class="text-on-surface-variant p-2">暂无装备</td></tr>');
 
         // Quest Progress
         const questProgress = getPlayerQuestProgressSync(parsedPlayerId)

@@ -108,13 +108,18 @@
 
             <!-- Equipment -->
             <section class="p-5 border border-outline-variant rounded-3xl bg-surface-container">
-                <h3 class="text-lg font-semibold mb-3">装备</h3>
+                <div class="flex justify-between items-center mb-3">
+                    <h3 class="text-lg font-semibold">装备</h3>
+                    <input id="equipSearch" type="text" placeholder="搜索ID或名称..." class="bg-surface-container rounded border border-outline-variant p-1 w-40 text-sm">
+                </div>
+                <div class="overflow-x-auto max-h-96 overflow-y-auto">
                 <table class="w-full text-sm">
-                    <thead><tr class="text-left border-b border-outline-variant">
-                        <th class="p-1">ID</th><th class="p-1">Lv</th><th class="p-1">觉醒</th>
+                    <thead><tr class="text-left border-b border-outline-variant sticky top-0 bg-surface-container">
+                        <th class="p-1">名称</th><th class="p-1">ID</th><th class="p-1">稀有度</th><th class="p-1">分类</th><th class="p-1">Lv</th><th class="p-1">觉醒</th>
                     </tr></thead>
                     <tbody>{{equipRows}}</tbody>
                 </table>
+                </div>
             </section>
 
             <!-- Quest Progress -->
