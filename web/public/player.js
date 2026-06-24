@@ -50,9 +50,7 @@ document.addEventListener('click', async function (e) {
         delChar: '删除角色 ' + btn.dataset.code + '?',
         delItem: '删除道具 ' + btn.dataset.itemId + '?',
         delQuestProgress: '删除关卡 section=' + btn.dataset.section + ' quest=' + btn.dataset.questId + '?',
-        delAllQuestProgress: '删除全部关卡进度?',
         delDrawnQuest: '删除抽选关卡 category=' + btn.dataset.category + ' quest=' + btn.dataset.questId + '?',
-        delAllDrawnQuests: '删除全部抽选关卡?',
         resetChallenge: '将所有每日挑战次数恢复至 CDN 默认值？'
     };
 
@@ -75,18 +73,8 @@ document.addEventListener('click', async function (e) {
                 location.reload();
                 break;
             }
-            case 'delAllQuestProgress': {
-                await api('DELETE', '/quest_progress');
-                location.reload();
-                break;
-            }
             case 'delDrawnQuest': {
                 await api('DELETE', '/drawn_quest/' + btn.dataset.category + '/' + btn.dataset.questId);
-                location.reload();
-                break;
-            }
-            case 'delAllDrawnQuests': {
-                await api('DELETE', '/drawn_quest');
                 location.reload();
                 break;
             }
