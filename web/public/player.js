@@ -1,83 +1,126 @@
-async function editField(field, value) {
-    const r = await fetch('/api/player/' + PID + '/field', {
-        method: 'PATCH',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: 'field=' + encodeURIComponent(field) + '&value=' + encodeURIComponent(value)
+// Toast notification system
+function showToast(msg, type) {
+    const toast = document.createElement('div');
+    toast.textContent = msg;
+    Object.assign(toast.style, {
+        position: 'fixed', bottom: '20px', right: '20px', zIndex: 9999,
+        padding: '8px 20px', borderRadius: '9999px', fontSize: '14px',
+        color: '#fff', transition: 'opacity 0.3s', opacity: '1',
+        background: type === 'error' ? '#dc2626' : '#2563eb'
     });
+    document.body.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 2000);
+}
+
+// API helper
+async function api(method, path, bodyObj) {
+    const opts = { method };
+    if (bodyObj) {
+        opts.headers = { 'Content-Type': 'application/x-www-form-urlencoded' };
+        opts.body = Object.entries(bodyObj).map(([k, v]) => k + '=' + encodeURIComponent(v)).join('&');
+    }
+    const r = await fetch('/api/player/' + PID + path, opts);
     const d = await r.json();
-    if (!r.ok) alert(d.error);
+    if (!r.ok) throw new Error(d.error || (r.status + ' ' + r.statusText));
+    return d;
 }
 
-async function addChar() {
-    const code = document.getElementById('charCode').value;
-    const r = await fetch('/api/player/' + PID + '/character', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: 'code=' + encodeURIComponent(code)
-    });
-    if (r.ok) location.reload();
-    else { const d = await r.json(); document.getElementById('charMsg').textContent = d.error; }
-}
+// Field editing — delegated change handler
+document.addEventListener('change', async function (e) {
+    const el = e.target;
+    if (!el.classList.contains('edit-field')) return;
+    const field = el.dataset.field;
+    const value = el.type === 'checkbox' ? el.checked : el.value;
+    try {
+        await api('PATCH', '/field', { field, value });
+        showToast(field + ' 已保存');
+    } catch (err) {
+        showToast(err.message, 'error');
+    }
+});
 
-async function delChar(code) {
-    if (!confirm('删除角色 ' + code + '?')) return;
-    const r = await fetch('/api/player/' + PID + '/character/' + code, { method: 'DELETE' });
-    if (r.ok) location.reload();
-}
+// Action buttons — delegated click handler
+document.addEventListener('click', async function (e) {
+    const btn = e.target.closest('.js-action');
+    if (!btn) return;
+    e.preventDefault();
 
-async function addItem() {
-    const id = document.getElementById('itemId').value;
-    const count = document.getElementById('itemCount').value;
-    const r = await fetch('/api/player/' + PID + '/item', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: 'id=' + encodeURIComponent(id) + '&count=' + encodeURIComponent(count)
-    });
-    if (r.ok) location.reload();
-    else { const d = await r.json(); document.getElementById('itemMsg').textContent = d.error; }
-}
+    const action = btn.dataset.action;
+    const confirmMap = {
+        delChar: '删除角色 ' + btn.dataset.code + '?',
+        delItem: '删除道具 ' + btn.dataset.itemId + '?',
+        delQuestProgress: '删除关卡 section=' + btn.dataset.section + ' quest=' + btn.dataset.questId + '?',
+        delAllQuestProgress: '删除全部关卡进度?',
+        delDrawnQuest: '删除抽选关卡 category=' + btn.dataset.category + ' quest=' + btn.dataset.questId + '?',
+        delAllDrawnQuests: '删除全部抽选关卡?',
+        resetChallenge: '将所有每日挑战次数恢复至 CDN 默认值？',
+        clearMailbox: '清空该存档的全部邮件？此操作不可撤销（用于误发非法邮件导致游戏崩溃时恢复）。'
+    };
 
-async function delItem(itemId) {
-    if (!confirm('删除道具 ' + itemId + '?')) return;
-    const r = await fetch('/api/player/' + PID + '/item/' + itemId, { method: 'DELETE' });
-    if (r.ok) location.reload();
-}
+    if (confirmMap[action] && !confirm(confirmMap[action])) return;
 
-async function delQuestProgress(section, questId) {
-    if (!confirm('删除关卡 section=' + section + ' quest=' + questId + '?')) return;
-    const r = await fetch('/api/player/' + PID + '/quest_progress/' + section + '/' + questId, { method: 'DELETE' });
-    if (r.ok) location.reload();
-}
-
-async function delAllQuestProgress() {
-    if (!confirm('删除全部关卡进度?')) return;
-    const r = await fetch('/api/player/' + PID + '/quest_progress', { method: 'DELETE' });
-    if (r.ok) location.reload();
-}
-
-async function delDrawnQuest(catId, questId) {
-    if (!confirm('删除抽选关卡 category=' + catId + ' quest=' + questId + '?')) return;
-    const r = await fetch('/api/player/' + PID + '/drawn_quest/' + catId + '/' + questId, { method: 'DELETE' });
-    if (r.ok) location.reload();
-}
-
-async function delAllDrawnQuests() {
-    if (!confirm('删除全部抽选关卡?')) return;
-    const r = await fetch('/api/player/' + PID + '/drawn_quest', { method: 'DELETE' });
-    if (r.ok) location.reload();
-}
-
-async function resetChallenge() {
-    if (!confirm('将所有每日挑战次数恢复至 CDN 默认值？')) return;
-    const r = await fetch('/api/player/' + PID + '/reset_challenge', { method: 'POST' });
-    if (r.ok) { alert('已恢复'); location.reload(); }
-    else { const d = await r.json().catch(() => ({})); alert('恢复失败：' + (d.error || r.status)); }
-}
-
-async function clearMailbox() {
-    if (!confirm('清空该存档的全部邮件？此操作不可撤销（用于误发非法邮件导致游戏崩溃时恢复）。')) return;
-    const r = await fetch('/api/player/' + PID + '/mail', { method: 'DELETE' });
-    const d = await r.json().catch(() => ({}));
-    if (r.ok) { alert('已清空 ' + (d.deleted ?? 0) + ' 封邮件'); location.reload(); }
-    else { alert('清空失败：' + (d.error || r.status)); }
-}
+    try {
+        switch (action) {
+            case 'addChar': {
+                const code = document.getElementById('charCode').value;
+                await api('POST', '/character', { code });
+                location.reload();
+                break;
+            }
+            case 'delChar': {
+                await api('DELETE', '/character/' + btn.dataset.code);
+                location.reload();
+                break;
+            }
+            case 'addItem': {
+                const id = document.getElementById('itemId').value;
+                const count = document.getElementById('itemCount').value;
+                await api('POST', '/item', { id, count });
+                location.reload();
+                break;
+            }
+            case 'delItem': {
+                await api('DELETE', '/item/' + btn.dataset.itemId);
+                location.reload();
+                break;
+            }
+            case 'delQuestProgress': {
+                await api('DELETE', '/quest_progress/' + btn.dataset.section + '/' + btn.dataset.questId);
+                location.reload();
+                break;
+            }
+            case 'delAllQuestProgress': {
+                await api('DELETE', '/quest_progress');
+                location.reload();
+                break;
+            }
+            case 'delDrawnQuest': {
+                await api('DELETE', '/drawn_quest/' + btn.dataset.category + '/' + btn.dataset.questId);
+                location.reload();
+                break;
+            }
+            case 'delAllDrawnQuests': {
+                await api('DELETE', '/drawn_quest');
+                location.reload();
+                break;
+            }
+            case 'resetChallenge': {
+                await api('POST', '/reset_challenge');
+                alert('已恢复');
+                location.reload();
+                break;
+            }
+            case 'clearMailbox': {
+                const d = await api('DELETE', '/mail');
+                alert('已清空 ' + (d.deleted ?? 0) + ' 封邮件');
+                location.reload();
+                break;
+            }
+        }
+    } catch (err) {
+        const el = (action === 'addChar') ? document.getElementById('charMsg') :
+                   (action === 'addItem') ? document.getElementById('itemMsg') : null;
+        if (el) { el.textContent = err.message; }
+        else { showToast(err.message, 'error'); }
+    }
+});

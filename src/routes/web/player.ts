@@ -166,7 +166,7 @@ const routes = async (fastify: FastifyInstance) => {
         let resourcesHtml = '';
         for (const f of resourceFields) {
             resourcesHtml += `<div><label class="text-xs text-on-surface-variant">${f.label}</label>
-                <input class="bg-surface-container rounded border border-outline-variant p-1 w-full text-sm" value="${f.value}" onchange="editField('${f.key}', this.value)"></div>`;
+                <input class="edit-field bg-surface-container rounded border border-outline-variant p-1 w-full text-sm" value="${f.value}" data-field="${f.key}"></div>`;
         }
         html = html.replace("{{resources}}", resourcesHtml);
         html = html.replace("{{resourceCols}}", "grid-cols-4");
@@ -180,7 +180,7 @@ const routes = async (fastify: FastifyInstance) => {
                 <td class="p-1">${char.evolutionLevel}</td>
                 <td class="p-1">${char.exp}</td>
                 <td class="p-1">${char.entryCount}</td>
-                <td class="p-1"><button onclick="delChar('${code}')" class="text-xs text-error border border-error rounded-full px-2">✕</button></td>
+                <td class="p-1"><button class="js-action text-xs text-error border border-error rounded-full px-2" data-action="delChar" data-code="${code}">✕</button></td>
             </tr>`;
         }
         html = html.replace("{{characterRows}}", charsHtml || '<tr><td colspan="5" class="text-on-surface-variant p-2">暂无角色</td></tr>');
@@ -193,7 +193,7 @@ const routes = async (fastify: FastifyInstance) => {
             itemsHtml += `<tr>
                 <td class="p-1">${itemId}</td>
                 <td class="p-1">${count}</td>
-                <td class="p-1"><button onclick="delItem('${itemId}')" class="text-xs text-error border border-error rounded-full px-2">✕</button></td>
+                <td class="p-1"><button class="js-action text-xs text-error border border-error rounded-full px-2" data-action="delItem" data-item-id="${itemId}">✕</button></td>
             </tr>`;
         }
         html = html.replace("{{itemRows}}", itemsHtml || '<tr><td colspan="3" class="text-on-surface-variant p-2">暂无道具</td></tr>');
@@ -224,7 +224,7 @@ const routes = async (fastify: FastifyInstance) => {
                     <td class="p-1">${qp.highScore ?? '—'}</td>
                     <td class="p-1">${qp.clearRank ?? '—'}</td>
                     <td class="p-1">${qp.bestElapsedTimeMs ?? '—'}</td>
-                    <td class="p-1"><button onclick="delQuestProgress('${section}','${qp.questId}')" class="text-xs text-error border border-error rounded-full px-2">✕</button></td>
+                    <td class="p-1"><button class="js-action text-xs text-error border border-error rounded-full px-2" data-action="delQuestProgress" data-section="${section}" data-quest-id="${qp.questId}">✕</button></td>
                 </tr>`
             }
         }
@@ -239,7 +239,7 @@ const routes = async (fastify: FastifyInstance) => {
                 <td class="p-1">${dq.categoryId}</td>
                 <td class="p-1">${dq.questId}</td>
                 <td class="p-1">${dq.oddsId}</td>
-                <td class="p-1"><button onclick="delDrawnQuest('${dq.categoryId}','${dq.questId}')" class="text-xs text-error border border-error rounded-full px-2">✕</button></td>
+                <td class="p-1"><button class="js-action text-xs text-error border border-error rounded-full px-2" data-action="delDrawnQuest" data-category="${dq.categoryId}" data-quest-id="${dq.questId}">✕</button></td>
             </tr>`
         }
         html = html.replace("{{drawnQuestRows}}", dqHtml || '<tr><td colspan="4" class="text-on-surface-variant p-2">暂无抽选记录</td></tr>')
