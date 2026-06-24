@@ -4,6 +4,13 @@ import path from "path";
 import { staticPagesDir } from ".";
 import { getAllPlayersSync, getPlayerSync, getPlayerCharactersSync, getPlayerItemsSync, getPlayerEquipmentListSync, getAllAccountsSync, getAccountPlayersSync, getPlayerQuestProgressSync, getPlayerDrawnQuestsSync } from "../../data/wdfpData";
 import { getActivePlayerId, getSelectedAccountId, getAccountDefaultPlayer } from "../../data/activeAccount";
+import characterTable from "../../../docs/generated/character_table.json";
+
+interface CharInfo { name: string; title: string; rarity: string; element: string }
+const charLookup: Record<number, CharInfo> = {}
+for (const c of (characterTable as { id: number; name: string; title: string; rarity: string; element: string }[])) {
+    charLookup[c.id] = { name: c.name, title: c.title, rarity: c.rarity, element: c.element }
+}
 
 function formatTime(offset: number | null): string {
     if (offset === null || offset === undefined) return "系统时间"
@@ -157,7 +164,6 @@ const routes = async (fastify: FastifyInstance) => {
             { key: 'freeMana', label: 'Mana(免费)', value: player.freeMana },
             { key: 'paidMana', label: 'Mana(付费)', value: player.paidMana },
             { key: 'stamina', label: '体力', value: player.stamina },
-            { key: 'partySlot', label: '队伍槽', value: player.partySlot },
             { key: 'rankPoint', label: 'Rank', value: player.rankPoint },
             { key: 'starCrumb', label: '星屑', value: player.starCrumb },
             { key: 'bondToken', label: '羁绊证', value: player.bondToken },
@@ -172,20 +178,31 @@ const routes = async (fastify: FastifyInstance) => {
         html = html.replace("{{resources}}", resourcesHtml);
         html = html.replace("{{resourceCols}}", "grid-cols-4");
 
-        // Character list
+        // Character list — sorted by joinTime DESC
         const characters = getPlayerCharactersSync(parsedPlayerId);
+        const charList = Object.entries(characters).sort((a, b) => b[1].joinTime.getTime() - a[1].joinTime.getTime());
         let charsHtml = '';
-        for (const [code, char] of Object.entries(characters)) {
+        for (const [code, char] of charList) {
+            const info = charLookup[Number(code)];
+            const name = info ? htmlEscape(info.name) : '?';
+            const title = info ? htmlEscape(info.title) : '-';
+            const rarity = info ? info.rarity : '-';
+            const element = info ? info.element : '-';
+            const joinStr = char.joinTime.toISOString().replace('T', ' ').substring(0, 19);
+            const delBtn = Number(code) === 1
+                ? '<span class="text-xs text-on-surface-variant">Alk</span>'
+                : `<button class="js-action text-xs text-error border border-error rounded-full px-2" data-action="delChar" data-code="${code}">✕</button>`;
             charsHtml += `<tr>
-                <td class="p-1">${code}</td>
-                <td class="p-1">${char.evolutionLevel}</td>
-                <td class="p-1">${char.exp}</td>
-                <td class="p-1">${char.entryCount}</td>
-                <td class="p-1"><button class="js-action text-xs text-error border border-error rounded-full px-2" data-action="delChar" data-code="${code}">✕</button></td>
+                <td class="p-1">${name}</td>
+                <td class="p-1 text-xs text-on-surface-variant">${title}</td>
+                <td class="p-1 text-xs text-on-surface-variant">${code}</td>
+                <td class="p-1 text-xs">${rarity} ${element}</td>
+                <td class="p-1 text-xs text-on-surface-variant">${joinStr}</td>
+                <td class="p-1">${delBtn}</td>
             </tr>`;
         }
-        html = html.replace("{{characterRows}}", charsHtml || '<tr><td colspan="5" class="text-on-surface-variant p-2">暂无角色</td></tr>');
-        html = html.replace("{{characterCount}}", String(Object.keys(characters).length));
+        html = html.replace("{{characterRows}}", charsHtml || '<tr><td colspan="6" class="text-on-surface-variant p-2">暂无角色</td></tr>');
+        html = html.replace("{{characterCount}}", String(charList.length));
 
         // Items
         const items = getPlayerItemsSync(parsedPlayerId);
@@ -248,12 +265,10 @@ const routes = async (fastify: FastifyInstance) => {
 
         // Account settings
         html = html.replace("{{tutorialStep}}", String(player.tutorialStep ?? ''));
-        html = html.replace("{{tutorialSkipFlag}}", player.tutorialSkipFlag ? 'checked' : '');
         html = html.replace("{{auto3x}}", player.enableAuto3x ? 'checked' : '');
         html = html.replace("{{birth}}", String(player.birth));
         html = html.replace("{{degreeId}}", String(player.degreeId));
         html = html.replace("{{leaderCharacterId}}", String(player.leaderCharacterId));
-        html = html.replace("{{timeOffset}}", String(player.timeOffset ?? ''));
 
         reply.header("content-type", "text/html; charset=utf-8")
         reply.send(html)
