@@ -7,6 +7,7 @@ import { getActivePlayerId, getSelectedAccountId, getAccountDefaultPlayer } from
 import characterTable from "../../../docs/generated/character_table.json";
 import itemLookup from "../../../assets/item_lookup.json";
 import equipmentLookup from "../../../assets/equipment_lookup.json";
+import questLookup from "../../../assets/quest_lookup.json";
 
 interface CharInfo { name: string; title: string; rarity: string; element: string }
 const charLookup: Record<number, CharInfo> = {}
@@ -246,9 +247,12 @@ const routes = async (fastify: FastifyInstance) => {
         for (const [section, quests] of Object.entries(questProgress)) {
             for (const qp of quests) {
                 qpCount++
+                const qkey = `${section}_${qp.questId}`
+                const qname = (questLookup as Record<string, string>)[qkey] || '-'
                 qpHtml += `<tr>
-                    <td class="p-1">${section}</td>
-                    <td class="p-1">${qp.questId}</td>
+                    <td class="p-1">${htmlEscape(qname)}</td>
+                    <td class="p-1 text-xs text-on-surface-variant">${section}</td>
+                    <td class="p-1 text-xs text-on-surface-variant">${qp.questId}</td>
                     <td class="p-1">${qp.finished ? '✅' : '—'}</td>
                     <td class="p-1">${qp.highScore ?? '—'}</td>
                     <td class="p-1">${qp.clearRank ?? '—'}</td>
@@ -257,21 +261,24 @@ const routes = async (fastify: FastifyInstance) => {
                 </tr>`
             }
         }
-        html = html.replace("{{questProgressRows}}", qpHtml || '<tr><td colspan="7" class="text-on-surface-variant p-2">暂无关卡记录</td></tr>')
+        html = html.replace("{{questProgressRows}}", qpHtml || '<tr><td colspan="8" class="text-on-surface-variant p-2">暂无关卡记录</td></tr>')
         html = html.replace("{{questProgressCount}}", String(qpCount))
 
         // Drawn Quests
         const drawnQuests = getPlayerDrawnQuestsSync(parsedPlayerId)
         let dqHtml = ''
         for (const dq of drawnQuests) {
+            const qkey = `${dq.categoryId}_${dq.questId}`
+            const qname = (questLookup as Record<string, string>)[qkey] || '-'
             dqHtml += `<tr>
-                <td class="p-1">${dq.categoryId}</td>
-                <td class="p-1">${dq.questId}</td>
-                <td class="p-1">${dq.oddsId}</td>
+                <td class="p-1">${htmlEscape(qname)}</td>
+                <td class="p-1 text-xs text-on-surface-variant">${dq.categoryId}</td>
+                <td class="p-1 text-xs text-on-surface-variant">${dq.questId}</td>
+                <td class="p-1 text-xs text-on-surface-variant">${dq.oddsId}</td>
                 <td class="p-1"><button class="js-action text-xs text-error border border-error rounded-full px-2" data-action="delDrawnQuest" data-category="${dq.categoryId}" data-quest-id="${dq.questId}">✕</button></td>
             </tr>`
         }
-        html = html.replace("{{drawnQuestRows}}", dqHtml || '<tr><td colspan="4" class="text-on-surface-variant p-2">暂无抽选记录</td></tr>')
+        html = html.replace("{{drawnQuestRows}}", dqHtml || '<tr><td colspan="5" class="text-on-surface-variant p-2">暂无抽选记录</td></tr>')
         html = html.replace("{{drawnQuestCount}}", String(drawnQuests.length))
 
         // Account settings

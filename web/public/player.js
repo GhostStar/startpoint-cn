@@ -140,3 +140,33 @@ document.addEventListener('click', async function (e) {
         }
     });
 })();
+
+// Quest progress search filter
+(function() {
+    var input = document.getElementById('questSearch');
+    if (!input) return;
+    input.addEventListener('input', function() {
+        var q = this.value.toLowerCase().trim();
+        var table = this.closest('section').querySelector('tbody');
+        if (!table) return;
+        var rows = table.querySelectorAll('tr');
+        for (var i = 0; i < rows.length; i++) {
+            rows[i].style.display = q === '' || rows[i].textContent.toLowerCase().indexOf(q) !== -1 ? '' : 'none';
+        }
+    });
+})();
+
+// Drawn quest search filter
+(function() {
+    var input = document.getElementById('drawnSearch');
+    if (!input) return;
+    input.addEventListener('input', function() {
+        var q = this.value.toLowerCase().trim();
+        var table = this.closest('section').querySelector('tbody');
+        if (!table) return;
+        var rows = table.querySelectorAll('tr');
+        for (var i = 0; i < rows.length; i++) {
+            rows[i].style.display = q === '' || rows[i].textContent.toLowerCase().indexOf(q) !== -1 ? '' : 'none';
+        }
+    });
+})();

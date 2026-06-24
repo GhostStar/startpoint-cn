@@ -126,12 +126,15 @@
             <section class="p-5 border border-outline-variant rounded-3xl bg-surface-container">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="text-lg font-semibold">关卡进度 <span class="text-sm text-on-surface-variant">({{questProgressCount}})</span></h3>
-                    <button class="js-action text-xs border border-error text-error rounded-full px-3 py-1" data-action="delAllQuestProgress">删除全部</button>
+                    <div class="flex gap-2">
+                        <input id="questSearch" type="text" placeholder="搜索关卡名或ID..." class="bg-surface-container rounded border border-outline-variant p-1 w-40 text-sm">
+                        <button class="js-action text-xs border border-error text-error rounded-full px-3 py-1" data-action="delAllQuestProgress">删除全部</button>
+                    </div>
                 </div>
                 <div class="overflow-x-auto max-h-64 overflow-y-auto">
                 <table class="w-full text-sm">
                     <thead><tr class="text-left border-b border-outline-variant sticky top-0 bg-surface-container">
-                        <th class="p-1">section</th><th class="p-1">quest_id</th><th class="p-1">完成</th><th class="p-1">最高分</th><th class="p-1">评级</th><th class="p-1">最快(ms)</th><th class="p-1">操作</th>
+                        <th class="p-1">名称</th><th class="p-1">section</th><th class="p-1">quest_id</th><th class="p-1">完成</th><th class="p-1">最高分</th><th class="p-1">评级</th><th class="p-1">最快(ms)</th><th class="p-1">操作</th>
                     </tr></thead>
                     <tbody>{{questProgressRows}}</tbody>
                 </table>
@@ -142,12 +145,15 @@
             <section class="p-5 border border-outline-variant rounded-3xl bg-surface-container">
                 <div class="flex justify-between items-center mb-3">
                     <h3 class="text-lg font-semibold">抽选关卡 <span class="text-sm text-on-surface-variant">({{drawnQuestCount}})</span></h3>
-                    <button class="js-action text-xs border border-error text-error rounded-full px-3 py-1" data-action="delAllDrawnQuests">删除全部</button>
+                    <div class="flex gap-2">
+                        <input id="drawnSearch" type="text" placeholder="搜索名称或ID..." class="bg-surface-container rounded border border-outline-variant p-1 w-40 text-sm">
+                        <button class="js-action text-xs border border-error text-error rounded-full px-3 py-1" data-action="delAllDrawnQuests">删除全部</button>
+                    </div>
                 </div>
                 <div class="overflow-x-auto max-h-64 overflow-y-auto">
                 <table class="w-full text-sm">
                     <thead><tr class="text-left border-b border-outline-variant sticky top-0 bg-surface-container">
-                        <th class="p-1">category</th><th class="p-1">quest_id</th><th class="p-1">odds_id</th><th class="p-1">操作</th>
+                        <th class="p-1">名称</th><th class="p-1">category</th><th class="p-1">quest_id</th><th class="p-1">odds_id</th><th class="p-1">操作</th>
                     </tr></thead>
                     <tbody>{{drawnQuestRows}}</tbody>
                 </table>
