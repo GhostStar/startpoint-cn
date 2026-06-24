@@ -53,6 +53,8 @@ def convert_main_ex_quests(obj):
                     }
                     if chapter[118] != "(None)":
                         converted_chapter["fixedParty"] = int(chapter[118])
+                    if chapter[68] != "(None)" and chapter[68] != "":
+                        converted_chapter["element"] = int(chapter[68])
                     converted[chapter[0]] = converted_chapter
     return converted
 
@@ -84,6 +86,8 @@ def convert_boss_quests(obj):
                         "manaReward": int(chapter[95]),
                         "poolExpReward": int(chapter[96])
                     }
+                    if chapter[68] != "(None)" and chapter[68] != "":
+                        converted[chapter[0]]["element"] = int(chapter[68])
     return converted
 
 def convert_world_story_event_quest(obj):
@@ -116,6 +120,8 @@ def convert_world_story_event_quest(obj):
                     converted_chapter["scoreRewardGroupId"] = int(chapter[71])
                 if chapter[119] != "(None)":
                     converted_chapter["fixedParty"] = int(chapter[119])
+                if chapter[69] != "(None)" and chapter[69] != "":
+                    converted_chapter["element"] = int(chapter[69])
                 converted[chapter[0]] = converted_chapter
 
     return converted
@@ -140,6 +146,8 @@ def convert_world_story_event_boss_battle_quest(obj):
             }
             if chapter[70] != "(None)":
                 converted_chapter["scoreRewardGroupId"] = int(chapter[70])
+            if chapter[68] != "(None)" and chapter[68] != "":
+                converted_chapter["element"] = int(chapter[68])
             converted[chapter[0]] = converted_chapter
 
     return converted
@@ -172,6 +180,8 @@ def convert_advent_quest(obj):
                 }
                 if chapter[76] != "(None)" and chapter[76] != '':
                     converted_chapter["scoreRewardGroupId"] = int(chapter[76])
+                if chapter[72] != "(None)" and chapter[72] != "":
+                    converted_chapter["element"] = int(chapter[72])
                 converted[chapter[0]] = converted_chapter
 
     return converted
@@ -237,6 +247,8 @@ def convert_challenge_dungeon_event_quest(obj):
                 "manaReward": int(quest[94]),
                 "poolExpReward": int(quest[95])
             }
+            if quest[69] != "(None)" and quest[69] != "":
+                converted[quest[0]]["element"] = int(quest[69])
     return converted 
 
 def convert_story_event_single_quest(obj):
@@ -269,6 +281,8 @@ def convert_story_event_single_quest(obj):
                     "manaReward": int(quest[96]),
                     "poolExpReward": int(quest[97])
                 }
+                if quest[69] != "(None)" and quest[69] != "":
+                    converted[quest[0]]["element"] = int(quest[69])
     return converted 
 
 def convert_ranking_event_single_quest(obj):
@@ -348,6 +362,8 @@ def convert_expert_single_event_quest(obj):
                 "manaReward": int(quest[98]),
                 "poolExpReward": int(quest[99])
             }
+            if quest[69] != "(None)" and quest[69] != "":
+                converted[quest[0]]["element"] = int(quest[69])
     return converted 
 
 def convert_carnival_event_quest(obj):
@@ -367,6 +383,8 @@ def convert_carnival_event_quest(obj):
                 "manaReward": int(quest[96]),
                 "poolExpReward": int(quest[97])
             }
+            if quest[69] != "(None)" and quest[69] != "":
+                converted[quest[0]]["element"] = int(quest[69])
     return converted 
 
 def convert_raid_event_quest(obj):
@@ -412,6 +430,8 @@ def convert_rush_event_quest(obj):
                 "rushEventFolderId": int(quest[1]),
                 "rushEventRound": int(quest[2])
             }
+            if quest[69] != "(None)" and quest[69] != "":
+                converted[quest[0]]["element"] = int(quest[69])
     return converted 
 
 def convert_score_attack_event_quest(obj):

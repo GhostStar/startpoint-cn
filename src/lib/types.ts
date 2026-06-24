@@ -7,7 +7,9 @@ export enum RewardType {
     CHARACTER,
     BEADS,
     MANA,
-    EXP
+    EXP,
+    ELEMENT,
+    AETHER
 }
 
 export enum BoxGachaRewardType {
@@ -194,6 +196,7 @@ export interface RawQuest {
     rushEventId?: number
     rushEventFolderId?: number
     rushEventRound?: number
+    element?: number
 }
 
 export interface StoryQuest {
@@ -221,6 +224,7 @@ export interface BattleQuest {
     rushEventId?: number
     rushEventFolderId?: RushEventFolder
     rushEventRound?: number
+    element?: number
 }
 
 export type RawQuests = Record<string, RawQuest>

@@ -779,7 +779,7 @@ const routes = async (fastify: FastifyInstance) => {
         })
 
         // reward score rewards
-        const scoreRewardsResult = givePlayerScoreRewardsSync(playerId, questData.scoreRewardGroupId, questData.scoreRewardGroup, useBoostPoint)
+        const scoreRewardsResult = givePlayerScoreRewardsSync(playerId, questData.scoreRewardGroupId, questData.scoreRewardGroup, useBoostPoint, questData.element)
 
         // reward character exp
         const bodyPartyStatistics = body.statistics.party

@@ -6,6 +6,23 @@ import { givePlayerCharacterSync } from "./character";
 import { givePlayerEquipmentSync } from "./equipment";
 import { CharacterReward, CommonScoreReward, CurrencyReward, CurrencyScoreReward, DropScoreRewardId, EquipmentItemReward, GivePlayerScoreRewardsResult, ItemScoreReward, PlayerRewardResult, RareScoreRewardGroup, Reward, RewardType, ScoreReward, ScoreRewardType } from "./types";
 import { Player } from "../data/types";
+import rewardElementMap from "../../assets/reward_element_map.json";
+
+const ELEMENT_TO_ENEMY_MAP: Record<number, number> = {
+    0: 3, 1: 0, 2: 1, 3: 2, 4: 5, 5: 4,
+};
+
+function resolveElementItemId(rarity: number, questElement?: number): number {
+    const enemyElement = ELEMENT_TO_ENEMY_MAP[questElement ?? 0] ?? 3;
+    const map = rewardElementMap as Record<string, Record<string, Record<string, string[][]>>>;
+    return Number(map["1"][String(rarity)][String(enemyElement)][0][0]);
+}
+
+function resolveAetherItemId(rarity: number, questElement?: number): number {
+    const enemyElement = ELEMENT_TO_ENEMY_MAP[questElement ?? 0] ?? 3;
+    const map = rewardElementMap as Record<string, Record<string, Record<string, string[][]>>>;
+    return Number(map["2"][String(rarity)][String(enemyElement)][0][0]);
+}
 
 /**
  * Grants a player score rewards.
@@ -20,6 +37,7 @@ export function givePlayerScoreRewardsSync(
     groupId?: number,
     scoreRewards?: ScoreReward[],
     boostPointUsed: boolean = false,
+    questElement?: number,
 ): GivePlayerScoreRewardsResult {
 
     const dropScoreRewardIds: DropScoreRewardId[] = []
@@ -76,6 +94,20 @@ export function givePlayerScoreRewardsSync(
                             })
                             break;
                         }
+                        case RewardType.ELEMENT: {
+                            const itemReward = reward as ItemScoreReward
+                            const itemId = resolveElementItemId(itemReward.id, questElement)
+                            rewardAmount = itemReward.count * dropMultiplier * (boostPointUsed ? 2 : 1)
+                            items[String(itemId)] = givePlayerItemSync(playerId, itemId, rewardAmount);
+                            break;
+                        }
+                        case RewardType.AETHER: {
+                            const itemReward = reward as ItemScoreReward
+                            const itemId = resolveAetherItemId(itemReward.id, questElement)
+                            rewardAmount = itemReward.count * dropMultiplier * (boostPointUsed ? 2 : 1)
+                            items[String(itemId)] = givePlayerItemSync(playerId, itemId, rewardAmount);
+                            break;
+                        }
                     }
 
                     dropScoreRewardIds.push({
@@ -123,6 +155,8 @@ export function givePlayerScoreRewardsSync(
                                 switch (reward.type) {
                                     case RewardType.ITEM:
                                     case RewardType.EQUIPMENT:
+                                    case RewardType.ELEMENT:
+                                    case RewardType.AETHER:
                                         number = (reward as Reward as EquipmentItemReward).count
                                         break;
                                     case RewardType.CHARACTER:
@@ -226,6 +260,14 @@ export function givePlayerRewardsSync(
             }
             case RewardType.EXP: {
                 expPool += (reward as CurrencyReward).count
+                break;
+            }
+            case RewardType.ELEMENT:
+            case RewardType.AETHER: {
+                const convertedReward = (reward as EquipmentItemReward)
+                const itemId = convertedReward.id
+                const result = givePlayerItemSync(playerId, itemId, convertedReward.count);
+                items.set(itemId, (items.get(itemId) ?? 0) + result)
                 break;
             }
         }
