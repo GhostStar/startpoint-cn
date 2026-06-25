@@ -84,9 +84,25 @@ function removeClient(client: SessionClient) {
     const addr = getAddress(client);
     clients.delete(addr);
     if (client.isBattle) {
+        // Notify remaining battle clients that this player left
+        const bSet = battleClients.get(client.roomNumber)
+            if (bSet) {
+                for (const cid of bSet) {
+                    if (cid !== client.connectionId) {
+                        const c = cidToBattleClient.get(cid)
+                        if (c) sendJson(c.socket, [1, [0, client.connectionId]])  // Leave(connectionId)
+                    }
+                }
+            }
         battleClients.get(client.roomNumber)?.delete(client.connectionId)
         cidToBattleClient.delete(client.connectionId)
         sceneReadyClients.get(client.roomNumber)?.delete(client.connectionId)
+        // Lower expected count so remaining clients aren't stuck waiting
+        const exp = battleExpectedCount.get(client.roomNumber)
+        if (exp && exp > 1) {
+            battleExpectedCount.set(client.roomNumber, exp - 1)
+            console.log(`[SESSION] battle client dropped, expected lowered: ${exp}→${exp - 1} room=${client.roomNumber}`)
+        }
     }
     const set = roomClients.get(client.roomNumber);
     if (set) {
@@ -140,8 +156,20 @@ function broadcastToRoom(roomNumber: string, obj: any, exceptViewerId?: number) 
 
 // Notify all room TCP clients that the room is disbanded
 export function notifyRoomDisbanded(roomNumber: string) {
+    const set = roomClients.get(roomNumber)
+    console.log(`[SESSION] notifyRoomDisbanded: room=${roomNumber} tcp_clients=${set?.size ?? 0}`)
     broadcastToRoom(roomNumber, [1, [6, "disbanded"]])
-    console.log(`[SESSION] notified disbanded to room ${roomNumber}`)
+}
+
+// Notify all battle clients in a room (for host abort during battle)
+export function notifyBattleClients(roomNumber: string, msg: any) {
+    const set = battleClients.get(roomNumber)
+    if (!set) return
+    console.log(`[SESSION] notifyBattleClients: room=${roomNumber} clients=${set.size}`)
+    for (const cid of set) {
+        const c = cidToBattleClient.get(cid)
+        if (c) sendJson(c.socket, msg)
+    }
 }
 
 function relayToBattleRoom(roomNumber: string, fromCid: string, obj: any) {
@@ -154,6 +182,11 @@ function relayToBattleRoom(roomNumber: string, fromCid: string, obj: any) {
             if (c && c.isBattle) sendJson(c.socket, obj)
         }
     }
+}
+
+// Count real (non-NPC) players in mates array (NPC viewerIds start at 900000001)
+function countRealPlayers(mates: any[]): number {
+    return mates.filter(m => (m.viewerId ?? 0) < 900000000).length
 }
 
 function getHostClient(roomNumber: string): SessionClient | null {
@@ -170,7 +203,7 @@ function getHostClient(roomNumber: string): SessionClient | null {
 
 function checkHostAutoReady(roomNumber: string) {
     const room = getRoom(roomNumber)
-    if (!room || room.is_npc_mode) return
+    if (!room) return
     const hostClient = getHostClient(roomNumber)
     if (!hostClient) return
     const hostMate = hostClient.mates.find(m => m.viewerId === hostClient.viewerId)
@@ -257,14 +290,25 @@ function handleNotify(client: SessionClient, msg: any[]) {
                     const hostClient = getHostClient(client.roomNumber)
                     if (hostClient && hostClient.mates[0]) {
                         // Append to existing mates (supports 3+ players)
-                        client.mates = [...hostClient.mates, yours]
+                        hostClient.mates.push(yours)
+                        // Remove excess NPCs if over 3 members
+                        while (hostClient.mates.length > 3) {
+                            const npcIdx = hostClient.mates.findIndex(m => (m.viewerId ?? 0) >= 900000000)
+                            if (npcIdx >= 0) hostClient.mates.splice(npcIdx, 1)
+                            else break
+                        }
+                        client.mates = [...hostClient.mates]
                         sendJson(client.socket, [1, [0, yours, [yours]]])
                         setTimeout(() => sendJson(client.socket, [1, [1, client.mates]]), 100)
-                        hostClient.mates.push(yours)
                         broadcastToRoom(client.roomNumber, [1, [1, hostClient.mates]], client.viewerId)
-                        room.is_npc_mode = false
-                        console.log(`[SESSION] guest ${client.viewerId} joined room ${client.roomNumber}, mates=${client.mates.length} is_npc_mode=false`)
+                        console.log(`[SESSION] guest ${client.viewerId} joined room ${client.roomNumber}, mates=${client.mates.length}`)
                         checkHostAutoReady(client.roomNumber)
+                    } else {
+                        // Host not yet online — guest enters alone, waits for host
+                        client.mates = [yours]
+                        sendJson(client.socket, [1, [0, yours, [yours]]])
+                        setTimeout(() => sendJson(client.socket, [1, [1, [yours]]]), 100)
+                        console.log(`[SESSION] guest ${client.viewerId} entered room ${client.roomNumber}, waiting for host`)
                     }
                 } else {
                     // Host entering (or guest with no host client)
@@ -287,7 +331,7 @@ function handleNotify(client: SessionClient, msg: any[]) {
                     if (client.mates.length > 1) {
                         broadcastToRoom(client.roomNumber, [1, [1, client.mates]], client.viewerId)
                     }
-                    if (room?.is_npc_mode && client.mates.length === 1) {
+                    if (room?.is_npc_mode && countRealPlayers(client.mates) < 3) {
                         setTimeout(() => handleEnterComs(client, [{ name: "开心超人" }, { name: "名字真难取" }]), 500)
                     }
                 }
@@ -341,8 +385,7 @@ function handleNotify(client: SessionClient, msg: any[]) {
             break;
         case 6: // StartBattle
             console.log(`[SESSION] client ${client.viewerId} StartBattle, mates=${client.mates.length}`)
-            const room = getRoom(client.roomNumber)
-            battleExpectedCount.set(client.roomNumber, room?.is_npc_mode ? 1 : client.mates.length)
+            battleExpectedCount.set(client.roomNumber, countRealPlayers(client.mates))
             broadcastToRoom(client.roomNumber, [1, [5, client.mates]])
             break;
         case 5: case 7: case 8: case 9:
@@ -407,6 +450,15 @@ function handleEnterComs(client: SessionClient, coms: any[]) {
     if (room) room.is_npc_mode = true
     const host = client.mates[0]
     if (!host) return
+
+    // Preserve existing real players
+    const realMates = client.mates.filter(m => (m.viewerId ?? 0) < 900000000)
+    const needNPCs = 3 - realMates.length
+    if (needNPCs <= 0) {
+        console.log(`[SESSION] EnterComs: room full (${realMates.length} players), skip NPCs`)
+        return
+    }
+
     const npcParties: any[] = []
     const hostParty = host.party
     if (client.playerId) {
@@ -424,7 +476,7 @@ function handleEnterComs(client: SessionClient, coms: any[]) {
         } catch (e) {}
     }
     const npcMates: any[] = []
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < needNPCs; i++) {
         const party = npcParties[i] ?? (npcParties[0] ?? hostParty)
         const comId = i + 1
         npcMates.push({
@@ -436,19 +488,27 @@ function handleEnterComs(client: SessionClient, coms: any[]) {
             state: [0], entryTime: Date.now(), isNewbie: false, isHost: false
         })
     }
-    client.mates = [host, ...npcMates]
-    console.log(`[SESSION] EnterComs: room=${client.roomNumber} total mates=${client.mates.length}`)
-    updateRoomState(client.roomNumber, 3)
-    setTimeout(() => { sendJson(client.socket, [1, [1, client.mates]]) }, NPC_JOIN_DELAY_MS)
+    // Preserve real players + append NPCs
+    client.mates = [...realMates, ...npcMates]
+    // Sync host client's mates if relevant
+    const hostClient = getHostClient(client.roomNumber)
+    if (hostClient) hostClient.mates = client.mates
+    console.log(`[SESSION] EnterComs: room=${client.roomNumber} real=${realMates.length} npc=${needNPCs} total=${client.mates.length}`)
+
+    // Broadcast Mates + NPC Ready to all room clients
+    setTimeout(() => { broadcastToRoom(client.roomNumber, [1, [1, client.mates]]) }, NPC_JOIN_DELAY_MS)
     setTimeout(() => {
-        for (const npc of npcMates) { npc.state = [1]; sendJson(client.socket, [1, [2, npc.connectionId, [1]]]) }
+        for (const npc of npcMates) { npc.state = [1]; broadcastToRoom(client.roomNumber, [1, [2, npc.connectionId, [1]]]) }
     }, NPC_JOIN_DELAY_MS + NPC_READY_DELAY_MS)
-    const hostReadyAt = NPC_JOIN_DELAY_MS + NPC_READY_DELAY_MS + NPC_HOST_READY_COUNTDOWN_MS
-    if (NPC_HOST_READY_COUNTDOWN_MS > 0) console.log(`[SESSION] host ready in ${NPC_HOST_READY_COUNTDOWN_MS / 1000}s room=${client.roomNumber}`)
-    setTimeout(() => {
-        host.state = [1]; client.isReady = true
-        sendJson(client.socket, [1, [2, host.connectionId, [1]]])
-    }, hostReadyAt)
+    // Host auto-ready only in pure NPC mode (no real guests)
+    if (realMates.length === 1) {
+        const hostReadyAt = NPC_JOIN_DELAY_MS + NPC_READY_DELAY_MS + NPC_HOST_READY_COUNTDOWN_MS
+        if (NPC_HOST_READY_COUNTDOWN_MS > 0) console.log(`[SESSION] host ready in ${NPC_HOST_READY_COUNTDOWN_MS / 1000}s room=${client.roomNumber}`)
+        setTimeout(() => {
+            host.state = [1]; client.isReady = true
+            broadcastToRoom(client.roomNumber, [1, [2, host.connectionId, [1]]])
+        }, hostReadyAt)
+    }
 }
 
 export function startSessionServer(): Promise<void> {
@@ -574,3 +634,8 @@ async function handleHandshake(socket: net.Socket, data: string, remoteAddr: str
 }
 
 export { SESSION_PORT, SESSION_HOST };
+
+// Check if the host client is currently connected via TCP
+export function isHostOnline(roomNumber: string): boolean {
+    return !!getHostClient(roomNumber)
+}

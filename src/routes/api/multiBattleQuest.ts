@@ -6,7 +6,7 @@ import { givePlayerRewardsSync, givePlayerRewardSync, givePlayerScoreRewardsSync
 import { BattleQuest, EquipmentItemReward, MultiMate, MultiMateParty, PlayerRewardResult, QuestCategory } from "../../lib/types";
 import { generateDataHeaders, getServerTime } from "../../utils";
 import { createRoom, disbandRoom, getDisplayHost, getNpcMates, getRoom, getRoomByToken, getRooms, serializeRoom, serializeRoomConnection, updateHostEntryTime, updateRoomState } from "../../data/multiRoom";
-import { hasRoomClients, notifyRoomDisbanded } from "../../data/sessionServer";
+import { hasRoomClients, notifyRoomDisbanded, isHostOnline } from "../../data/sessionServer";
 import { insertActiveQuest, activeQuests } from "./singleBattleQuest";
 import { RushEventBattleType, UserRushEventPlayedParty } from "../../data/types";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
@@ -321,10 +321,14 @@ const routes = async (fastify: FastifyInstance) => {
         updateHostEntryTime(room.room_number)
 
         const selectData = serializeRoomConnection(room)
-        // Host always sees Ready; guests see true state (2=Waiting, 1=Ready, etc.)
+        // Host always sees Ready; guests see true state
         if (viewerId === room.host_viewer_id) {
             selectData.raising_state = 1
             console.log(`[MULTI] select_room: host override raising_state → 1`)
+        } else if (!isHostOnline(room.room_number)) {
+            // Host not online → guests poll (raising_state=2)
+            selectData.raising_state = 2
+            console.log(`[MULTI] select_room: host offline, guest polls raising_state → 2`)
         }
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
@@ -376,6 +380,9 @@ const routes = async (fastify: FastifyInstance) => {
         if (viewerId === room.host_viewer_id) {
             prepareData.raising_state = 1
             console.log(`[MULTI] prepare: host override raising_state → 1`)
+        } else if (!isHostOnline(room.room_number)) {
+            prepareData.raising_state = 2
+            console.log(`[MULTI] prepare: host offline, guest polls raising_state → 2`)
         }
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
@@ -707,6 +714,7 @@ const routes = async (fastify: FastifyInstance) => {
         })
 
         // delete active quest
+        console.log(`[MULTI] finish: delete activeQuest player=${playerId} quest=${activeQuestData.questId} multi=${activeQuestData.isMulti}`)
         delete activeQuests[playerId]
         deletePlayerActiveQuestSync(playerId)
 
@@ -968,6 +976,7 @@ const routes = async (fastify: FastifyInstance) => {
         })
 
         const activeQuestData = activeQuests[ctx.playerId]
+        console.log(`[MULTI] abort: activeQuest player=${ctx.playerId} found=${!!activeQuestData} multi=${activeQuestData?.isMulti}`)
         if (activeQuestData) {
             if (activeQuestData.roomNumber) {
                 const room = getRoom(activeQuestData.roomNumber)
