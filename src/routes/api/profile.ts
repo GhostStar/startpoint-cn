@@ -138,6 +138,47 @@ const routes = async (fastify: FastifyInstance) => {
         })
     })
 
+    // Set the player's displayed degree title
+    fastify.post("/update_degree", async (request: FastifyRequest, reply: FastifyReply) => {
+        const body = request.body as any
+        const viewerId = body.viewer_id
+        const degreeId = body.degree_id
+        if (!viewerId || isNaN(viewerId) || degreeId === undefined || isNaN(degreeId)) {
+            return reply.status(400).send({
+                error: "Bad Request",
+                message: "Invalid request body."
+            })
+        }
+
+        const session = await getSession(viewerId.toString())
+        if (!session) return reply.status(400).send({
+            error: "Bad Request",
+            message: "Invalid viewer id."
+        })
+
+        const playerId = resolvePlayerIdSync(session.accountId)!
+        if (playerId === null) return reply.status(500).send({
+            error: "Internal Server Error",
+            message: "No player bound to account."
+        })
+
+        const player = getPlayerSync(playerId)
+        if (!player) return reply.status(500).send({
+            error: "Internal Server Error",
+            message: "Player not found."
+        })
+
+        updatePlayerSync({ id: playerId, degreeId: Number(degreeId) })
+
+        console.log(`[PROFILE] update_degree viewer=${viewerId} degree=${degreeId}`)
+
+        reply.header("content-type", "application/x-msgpack")
+        return reply.status(200).send({
+            data_headers: generateDataHeaders({ viewer_id: viewerId }),
+            data: {}
+        })
+    })
+
     // Update profile visibility settings (echo back, don't persist)
     fastify.post("/update_profile_settings", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as any
