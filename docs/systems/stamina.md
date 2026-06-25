@@ -1,9 +1,29 @@
 # 体力系统(Stamina)
-> 状态: 已实现   关键文件: assets/config.json, assets/quest_entry_costs.json, src/lib/stamina.ts, src/routes/api/shop.ts   相关端点: /shop/recover_stamina, /item/use_item
+> 状态: 已实现   关键文件: assets/config.json, assets/quest_entry_costs.json, src/lib/stamina.ts, assets/cdndata/player_rank_full.json   相关端点: /shop/recover_stamina, /item/use_item
 
 本文档描述体力系统(2026-06-25 updated)的实现:恢复/消耗流程、体力配置、关卡进入消耗、道具使用、等级提升、遗留问题,以及关卡进入消耗 key 格式。
 
 ## Stamina system (2026-06-25)
+
+### Max stamina by degree (2026-06-25)
+`assets/cdndata/player_rank_full.json` — 完整 0–250 级表，每级包含 `[maxStamina, total_rp_threshold, heal_rate]`。
+
+- **0～100 级**：用户实测数据（101 个点）
+- **101～250 级**：CDN `player_rank.json`（150 个点）
+- `getMaxStamina(degreeId)` 查表获取等级体力上限
+- `getRankDegree(rankPoint)` 二分搜索获取当前等级
+- 升级时体力回满 = `getMaxStamina(newDegreeId)`
+- 溢出上限固定 999（道具/星导石恢复的硬上限）
+
+#### heal_rate 未对齐（2026-06-25）
+CDN 中 heal_rate 用于客户端计算显示恢复速度（公式：`300 × (1 - heal_rate)` 秒/点）。当前服务端采用**预计算模式**：`computeRealTimeStamina()` 用 `Date.now()` 真实时间 + 固定 300 秒/点计算恢复量，并在 `/load`/`start`/`finish` 响应中发送计算结果 + 当前 `stamina_heal_time`，强制客户端显示服务端计算的值。
+
+**与官方的差异**：
+- 官方让客户端自行用 heal_rate 计算恢复 → `stamina_heal_time` 发 DB 旧时间
+- 我们预计算后发送 → `stamina_heal_time` 发当前时间，客户端 elapsed≈0
+- 1～100 级 heal_rate 目前全部填 `0.0`（不影响显示，服务端预计算覆盖）
+
+未来若改为官方模式，需要补全 1～100 级每级的真实 heal_rate 值。
 
 ### Recovery/consumption flow
 Stamina is stored as `players.stamina` + `players.stamina_heal_time`. Server computes real-time recovery using `Date.now()`, but sends `stamina_heal_time: getServerTime()` to the client so client-side calculation yields `elapsed=0` and displays the server-computed value directly.

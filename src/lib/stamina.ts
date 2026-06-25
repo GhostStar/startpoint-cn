@@ -1,36 +1,51 @@
-import playerRankTable from "../../assets/cdndata/player_rank.json";
+import playerRankTable from "../../assets/cdndata/player_rank_full.json";
 import { getConfigSync } from "./assets";
-import { Player } from "../data/types";
 
-const MAX_STAMINA = 999;
-const rankData: { degree: number; threshold: number }[] = [];
+const STAMINA_OVERFLOW_MAX = 999;
 
-// Build sorted rank table once at import time
+interface RankEntry { degree: number; stamina: number; threshold: number }
+const rankData: RankEntry[] = [];
+const staminaByDegree: Map<number, number> = new Map();
+
 for (const [degreeStr, rows] of Object.entries(playerRankTable)) {
     const degree = parseInt(degreeStr);
     const row = (rows as any[])[0];
+    const stamina = parseInt(row[0]);
     const threshold = parseInt(row[1]);
-    rankData.push({ degree, threshold });
+    rankData.push({ degree, stamina, threshold });
+    staminaByDegree.set(degree, stamina);
 }
 rankData.sort((a, b) => a.degree - b.degree);
 
 /**
- * Compute real-time stamina recovery from staminaHealTime to now.
- * Cap at MAX_STAMINA (999).
+ * Get max stamina for a given degree (rank level).
+ * Falls back to degree 1 value for 0, and 250 for >250.
  */
-export function computeRealTimeStamina(player: { stamina: number; staminaHealTime: Date }): number {
+export function getMaxStamina(degreeId: number): number {
+    if (degreeId <= 0) return staminaByDegree.get(1) ?? 22;
+    const s = staminaByDegree.get(degreeId);
+    if (s !== undefined) return s;
+    return staminaByDegree.get(250) ?? 125;
+}
+
+/**
+ * Compute real-time stamina recovery from staminaHealTime to now.
+ * Caps at getMaxStamina(degreeId), with absolute hard cap at 999.
+ */
+export function computeRealTimeStamina(player: { stamina: number; staminaHealTime: Date; degreeId: number }): number {
     const config = getConfigSync();
     const recoverySeconds = config.stamina_recovery_seconds; // 300 = 5 min/pt
     const healSec = player.staminaHealTime.getTime() / 1000;
     const nowSec = Math.floor(Date.now() / 1000);
     const elapsed = (nowSec - healSec) / recoverySeconds;
-    return Math.min(Math.max(0, player.stamina + Math.floor(elapsed)), MAX_STAMINA);
+    const maxStamina = getMaxStamina(player.degreeId);
+    return Math.min(Math.max(0, player.stamina + Math.floor(elapsed)), maxStamina, STAMINA_OVERFLOW_MAX);
 }
 
 /**
  * Determine the player's degree ID (rank level) based on total rankPoint.
  * Returns the highest degree whose threshold is <= rankPoint.
- * Returns 1 if rankPoint is below the first rank threshold (101).
+ * Returns 1 if rankPoint is below the first rank threshold.
  */
 export function getRankDegree(rankPoint: number): number {
     let result = 1;

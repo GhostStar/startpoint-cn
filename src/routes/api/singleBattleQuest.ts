@@ -8,7 +8,7 @@ import { generateDataHeaders, getServerTime } from "../../utils";
 import { rushEventFolderMaxRounds } from "./rushEvent";
 import { RushEventBattleType, UserRushEventPlayedParty } from "../../data/types";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
-import { computeRealTimeStamina, getRankDegree } from "../../lib/stamina";
+import { computeRealTimeStamina, getRankDegree, getMaxStamina } from "../../lib/stamina";
 import { readFileSync, existsSync } from "fs";
 import path from "path";
 import questEntryCosts from "../../../assets/quest_entry_costs.json";
@@ -266,10 +266,10 @@ const routes = async (fastify: FastifyInstance) => {
             boostPoint: newBoostPoint,
             bossBoostPoint: newBossBoostPoint,
             degreeId: newDegreeId,
-            ...(didLevelUp ? { stamina: 999, staminaHealTime: new Date() } : {}),
+            ...(didLevelUp ? { stamina: getMaxStamina(newDegreeId), staminaHealTime: new Date() } : {}),
         })
         if (didLevelUp) {
-            playerData.stamina = 999
+            playerData.stamina = getMaxStamina(newDegreeId)
             playerData.staminaHealTime = new Date()
             console.log(`[BATTLE-FINISH] player ${playerId} leveled up: ${playerData.degreeId} -> ${newDegreeId}, stamina refilled`)
         }
