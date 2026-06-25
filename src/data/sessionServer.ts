@@ -50,7 +50,6 @@ const SESSION_HOST = process.env.SESSION_HOST || "0.0.0.0";
 
 const NPC_JOIN_DELAY_MS = parseInt(process.env.NPC_JOIN_DELAY_MS || "2000");
 const NPC_READY_DELAY_MS = parseInt(process.env.NPC_READY_DELAY_MS || "500");
-const NPC_HOST_READY_COUNTDOWN_MS = parseInt(process.env.NPC_HOST_READY_COUNTDOWN_MS || "3000");
 const QUEST_RESULT_DISBAND_DELAY_MS = parseInt(process.env.QUEST_RESULT_DISBAND_DELAY_MS || "60000");
 const roomDisbandTimers = new Map<string, NodeJS.Timeout>();
 
@@ -114,6 +113,9 @@ function removeClient(client: SessionClient) {
             if (client.isBattle) {
                 if (room?.raising_state === 1) {
                     console.log(`[SESSION] battle disconnect after finish, room ${client.roomNumber} kept for ${QUEST_RESULT_DISBAND_DELAY_MS / 1000}s return window`)
+                    // Clear any existing timer for this room before setting new one
+                    const existingTimer = roomDisbandTimers.get(client.roomNumber)
+                    if (existingTimer) clearTimeout(existingTimer)
                     const timer = setTimeout(() => {
                         roomDisbandTimers.delete(client.roomNumber)
                         if (getRoom(client.roomNumber)) {
@@ -363,8 +365,8 @@ function handleNotify(client: SessionClient, msg: any[]) {
             const mate = client.mates.find(m => m.viewerId === client.viewerId)
             if (mate) {
                 mate.state = msg[1] ?? [1]
+                console.log(`[SESSION] client ${client.viewerId} ready via cid=${mate.connectionId} state=`, msg[1])
                 broadcastToRoom(client.roomNumber, [1, [2, mate.connectionId, mate.state]])
-                console.log(`[SESSION] client ${client.viewerId} ready via cid=${mate.connectionId}`)
                 checkHostAutoReady(client.roomNumber)
             }
             break;
@@ -499,16 +501,9 @@ function handleEnterComs(client: SessionClient, coms: any[]) {
     setTimeout(() => { broadcastToRoom(client.roomNumber, [1, [1, client.mates]]) }, NPC_JOIN_DELAY_MS)
     setTimeout(() => {
         for (const npc of npcMates) { npc.state = [1]; broadcastToRoom(client.roomNumber, [1, [2, npc.connectionId, [1]]]) }
+        // NPCs ready → check if host should auto-ready (aligned with real multi logic)
+        if (realMates.length === 1) checkHostAutoReady(client.roomNumber)
     }, NPC_JOIN_DELAY_MS + NPC_READY_DELAY_MS)
-    // Host auto-ready only in pure NPC mode (no real guests)
-    if (realMates.length === 1) {
-        const hostReadyAt = NPC_JOIN_DELAY_MS + NPC_READY_DELAY_MS + NPC_HOST_READY_COUNTDOWN_MS
-        if (NPC_HOST_READY_COUNTDOWN_MS > 0) console.log(`[SESSION] host ready in ${NPC_HOST_READY_COUNTDOWN_MS / 1000}s room=${client.roomNumber}`)
-        setTimeout(() => {
-            host.state = [1]; client.isReady = true
-            broadcastToRoom(client.roomNumber, [1, [2, host.connectionId, [1]]])
-        }, hostReadyAt)
-    }
 }
 
 export function startSessionServer(): Promise<void> {

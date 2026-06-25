@@ -927,6 +927,7 @@ Client B → Broadcast(frameCmd) → Server → relayToBattleRoom → BattleServ
 | `get_rooms` 返回无 TCP 客户端的房间 | ✅ 已修复 | `hasRoomClients` 防御过滤 |
 | 战斗恢复 UI（RestoreState.Battle） | 待测 | DB 层已就绪，客户端恢复弹窗流程待验证 |
 | battle TCP 退出弹窗 | ⚠️ 疑似预期行为 | 客户端 `socket.close()` → `isolateBySocketError` 本地触发，服务端无法干预 |
+| 空房间"6秒后挑战合作任务"浮字 | ⚠️ 客户端本地 UI | ReadyCounter 内部倒计时，非服务端 TCP 消息。仅 visual，不影响功能 |
 
 ### 9.9 下一步 — Phase 4 匹配系统 ⏳ 暂缓
 

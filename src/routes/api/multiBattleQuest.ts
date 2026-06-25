@@ -714,7 +714,6 @@ const routes = async (fastify: FastifyInstance) => {
         })
 
         // delete active quest
-        console.log(`[MULTI] finish: delete activeQuest player=${playerId} quest=${activeQuestData.questId} multi=${activeQuestData.isMulti}`)
         delete activeQuests[playerId]
         deletePlayerActiveQuestSync(playerId)
 
@@ -976,7 +975,6 @@ const routes = async (fastify: FastifyInstance) => {
         })
 
         const activeQuestData = activeQuests[ctx.playerId]
-        console.log(`[MULTI] abort: activeQuest player=${ctx.playerId} found=${!!activeQuestData} multi=${activeQuestData?.isMulti}`)
         if (activeQuestData) {
             if (activeQuestData.roomNumber) {
                 const room = getRoom(activeQuestData.roomNumber)
