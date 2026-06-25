@@ -32,13 +32,14 @@ export function getMaxStamina(degreeId: number): number {
  * Compute real-time stamina recovery from staminaHealTime to now.
  * Caps at getMaxStamina(degreeId), with absolute hard cap at 999.
  */
-export function computeRealTimeStamina(player: { stamina: number; staminaHealTime: Date; degreeId: number }): number {
+export function computeRealTimeStamina(player: { stamina: number; staminaHealTime: Date; rankPoint: number }): number {
     const config = getConfigSync();
     const recoverySeconds = config.stamina_recovery_seconds; // 300 = 5 min/pt
     const healSec = player.staminaHealTime.getTime() / 1000;
     const nowSec = Math.floor(Date.now() / 1000);
     const elapsed = (nowSec - healSec) / recoverySeconds;
-    const maxStamina = Math.max(getMaxStamina(player.degreeId), player.stamina);
+    const realDegree = getRankDegree(player.rankPoint);
+    const maxStamina = Math.max(getMaxStamina(realDegree), player.stamina);
     return Math.min(Math.max(0, player.stamina + Math.floor(elapsed)), maxStamina, STAMINA_OVERFLOW_MAX);
 }
 

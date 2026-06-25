@@ -781,8 +781,9 @@ const routes = async (fastify: FastifyInstance) => {
         }
 
         // update player
+        const oldRkDegree = getRankDegree(beforeRankPoint)
         const newDegreeId = getRankDegree(newRankPoint)
-        const didLevelUp = newDegreeId > playerData.degreeId
+        const didLevelUp = newDegreeId > oldRkDegree
         updatePlayerSync({
             id: playerId,
             freeMana: newMana,
@@ -790,15 +791,13 @@ const routes = async (fastify: FastifyInstance) => {
             rankPoint: newRankPoint,
             boostPoint: newBoostPoint,
             bossBoostPoint: newBossBoostPoint,
-            degreeId: newDegreeId,
             ...(didLevelUp ? { stamina: playerData.stamina + getMaxStamina(newDegreeId), staminaHealTime: new Date() } : {}),
         })
         if (didLevelUp) {
             playerData.stamina = playerData.stamina + getMaxStamina(newDegreeId)
             playerData.staminaHealTime = new Date()
-            console.log(`[MULTI-FINISH] player ${playerId} leveled up: ${playerData.degreeId} -> ${newDegreeId}, stamina refilled`)
+            console.log(`[MULTI-FINISH] player ${playerId} leveled up: ${oldRkDegree} -> ${newDegreeId}, stamina refilled`)
         }
-        playerData.degreeId = newDegreeId
 
         // reward score rewards
         const scoreRewardsResult = givePlayerScoreRewardsSync(playerId, questData.scoreRewardGroupId, questData.scoreRewardGroup, useBoostPoint, questData.element)
