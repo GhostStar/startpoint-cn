@@ -71,6 +71,23 @@ indexPatterns(collectItemDefs as any, 4);
 indexPatterns(degreeDefs as any, 5);
 indexPatterns(weeklyDefs as any, 10);
 
+// Degree mission target lookup (extracted from definition descriptions)
+// mission_id → target degree level (e.g., 1000→50, 1010→100)
+const degreeTargetMap: Record<number, number> = {};
+{
+    const descRegex = /玩家(?:达到|级别达到)\s*(\d+)/;
+    for (const [mid, rows] of Object.entries(degreeDefs as Record<string, any>)) {
+        const row = (rows as any[])[0];
+        if (!row || !row[2]) continue;
+        const match = descRegex.exec(String(row[2]));
+        if (match) degreeTargetMap[parseInt(mid)] = parseInt(match[1]);
+    }
+}
+
+export function getTargetDegree(missionId: number): number | undefined {
+    return degreeTargetMap[missionId];
+}
+
 export function getMissionsByPattern(pattern: string): PatternMatch[] {
     return patternIndex[pattern] || [];
 }

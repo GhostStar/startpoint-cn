@@ -1,9 +1,9 @@
 // Mission progress endpoints — get and update
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getPlayerActiveMissionsSync, getSession, updatePlayerActiveMissionSync } from "../../data/wdfpData";
+import { getPlayerActiveMissionsSync, getSession, getPlayerSync, updatePlayerActiveMissionSync } from "../../data/wdfpData";
 import { generateDataHeaders } from "../../utils";
-import { getCurrentStage, getMissionIdsByCategory, getMissionsByPattern } from "../../lib/mission";
+import { getCurrentStage, getMissionIdsByCategory, getMissionsByPattern, getTargetDegree } from "../../lib/mission";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 
 interface GetMissionProgressBody {
@@ -45,21 +45,34 @@ const routes = async (fastify: FastifyInstance) => {
             "message": "No players bound to account."
         })
 
+        const player = getPlayerSync(playerId)
+        if (!player) return reply.status(500).send({
+            "error": "Internal Server Error",
+            "message": "Player not found."
+        })
+
         const requestCategories = body.category_list?.map(c => c.category) || [1, 2, 3, 5]
         const activeMissions = getPlayerActiveMissionsSync(playerId)
         const missionProgressList: any[] = []
 
-        // Iterate CDN reward tables for each requested category — aligns with DummyMissionRepository.createDummyData()
+        // Iterate CDN reward tables for each requested category
         for (const category of requestCategories) {
             const allIds = getMissionIdsByCategory(category)
             for (const missionId of allIds) {
                 const mission = activeMissions[String(missionId)]
-                const progress = mission?.progress ?? 0
+                // Compute server-side progress for degree missions
+                let progress = mission?.progress ?? 0
+                if (category === 5) {
+                    const targetDeg = getTargetDegree(missionId)
+                    if (targetDeg !== undefined) {
+                        progress = player.degreeId >= targetDeg ? 1 : 0
+                    }
+                }
                 const stage = getCurrentStage(category, missionId, progress)
                 missionProgressList.push({
                     mission_category: category,
                     mission_id: missionId,
-                    progress_value: Number(progress),  // Float type required by client (Std.is Number)
+                    progress_value: Number(progress),
                     stage: stage
                 })
             }
