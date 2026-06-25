@@ -8,6 +8,7 @@ import { generateDataHeaders, getServerTime } from "../../utils";
 import { createRoom, disbandRoom, getDisplayHost, getNpcMates, getRoom, getRoomByToken, getRooms, serializeRoom, serializeRoomConnection, updateHostEntryTime, updateRoomState } from "../../data/multiRoom";
 import { hasRoomClients, notifyRoomDisbanded, isHostOnline } from "../../data/sessionServer";
 import { insertActiveQuest, activeQuests } from "./singleBattleQuest";
+import { computeRealTimeStamina, getRankDegree, getMaxStamina } from "../../lib/stamina";
 import { RushEventBattleType, UserRushEventPlayedParty } from "../../data/types";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { getSerializedPlayerRushEventPlayedPartiesSync } from "../../lib/rush";
@@ -780,14 +781,24 @@ const routes = async (fastify: FastifyInstance) => {
         }
 
         // update player
+        const newDegreeId = getRankDegree(newRankPoint)
+        const didLevelUp = newDegreeId > playerData.degreeId
         updatePlayerSync({
             id: playerId,
             freeMana: newMana,
             expPool: newExpPool,
             rankPoint: newRankPoint,
             boostPoint: newBoostPoint,
-            bossBoostPoint: newBossBoostPoint
+            bossBoostPoint: newBossBoostPoint,
+            degreeId: newDegreeId,
+            ...(didLevelUp ? { stamina: playerData.stamina + getMaxStamina(newDegreeId), staminaHealTime: new Date() } : {}),
         })
+        if (didLevelUp) {
+            playerData.stamina = playerData.stamina + getMaxStamina(newDegreeId)
+            playerData.staminaHealTime = new Date()
+            console.log(`[MULTI-FINISH] player ${playerId} leveled up: ${playerData.degreeId} -> ${newDegreeId}, stamina refilled`)
+        }
+        playerData.degreeId = newDegreeId
 
         // reward score rewards
         const scoreRewardsResult = givePlayerScoreRewardsSync(playerId, questData.scoreRewardGroupId, questData.scoreRewardGroup, useBoostPoint, questData.element)
@@ -894,7 +905,8 @@ const routes = async (fastify: FastifyInstance) => {
                     "exp_pooled_time": getServerTime(playerData.expPooledTime),
                     "free_vmoney": playerData.freeVmoney + (clearReward?.user_info.free_vmoney || 0) + (sPlusClearReward?.user_info.free_vmoney || 0) + scoreRewardsResult.user_info.free_vmoney,
                     "rank_point": newRankPoint,
-                    "stamina": playerData.stamina,
+                    "degree_id": newDegreeId,
+                    "stamina": computeRealTimeStamina(playerData),
                     "stamina_heal_time": getServerTime(),
                     "boost_point": newBoostPoint,
                     "boss_boost_point": newBossBoostPoint
