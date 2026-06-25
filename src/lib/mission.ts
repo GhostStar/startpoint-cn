@@ -4,10 +4,11 @@ import dailyRewards from "../../assets/mission_daily_reward.json";
 import eventRewards from "../../assets/mission_event_reward.json";
 import degreeRewards from "../../assets/mission_degree_reward.json";
 import collectItemRewards from "../../assets/mission_collect_item_reward.json";
+import weeklyRewards from "../../assets/mission_weekly_reward.json";
 
 // Category mapping (client API category → reward table + stage data)
 // 1=Regular, 2=Daily, 3=Event, 4=CollectItemEvent, 5=Degree
-// Categories 6-8 (PassCard) and 10 (StoryEvent) not yet loaded — ignored by client
+// 10=Weekly (CN-specific patch) — trial mapping
 
 interface MissionStage {
     stage: number;
@@ -36,6 +37,7 @@ const missionStageLookup: Record<number, Record<string, MissionStage[]>> = {
     3: buildLookup(eventRewards as any),
     4: buildLookup(collectItemRewards as any),
     5: buildLookup(degreeRewards as any),
+    10: buildLookup(weeklyRewards as any),  // CN-specific: Weekly missions
 };
 
 /**
