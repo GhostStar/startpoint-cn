@@ -38,7 +38,7 @@ export function computeRealTimeStamina(player: { stamina: number; staminaHealTim
     const healSec = player.staminaHealTime.getTime() / 1000;
     const nowSec = Math.floor(Date.now() / 1000);
     const elapsed = (nowSec - healSec) / recoverySeconds;
-    const maxStamina = getMaxStamina(player.degreeId);
+    const maxStamina = Math.max(getMaxStamina(player.degreeId), player.stamina);
     return Math.min(Math.max(0, player.stamina + Math.floor(elapsed)), maxStamina, STAMINA_OVERFLOW_MAX);
 }
 
