@@ -241,11 +241,16 @@ export function updateHostEntryTime(roomNumber: string): boolean {
 
 // Build room data for get_rooms response
 export function serializeRoom(room: MultiRoom): Record<string, any> {
+    const charId = Number(room.host_main_character_id) || 1
     return {
         category_id: room.category,
         quest_id: room.quest_id,
         room_number: room.room_number,
-        estabilisher_character: room.host_main_character_id,
+        establisher_character: charId,
+        establisher_character_evolution_img_level: 0,
+        establisher_follow: 1,
+        establisher_name: `Player${room.host_viewer_id}`,
+        estabilisher_character: charId,
         estabilisher_character_evolution_img_level: 0,
         estabilisher_follow: 1,
         estabilisher_name: `Player${room.host_viewer_id}`,
