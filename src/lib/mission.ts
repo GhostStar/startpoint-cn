@@ -237,3 +237,13 @@ export function getCurrentStage(category: number, missionId: number, progress: n
     }
     return current;
 }
+
+/**
+ * Get all stage numbers where progress >= targetProgress (completed).
+ * Used for auto-reward granting.
+ */
+export function getCompletedStageNumbers(category: number, missionId: number, progress: number): number[] {
+    const stages = missionStageLookup[category]?.[String(missionId)];
+    if (!stages) return [];
+    return stages.filter(s => progress >= s.targetProgress).map(s => s.stage);
+}

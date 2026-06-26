@@ -1,9 +1,9 @@
 // Mission progress endpoints — get and update
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getPlayerActiveMissionsSync, getSession, getPlayerSync, getPlayerQuestProgressSync, getPlayerCharacterClearSync, updatePlayerActiveMissionSync } from "../../data/wdfpData";
+import { getPlayerActiveMissionsSync, getSession, getPlayerSync, getPlayerQuestProgressSync, getPlayerCharacterClearSync, givePlayerItemSync, insertDefaultPlayerCharacterSync, updatePlayerSync, updatePlayerActiveMissionSync, updatePlayerActiveMissionStageSync } from "../../data/wdfpData";
 import { generateDataHeaders } from "../../utils";
-import { getCurrentStage, getMissionIdsByCategory, getMissionsByPattern, getTargetDegree, getMissionPattern, isComputablePattern, getCharacterStoryQuestIds, getCharacterIdFromMission } from "../../lib/mission";
+import { getCurrentStage, getMissionIdsByCategory, getMissionsByPattern, getTargetDegree, getMissionPattern, isComputablePattern, getCharacterStoryQuestIds, getCharacterIdFromMission, getActiveMissionRewards, getCompletedStageNumbers } from "../../lib/mission";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { getRankDegree } from "../../lib/stamina";
 
@@ -164,6 +164,27 @@ const routes = async (fastify: FastifyInstance) => {
                 const dbProgress = activeMissions[String(missionId)]?.progress ?? 0
                 const progress = computeProgress(category, missionId, ctx, dbProgress)
                 const stage = getCurrentStage(category, missionId, progress)
+
+                // Auto-grant rewards for newly completed stages
+                const completedStages = getCompletedStageNumbers(category, missionId, progress)
+                const existingStages = activeMissions[String(missionId)]?.stages
+                const isRecord = existingStages && !Array.isArray(existingStages)
+                for (const s of completedStages) {
+                    if (isRecord && (existingStages as Record<string, boolean>)[String(s)]) continue
+                    updatePlayerActiveMissionStageSync(playerId, s, missionId, true)
+                    const rewards = getActiveMissionRewards(missionId, s)
+                    for (const r of rewards) {
+                        if (r.kind === 1 || r.kind === 2) {
+                            givePlayerItemSync(playerId, (r.itemId || r.equipmentId)!, r.amount)
+                        } else if (r.kind === 3) {
+                            updatePlayerSync({ id: playerId, freeMana: (ctx.player.freeMana ?? 0) + r.amount })
+                        } else if (r.kind === 4 && r.characterId) {
+                            try { insertDefaultPlayerCharacterSync(playerId, r.characterId) } catch (_) {}
+                        } else if (r.kind === 5) {
+                            updatePlayerSync({ id: playerId, expPool: (ctx.player.expPool ?? 0) + r.amount })
+                        }
+                    }
+                }
 
                 missionProgressList.push({
                     mission_category: category,
