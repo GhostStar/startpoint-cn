@@ -225,9 +225,9 @@ export function updatePlayerActiveMissionSync(
     progress: number
 ) {
     getDb().prepare(`
-    UPDATE players_active_missions SET progress = ?
-    WHERE player_id = ? AND id = ?
-    `).run(progress, playerId, Number(missionId))
+    INSERT OR REPLACE INTO players_active_missions (id, progress, player_id)
+    VALUES (?, ?, ?)
+    `).run(Number(missionId), progress, playerId)
 }
 
 /**
@@ -240,12 +240,12 @@ export function updatePlayerActiveMissionStageSync(
     status: boolean
 ) {
     getDb().prepare(`
-    UPDATE players_active_missions_stages SET status = ?
-    WHERE player_id = ? AND id = ? AND mission_id = ?
+    INSERT OR REPLACE INTO players_active_missions_stages (id, status, player_id, mission_id)
+    VALUES (?, ?, ?, ?)
     `).run(
+        Number(stageId),
         serializeBoolean(status),
         playerId,
-        Number(stageId),
         Number(missionId)
     )
 }
