@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { generateDataHeaders } from "../../utils";
-import { insertAccount, insertDefaultPlayerSync, getPlayerSync, insertSessionWithToken, updateAccountSync, deleteSession, getDeviceBindingSync, insertDeviceBindingSync, deleteDeviceBindingSync, getAccount } from "../../data/wdfpData";
+import { insertAccountSync, getAccountSync, insertDefaultPlayerSync, getPlayerSync, insertSessionWithToken, updateAccountSync, deleteSession, getDeviceBindingSync, insertDeviceBindingSync, deleteDeviceBindingSync } from "../../data/wdfpData";
 import { SessionType } from "../../data/types";
 import { saveAccountDefaultPlayer } from "../../data/activeAccount";
 
@@ -72,7 +72,7 @@ const routes = async (fastify: FastifyInstance) => {
 
         if (binding) {
             // Known device — verify account still exists
-            const accountExists = await getAccount(binding.account_id)
+            const accountExists = getAccountSync(binding.account_id)
             if (accountExists) {
                 accountId = binding.account_id
                 newAccount = false
@@ -81,7 +81,7 @@ const routes = async (fastify: FastifyInstance) => {
             } else {
                 // Account was deleted — clean up stale binding and create new account
                 deleteDeviceBindingSync(deviceId)
-                const account = await insertAccount({
+                const account = insertAccountSync({
                     appId: "wf_cn", idpAlias: "", idpCode: "leiting", idpId: "", status: "normal"
                 })
                 accountId = account.id
@@ -91,7 +91,7 @@ const routes = async (fastify: FastifyInstance) => {
             }
         } else {
             // New device → create account
-            const account = await insertAccount({
+            const account = insertAccountSync({
                 appId: "wf_cn", idpAlias: "", idpCode: "leiting", idpId: "", status: "normal"
             })
             accountId = account.id

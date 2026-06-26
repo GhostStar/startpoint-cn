@@ -6,8 +6,7 @@ import { deserializeBoolean, deserializeNumberList, getDefaultPlayerData, serial
 import { getPlayerRushEventEndlessBattleRankingSync } from "../lib/rush";
 
 // Re-exports from domain modules
-export { getAccountFromIdpIdSync, getAccount, getAllAccountsSync, deleteAccountSync, getAccountPlayersSync, getAccountPlayers, insertAccount, updateAccountSync, updateAccount } from "./domains/account";
-import { getAccountSync } from "./domains/account";
+export { getAccountFromIdpIdSync, getAccount, getAllAccountsSync, deleteAccountSync, getAccountPlayersSync, getAccountPlayers, insertAccount, updateAccountSync, updateAccount, getAccountSync, insertAccountSync } from "./domains/account";
 // Session + DeviceBinding
 export { getSession, getViewerIdSync, getDeviceBindingSync, insertDeviceBindingSync, deleteDeviceBindingSync, getAccountSessionsOfType, insertSessionWithToken, insertSession, deleteSession, deleteAccountSessions, deleteAccountSessionsOfType, generateViewerIdSession } from "./domains/session";
 // DCPL + Player CRUD

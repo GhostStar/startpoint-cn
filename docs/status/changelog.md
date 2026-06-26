@@ -1059,6 +1059,27 @@ const offset = defaultDate.getTime() - Date.now()
 Dashboard 时间控件可覆盖此默认值，保存后重启自动恢复。
 
 
+## 十六、Signup 竞态条件修复 (2026-06-27)
+
+### 问题：客户端重试导致重复创建空账号
+
+某些客户端因网络延迟导致 signup 超时，触发客户端 `RETRY_LIMIT=5` 重试机制（`RequestQueue.as:77`），每次访问在服务端生成 6 个空账号。
+
+**根因：** `tool.ts` signup 中 `await insertAccount()` 包装在 `new Promise(...)` 里，`await` 时 Node.js 事件循环让出，并发 signup 请求在 `device_bindings` 插入前通过绑定检查 → 重复创建账号。
+
+### 修复
+
+`src/routes/cn/tool.ts` — 将关键区改为全同步：
+- `await getAccount(...)` → `getAccountSync(...)`
+- `await insertAccount(...)` → `insertAccountSync(...)`
+
+`src/data/domains/account.ts` — `insertAccountSync` 改为 `export`
+
+`src/data/wdfpData.ts` — 桶文件导出 `getAccountSync`、`insertAccountSync`
+
+**效果：** `getDeviceBindingSync` → `getAccountSync` → `insertAccountSync` → `insertDeviceBindingSync` 全程无 `await` 让出点，Node.js 单线程保证原子执行。并发请求见绑定已存在 → 复用账号，不再重复创建。
+
+
 ## TODO（更新）
 
 | 优先级 | 任务 | 状态 |
