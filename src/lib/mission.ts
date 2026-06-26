@@ -93,10 +93,21 @@ for (const [key, rows] of Object.entries(charQuests as Record<string, any[]>)) {
 }
 
 /**
- * Get the quest_id for a character's story quests.
+ * Get ALL quest IDs for a character's story quests from character_quest_lookup.json.
+ * Maps Alk's short character ID (1) to business code (10).
+ * Returns empty array if character not found.
  */
-export function getCharacterStoryQuestId(characterId: number | string): number | undefined {
-    return charQuestMap[String(characterId)];
+export function getCharacterStoryQuestIds(characterId: number | string): number[] {
+    const cid = String(characterId)
+    const lookupId = cid === '1' ? '10' : cid
+    // Find all keys in charQuests that start with this character code (e.g. 10 → 101, 102, 103)
+    const ids: number[] = []
+    for (const [key, rows] of Object.entries(charQuests as Record<string, any[]>)) {
+        if (key.startsWith(lookupId) && rows.length > 0) {
+            ids.push(parseInt(key))
+        }
+    }
+    return ids
 }
 
 /**

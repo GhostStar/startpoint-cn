@@ -3,7 +3,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { getPlayerActiveMissionsSync, getSession, getPlayerSync, getPlayerQuestProgressSync, getPlayerCharacterClearSync, updatePlayerActiveMissionSync } from "../../data/wdfpData";
 import { generateDataHeaders } from "../../utils";
-import { getCurrentStage, getMissionIdsByCategory, getMissionsByPattern, getTargetDegree, getMissionPattern, isComputablePattern, getCharacterStoryQuestId, getCharacterIdFromMission } from "../../lib/mission";
+import { getCurrentStage, getMissionIdsByCategory, getMissionsByPattern, getTargetDegree, getMissionPattern, isComputablePattern, getCharacterStoryQuestIds, getCharacterIdFromMission } from "../../lib/mission";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { getRankDegree } from "../../lib/stamina";
 
@@ -70,13 +70,17 @@ function computeProgress(category: number, missionId: number, ctx: ComputeContex
     if (category === 9) {
         const charId = getCharacterIdFromMission(missionId)
         const clears = getPlayerCharacterClearSync(ctx.player.id, Number(charId))
-        const questId = getCharacterStoryQuestId(charId)
+        const storyQuestIds = getCharacterStoryQuestIds(charId)
         const lastDigit = missionId % 10
 
         if (lastDigit === 1) {
-            // Story reading for this character
-            const qpEntry = ctx.questProgress['3']?.find(q => q.questId === questId)
-            return qpEntry?.finished ? 1 : 0
+            // Story reading: count finished stories for this character
+            let count = 0
+            for (const qid of storyQuestIds) {
+                const qp = ctx.questProgress['3']?.find(q => q.questId === qid)
+                if (qp?.finished) count++
+            }
+            return count
         }
         if (lastDigit === 2) {
             if (charId === '1') return ctx.totalStories  // Alk: total all-character stories
