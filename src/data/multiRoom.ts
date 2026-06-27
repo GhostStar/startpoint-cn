@@ -40,9 +40,9 @@ function cleanExpiredRooms() {
     const timeOffset = now - getServerTime() * 1000;
     let cleaned = 0;
     for (const [roomNumber, room] of rooms) {
-        const age = now - room.created_at;
-        // Idle rooms (Ready/Recruiting): expire by creation time (both real ms)
-        if (age > ROOM_EXPIRY_MS && room.raising_state <= 3) {
+        // Idle rooms (Ready/Recruiting/Filled): expire by last activity time
+        const idleAge = now - (room.host_entry_time * 1000 + timeOffset)
+        if (idleAge > ROOM_EXPIRY_MS && room.raising_state <= 3) {
             rooms.delete(roomNumber);
             cleaned++;
             continue;

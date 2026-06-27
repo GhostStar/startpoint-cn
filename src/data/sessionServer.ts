@@ -111,9 +111,15 @@ function removeClient(client: SessionClient) {
             if (client.isBattle) {
                 console.log(`[SESSION] battle disconnected from room ${client.roomNumber} (room kept, state=${room?.raising_state})`)
             } else {
-                notifyRoomDisbanded(client.roomNumber);
-                disbandRoom(client.roomNumber);
-                console.log(`[SESSION] room ${client.roomNumber} disbanded (all clients disconnected)`);
+                // Non-battle disconnect: keep room if battle is active (state=4)
+                const room = getRoom(client.roomNumber)
+                if (room?.raising_state === 4) {
+                    console.log(`[SESSION] room TCP disconnect during battle, room kept`)
+                } else {
+                    notifyRoomDisbanded(client.roomNumber);
+                    disbandRoom(client.roomNumber);
+                    console.log(`[SESSION] room ${client.roomNumber} disbanded (all clients disconnected)`);
+                }
             }
         } else {
             console.log(`[SESSION] client removed: viewer=${client.viewerId} room=${client.roomNumber} remaining=${remaining}`);
