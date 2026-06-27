@@ -343,7 +343,7 @@ export function registerBattleRoutes(fastify: FastifyInstance): void {
                 "is_multi": "multi",
                 "start_time": headers['servertime'],
                 "quest_name": "",
-                "aborted_play_id": body.play_id,
+                "aborted_play_id": null,
                 "unfinished_play_id": null,
                 "drawn_quest": null,
                 "party_info": null,
