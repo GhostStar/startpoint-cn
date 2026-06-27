@@ -1,6 +1,25 @@
-import { MultiRoom } from "../types";
-import { getDisplayHost } from "../../data/multiRoom";
-import { sessionManager } from "../state/SessionManager";
+import * as os from "os"
+import { MultiRoom } from "../types"
+import { sessionManager } from "../state/SessionManager"
+
+export function getDisplayHost(): string {
+    const publicHost = (process.env.SESSION_PUBLIC_HOST || process.env.CN_PUBLIC_HOST || "").trim()
+    if (publicHost.length > 0) return publicHost
+
+    const raw = (process.env.CN_LISTEN_HOST || "127.0.0.1").trim()
+    if (raw !== "0.0.0.0" && raw !== "::") return raw
+    const nets = os.networkInterfaces()
+    for (const name of Object.keys(nets)) {
+        const addrs = nets[name]
+        if (!addrs) continue
+        for (const addr of addrs) {
+            if (addr.family === "IPv4" && !addr.internal) {
+                return addr.address
+            }
+        }
+    }
+    return "127.0.0.1"
+}
 
 export interface SerializedRoom {
     access_token: string;

@@ -3,7 +3,7 @@ import { generateDataHeaders, getServerTime, getServerDate } from "../../utils";
 import { getPlayerSync, dailyResetPlayerDataSync, collectPlayerDataPooledExpSync, updatePlayerSync, getPlayerActiveQuestSync } from "../../data/wdfpData";
 import { getClientSerializedData } from "../../data/utils";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
-import { getDisplayHost } from "../../data/multiRoom";
+import { getDisplayHost } from "../../multi/room/serializer";
 
 interface CnLoadBody {
     device_id: number;
