@@ -323,7 +323,7 @@ function handleNotify(client: SessionClient, msg: any[]) {
             break;
         }
         case 4: // Heartbeat
-            sendJson(client.socket, [1, [10, String(client.viewerId)]]);
+            sendJson(client.socket, [1, [10, client.connectionId]]);
             break;
         case 2: { // ChangeParty
             const pd = msg[1]
