@@ -795,7 +795,8 @@ const NPC_TEMPLATES = {
 | `StartBattle → Start(members)` | ✅ | members 含完整 mate 对象数组 |
 | 战斗结算后返回房间 | ✅ | finish→raising_state=1，room TCP 存活→可再战 |
 | 房间断线恢复 | ✅ | TCP 断线→disband，restore_room 返回 9 |
-| 自动招募 NPC（进入房间时） | ✅ | NPC_AUTO_JOIN_DELAY_MS 后自动 EnterComs |
+| 自动招募 NPC（进入房间时） | ✅ | `npc_count > 0` 时自动 EnterComs，首次计算 NPC 数量并持久化，Rematch 恢复固定数量 |
+| NPC 数量持久化 | ✅ | `npc_count` 字段：首次招募写入 `3-realPlayers`，Rematch 恢复。真人不齐时 `checkAllReadyAndStart` 等待。|
 | 战斗协议完善 | ✅ | SceneReady(tag=0)+Finalize(tag=1)+Measurement(tag=2) |
 
 ### 9.3 环境变量
@@ -939,7 +940,7 @@ Client B → Broadcast(frameCmd) → Server → relayToBattleRoom → BattleServ
 | C5602 Disband NPE | ✅ 已修复 | `notifyRoomDisbanded` 仅用于 TCP 断线通知 |
 | 消息 TCP 合并 | ⚠️ | 100ms/200ms 延迟规避 |
 | 战斗恢复 UI（RestoreState.Battle） | 待测 | DB 层已就绪，客户端恢复弹窗流程待验证 |
-| state=3 (Filled) | 待恢复 | `handleEnterComs` 中 `updateRoomState(3)` 被 F1 修复误删 |
+| state=3 (Filled) | ✅ 已移除 | `updateRoomState(3)` 去掉——旧代码不设 Filled，导致客机 `get_rooms` 显示"满房" |
 | 空房间浮字 + 快速解散 | ⚠️ 服务端已排查完毕，待客户端日志确认 | 见 9.8.2 专题研究 |
 
 ### 9.8.2 空房间浮字 + 快速解散专题研究

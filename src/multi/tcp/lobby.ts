@@ -59,6 +59,32 @@ export function checkHostAutoReady(roomNumber: string): void {
             console.log(`[LOBBY] host auto-ready cancelled: room=${roomNumber}`)
         }
     }
+    checkAllReadyAndStart(roomNumber)
+}
+
+const autoStartingRooms = new Set<string>()
+
+function checkAllReadyAndStart(roomNumber: string): void {
+    if (autoStartingRooms.has(roomNumber)) return
+    const hostClient = findHostClient(roomNumber)
+    if (!hostClient) return
+    const room = getRoom(roomNumber)
+    if (!room) return
+
+    // Guard: wait for all expected real players to return on rematch
+    if (room.npc_count > 0) {
+        const realPlayers = countRealPlayers(hostClient.mates)
+        const expectedReal = 3 - room.npc_count
+        if (realPlayers < expectedReal) return
+    }
+    if (hostClient.mates.length < 3) return
+
+    const allReady = hostClient.mates.every(m => m.state?.[0] === 1)
+    if (!allReady) return
+
+    autoStartingRooms.add(roomNumber)
+    console.log(`[LOBBY] all ready — StartRemainingTime float: room=${roomNumber}`)
+    sessionManager.broadcastToRoom(roomNumber, [1, [10, 2]])
 }
 
 export function notifyRoomDisbanded(roomNumber: string): void {
@@ -67,13 +93,22 @@ export function notifyRoomDisbanded(roomNumber: string): void {
 
 async function handleEnterComs(client: SessionClient, coms: { name: string }[]): Promise<void> {
     const room = getRoom(client.roomNumber)
-    if (room) room.is_npc_mode = true
+    if (!room) return
+    room.is_npc_mode = true
 
     const hostMate = client.yourself ?? client.mates[0]
     if (!hostMate) return
 
     const realMates = client.mates.filter(m => (m.viewerId ?? 0) < 900000000)
-    const needNPCs = 3 - realMates.length
+
+    // Determine NPC count: first recruit → calculate and store; rematch → restore fixed count
+    let needNPCs: number
+    if (room.npc_count <= 0) {
+        needNPCs = 3 - realMates.length
+        room.npc_count = needNPCs  // persist for rematch
+    } else {
+        needNPCs = room.npc_count
+    }
     if (needNPCs <= 0) {
         console.log(`[LOBBY] EnterComs: room full (${realMates.length} players), skip NPCs`)
         return
@@ -135,18 +170,13 @@ async function handleEnterComs(client: SessionClient, coms: { name: string }[]):
     if (hostClient) hostClient.mates = client.mates
 
     if (room) {
-        for (const recruited of recruitResult.recruitedMates) {
-            if (!room.mates.find(m => m.viewer_id === recruited.viewer_id)) {
-                room.mates.push({ viewer_id: recruited.viewer_id, com_id: recruited.com_id })
-            }
-        }
+        room.mates = client.mates.map(m => ({ viewer_id: m.viewerId ?? null, com_id: m.comId ?? 0 }))
     }
 
     console.log(`[LOBBY] EnterComs: room=${client.roomNumber} real=${realMates.length} npc=${npcMates.length} total=${client.mates.length}`)
 
     setTimeout(() => {
         sessionManager.broadcastToRoom(client.roomNumber, [1, [1, client.mates]])
-        updateRoomState(client.roomNumber, 3)
     }, NPC_JOIN_DELAY_MS)
 
     setTimeout(() => {
@@ -208,7 +238,7 @@ function handleEnter(_socket: net.Socket, client: SessionClient, data: any[]): v
         if (client.mates.length > 1) {
             sessionManager.broadcastToRoom(client.roomNumber, [1, [1, client.mates]], `${client.viewerId}@${client.roomNumber}`)
         }
-        if (room?.is_npc_mode && countRealPlayers(client.mates) < 3) {
+        if (room && room.npc_count > 0 && countRealPlayers(client.mates) < 3) {
             setTimeout(() => handleEnterComs(client, [{ name: "开心超人" }, { name: "名字真难取" }]), 500)
         }
     } else {
@@ -301,6 +331,7 @@ function handleStartBattle(_socket: net.Socket, client: SessionClient, _data: an
     sessionManager.setBattleExpectedCount(client.roomNumber, expectedCount)
     updateRoomState(client.roomNumber, 4)
 
+    autoStartingRooms.delete(client.roomNumber)
     const members = [...client.mates]
     sessionManager.broadcastToRoom(client.roomNumber, [1, [5, members]])
     console.log(`[LOBBY] StartBattle: room=${client.roomNumber} mates=${client.mates.length} expected=${expectedCount}`)

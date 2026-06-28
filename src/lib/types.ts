@@ -540,6 +540,7 @@ export interface MultiRoom {
     mates: Array<{ viewer_id: number | null, com_id: number, player_id?: number }>
     share_room_options: number
     is_npc_mode: boolean
+    npc_count: number  // fixed NPC count per battle: 0=unrecruited, 1/2=fixed count
 }
 
 export interface NpcMateTemplate {

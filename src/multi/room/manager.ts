@@ -79,6 +79,7 @@ export function createRoom(
         mates: [],
         share_room_options: 0,
         is_npc_mode: isNpcMode,
+        npc_count: 0,
     };
     rooms.set(roomNumber, room);
     console.log(`[MULTI] room created: ${roomNumber} host=${hostViewerId} category=${category} quest=${questId}`);
