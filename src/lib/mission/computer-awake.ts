@@ -21,6 +21,7 @@ interface QuestClearTarget {
 
 const QUEST_CLEAR_MAP: Map<number, QuestClearTarget> = new Map([
     [1110013, { category: 2, questIds: [1028004] }],
+    [1310052, { category: 15, questIds: [96] }],                               // 结实假人·水
     [1410032, { category: 2, questIds: [1020003] }],
     [2110013, { category: 2, questIds: [1028004] }],
     [2510032, { category: 13, questIds: [1020, 1023, 1026, 1029, 1032, 1035, 1038] }],
