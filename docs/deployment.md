@@ -288,28 +288,37 @@ tail -20 /tmp/cn-server.log | grep -E "CN StarPoint|SEED|TCP|listen"
 
 ---
 
-## 11. 联机 TCP（可选）
+## 11. 联机 TCP（默认启用）
 
 联机战斗需要客户端直连 TCP 端口 8003。
 
-### 开放端口
+### `.env` 配置
 
 ```bash
-# 公网开放 8003 端口（已在第 7 步防火墙配置中）
+SESSION_HOST="0.0.0.0"               # TCP 公网监听（.env.example 已默认）
+SESSION_PUBLIC_HOST="<YOUR_DOMAIN>"   # 客户端连接的公网地址
+```
+
+### 防火墙
+
+```bash
+# 已在第 7 步配置
 sudo iptables -A INPUT -p tcp --dport 8003 -j ACCEPT
 ```
 
-### 配置 `.env`
+### 如需关闭联机
 
 ```bash
-SESSION_PUBLIC_HOST="<YOUR_DOMAIN>"   # 或服务器公网 IP
+# 防火墙阻止 8003 + .env 改为 SESSION_HOST="127.0.0.1"
+sudo iptables -D INPUT -p tcp --dport 8003 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 8003 -s 127.0.0.1 -j ACCEPT
+sudo iptables -A INPUT -p tcp --dport 8003 -j DROP
 ```
 
-### 安全检查
+### 安全
 
-- TCP 联机为**明文传输**，无 TLS 加密
-- 如果不需要联机功能，在防火墙中 DROP 8003 端口即可
-- 未来可通过 nginx stream 模块添加 TCP TLS 层
+- TCP 联机为**明文传输**，无 TLS 加密。未来可通过 nginx stream 模块添加 TLS 层
+- 服务端已内置连接管理和房间过期清理，无需额外配置
 
 ---
 
@@ -333,6 +342,6 @@ SESSION_PUBLIC_HOST="<YOUR_DOMAIN>"   # 或服务器公网 IP
 | 项目 | 风险 | 缓解 |
 |------|------|------|
 | Web 管理面板无应用层认证 | 内网用户可操作 | nginx `allow` IP + `auth_basic` |
-| TCP 联机无 TLS | 明文传输 | 可加 nginx stream TLS 层 |
+| TCP 联机无 TLS | 明文传输 | 可加 nginx stream TLS；已有连接数管理和房间过期 |
 | 支付端点无真实验证 | 本地支付绕过 | 设计如此（自建服），不对外 |
 | 日志不脱敏 | 可能记录设备 ID | crash 截断至 2000 字符 |
