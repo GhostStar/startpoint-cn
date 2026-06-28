@@ -607,3 +607,19 @@ export interface ConfigValues {
     newbie_rank: number
     newbie_days: number
 }
+
+// ─── Equipment dissolve CDN data ───────────────────────────────────────
+
+export interface EquipmentDissolveEntry {
+    ability_soul_id: number
+    obtain_source: number
+    generate_ability_soul: boolean
+}
+
+// ─── Item sale CDN data ─────────────────────────────────────────────────
+
+export interface ItemSaleEntry {
+    category: number
+    sale_price: number
+    sellable: boolean
+}

@@ -144,3 +144,20 @@ export function updatePlayerPartyGroupSync(
     WHERE id = ? AND player_id = ? AND category = ?
     `).run(colorId, groupId, playerId, category)
 }
+
+/**
+ * Count how many parties currently have the given ability soul equipped.
+ * Used by /item/sell to prevent selling souls that are in use.
+ */
+export function countAbilitySoulUsedInPartiesSync(
+    playerId: number,
+    abilitySoulId: number
+): number {
+    const db = getDb()
+    const row = db.prepare(`
+    SELECT COUNT(*) AS cnt FROM players_parties
+    WHERE player_id = ?
+    AND (ability_soul_1 = ? OR ability_soul_2 = ? OR ability_soul_3 = ?)
+    `).get(playerId, abilitySoulId, abilitySoulId, abilitySoulId) as { cnt: number } | undefined
+    return row?.cnt ?? 0
+}

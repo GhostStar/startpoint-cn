@@ -22,7 +22,7 @@ export { getPlayerPeriodicRewardPointsSync, insertPlayerPeriodicRewardPointsList
 import { insertPlayerPeriodicRewardPointsListSync, insertPlayerStartDashExchangeCampaignsSync, insertPlayerMultiSpecialExchangeCampaignsSync } from "./domains/campaign";
 export { getPlayerEquipmentListSync, getPlayerEquipmentSync, playerOwnsEquipmentSync, insertPlayerEquipmentSync, insertPlayerEquipmentListSync, updatePlayerEquipmentSync, deletePlayerEquipmentSync } from "./domains/equipment";
 import { insertPlayerEquipmentListSync } from "./domains/equipment";
-export { getPlayerPartyGroupListSync, insertPlayerPartyGroupListSync, updatePlayerPartySync, updatePlayerPartyGroupSync } from "./domains/party";
+export { getPlayerPartyGroupListSync, insertPlayerPartyGroupListSync, updatePlayerPartySync, updatePlayerPartyGroupSync, countAbilitySoulUsedInPartiesSync } from "./domains/party";
 import { insertPlayerPartyGroupListSync } from "./domains/party";
 export { playerOwnsCharacterSync, getPlayerCharacterSync, getPlayerCharactersSync, updatePlayerCharacterBondTokenSync, insertPlayerCharacterBondTokenSync, insertPlayerCharacterSync, insertDefaultPlayerCharacterSync, updatePlayerCharacterSync, getPlayerCharactersManaNodesSync, getPlayerCharacterManaNodesSync, hasPlayerUnlockedCharacterManaNodeSync, insertPlayerCharacterManaNodesSync, insertPlayerCharactersSync, insertPlayerCharactersManaNodesSync } from "./domains/character";
 import { insertPlayerCharactersSync, insertPlayerCharactersManaNodesSync } from "./domains/character";

@@ -13,8 +13,6 @@ export function clientSerializeEquipment(
     toSerialize: PlayerEquipment
 ): Object {
     return {
-        "null": 1,
-        "viewer_id": 0,
         "equipment_id": equipmentId,
         "protection": toSerialize.protection,
         "level": toSerialize.level,

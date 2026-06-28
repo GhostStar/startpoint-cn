@@ -4,6 +4,7 @@ import { getPlayerItemSync, getPlayerSync, getSession, updatePlayerItemSync, upd
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { getConfigSync } from "../../lib/assets";
 import { generateDataHeaders, getServerTime } from "../../utils";
+import { sellItemSync } from "../../lib/item-sell";
 import itemData from "../../../assets/item_data.json";
 
 interface ItemEffectInfo {
@@ -148,6 +149,47 @@ const routes = async (fastify: FastifyInstance) => {
                     "stamina_heal_time": getServerTime()
                 },
                 "item_list": itemListMap
+            }
+        })
+    })
+
+    // ── sell (sell items/ability souls for mana) ────────────────────────
+    fastify.post("/sell", async (request: FastifyRequest, reply: FastifyReply) => {
+        const body = request.body as {
+            viewer_id: number
+            api_count: number
+            item_id: number
+            sell_number: number
+        }
+
+        const viewerId = body.viewer_id
+        const itemId = body.item_id
+        const sellNumber = body.sell_number
+        if (!viewerId || isNaN(viewerId) || !itemId || isNaN(itemId) || !sellNumber || isNaN(sellNumber)) {
+            return reply.status(400).send({ "error": "Bad Request", "message": "Invalid request body." })
+        }
+
+        const session = await getSession(viewerId.toString())
+        if (!session) return reply.status(400).send({ "error": "Bad Request", "message": "Invalid viewer id." })
+
+        const playerId = resolvePlayerIdSync(session.accountId)!
+        if (!playerId) return reply.status(500).send({ "error": "Internal Server Error", "message": "No player bound to account." })
+
+        const result = sellItemSync(playerId, itemId, sellNumber)
+        if (!result.ok) {
+            const code = 'errorCode' in result ? result.errorCode : undefined
+            return reply.status(400).send({ "error": "Bad Request", "code": code, "message": result.error })
+        }
+
+        console.log(`[ITEM_SELL] player ${playerId}: item ${itemId} ×${sellNumber} sold, mana +${result.manaGained} (${result.freeMana - result.manaGained} -> ${result.freeMana})`)
+
+        reply.header("content-type", "application/x-msgpack")
+        return reply.status(200).send({
+            "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+            "data": {
+                "item_list": { [itemId]: result.newCount },
+                "user_info": { "free_mana": result.freeMana },
+                "mail_arrived": false
             }
         })
     })
