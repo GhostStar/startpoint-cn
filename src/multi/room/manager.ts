@@ -7,27 +7,38 @@ const rooms = new Map<string, MultiRoom>();
 
 let roomSequence = 1;
 
-const ROOM_EXPIRY_MS = parseInt(process.env.MULTI_ROOM_EXPIRY_MS || "600000");
-const BATTLE_ROOM_EXPIRY_MS = parseInt(process.env.MULTI_BATTLE_ROOM_EXPIRY_MS || "600000");
+const INCOMPLETE_EXPIRY_MS = parseInt(process.env.MULTI_ROOM_INCOMPLETE_EXPIRY_MS || "900000"); // 15min, mates < 3
+const FULL_ROOM_EXPIRY_MS = parseInt(process.env.MULTI_ROOM_FULL_EXPIRY_MS || "1800000"); // 30min, mates >= 3
 const CLEAN_INTERVAL_MS = parseInt(process.env.MULTI_ROOM_CLEAN_INTERVAL_MS || "60000");
+const REMAINING_NOTIFY_MS = 30000; // send RemainingTime float 30s before disband
+
+// Track which rooms have already been notified (to avoid repeat floats)
+const notifiedRooms = new Set<string>();
 
 function cleanExpiredRooms() {
     const now = Date.now();
     const timeOffset = now - getServerTime() * 1000;
     let cleaned = 0;
     for (const [roomNumber, room] of rooms) {
+        // Battle rooms — rely on removeClient auto-disband, no timer
+        if (room.raising_state === 4) continue;
+
         const idleAge = now - (room.host_entry_time * 1000 + timeOffset);
-        if (idleAge > ROOM_EXPIRY_MS && room.raising_state <= 3) {
-            rooms.delete(roomNumber);
-            cleaned++;
-            continue;
+        const timeout = room.mates.length < 3 ? INCOMPLETE_EXPIRY_MS : FULL_ROOM_EXPIRY_MS;
+        const remaining = timeout - idleAge;
+
+        // Send RemainingTime float 30s before expiry
+        if (remaining > 0 && remaining <= REMAINING_NOTIFY_MS && !notifiedRooms.has(roomNumber)) {
+            sessionManager.broadcastToRoom(roomNumber, [1, [7, Math.ceil(remaining / 1000)]])
+            notifiedRooms.add(roomNumber)
+            console.log(`[MULTI] RemainingTime sent: room=${roomNumber} seconds=${Math.ceil(remaining / 1000)}`)
         }
-        if (room.raising_state === 4) {
-            const hostEntryAge = now - (room.host_entry_time * 1000 + timeOffset);
-            if (hostEntryAge > BATTLE_ROOM_EXPIRY_MS) {
-                rooms.delete(roomNumber);
-                cleaned++;
-            }
+
+        if (idleAge > timeout) {
+            rooms.delete(roomNumber);
+            sessionManager.removeRoomState(roomNumber);
+            notifiedRooms.delete(roomNumber);
+            cleaned++;
         }
     }
     if (cleaned > 0) console.log(`[MULTI] expired rooms cleaned: ${cleaned}`);
