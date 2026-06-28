@@ -10,6 +10,16 @@ import { getRankDegree } from "../../lib/stamina";
 // Category 9 type_3 missions that require checking if ALL bond tokens are claimed
 const BOND_TOKEN_MISSION_IDS = new Set([1410033, 2210043, 2510043, 2610073])
 
+// Category 9 quest-clear missions: mission_id → { category, questId(s) }
+// Check if ANY of the listed quests have been finished
+const QUEST_CLEAR_MISSIONS: Record<number, { category: number, questIds: number[] }> = {
+    1110013: { category: 2, questIds: [1028004] },                          // 伊尔格拉乌 超级
+    1410032: { category: 2, questIds: [1020003] },                          // 八岐大蛇 (最高难度)
+    2110013: { category: 2, questIds: [1028004] },                          // 伊尔格拉乌 超级
+    2510032: { category: 13, questIds: [1020, 1023, 1026, 1029, 1032, 1035, 1038] }, // 临境域 深渊之兽 (多周期)
+    2630023: { category: 19, questIds: [100100004, 100401004] },            // 女王拉芙 超级+
+}
+
 interface GetMissionProgressBody {
     api_count: number,
     viewer_id: number,
@@ -75,6 +85,14 @@ function computeProgress(category: number, missionId: number, ctx: ComputeContex
         const clears = getPlayerCharacterClearSync(ctx.player.id, Number(charId))
         const storyQuestIds = getCharacterStoryQuestIds(charId)
         const lastDigit = missionId % 10
+
+        // Quest-clear missions (specific dungeon/boss clears)
+        const questMapping = QUEST_CLEAR_MISSIONS[missionId]
+        if (questMapping) {
+            const progress = ctx.questProgress[String(questMapping.category)]
+            if (!progress) return 0
+            return progress.some(q => questMapping.questIds.includes(q.questId) && q.finished) ? 1 : 0
+        }
 
         if (lastDigit === 1) {
             // Story reading OR party member clears (14 simple chars have no story quests)
