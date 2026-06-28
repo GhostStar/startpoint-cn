@@ -54,11 +54,32 @@ import { startSessionServer } from "./multi";
 const fastify = Fastify({
     logger: {
         level: "info"
-    }
+    },
+    bodyLimit: 65536  // 64KB — crash/debug endpoints don't need large bodies
 });
 
 // Restore saved time offset from active player on startup
 restoreTimeOffset();
+
+// Simple in-memory rate limiter for diagnostic endpoints (/crash, /debug)
+const rateLimitMap = new Map<string, { count: number; reset: number }>();
+const RATE_LIMIT_MAX = 30;   // max requests per window
+const RATE_LIMIT_WINDOW = 60000; // 60 seconds window
+fastify.addHook("onRequest", async (request, reply) => {
+    const url = request.url;
+    if (url === "/crash" || url.startsWith("/debug")) {
+        // Use x-forwarded-for if behind proxy, otherwise request.ip
+        const ip = (request.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim()
+            || request.ip;
+        const now = Date.now();
+        const entry = rateLimitMap.get(ip) || { count: 0, reset: now + RATE_LIMIT_WINDOW };
+        if (now > entry.reset) { entry.count = 0; entry.reset = now + RATE_LIMIT_WINDOW; }
+        if (++entry.count > RATE_LIMIT_MAX) {
+            return reply.status(429).send("Too Many Requests");
+        }
+        rateLimitMap.set(ip, entry);
+    }
+});
 
 /**
  * Walk a MsgPack buffer in a single pass. Replaces uint32 tags (0xCE) with
@@ -508,7 +529,7 @@ fastify.setNotFoundHandler((request, reply) => {
     reply.status(404).send({ error: "Not Found" });
 });
 
-const host = process.env.CN_LISTEN_HOST ?? "0.0.0.0";
+const host = process.env.CN_LISTEN_HOST ?? "127.0.0.1";
 const port = parseInt(process.env.CN_LISTEN_PORT ?? "8001");
 
 fastify.listen({ port, host }, (err, address) => {

@@ -17,6 +17,11 @@ const routes = async (fastify: FastifyInstance) => {
             "error": "Bad Request", "message": "Invalid request body."
         });
 
+        const session = await getSession(viewerId.toString())
+        if (!session) return reply.status(400).send({
+            "error": "Bad Request", "message": "Invalid viewer id."
+        })
+
         reply.header("content-type", "application/x-msgpack");
         return reply.status(200).send({
             "data_headers": generateDataHeaders({ viewer_id: viewerId }),

@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { generateDataHeaders } from "../../utils";
+import { generateDataHeaders, generateViewerId } from "../../utils";
 import { insertAccountSync, getAccountSync, insertDefaultPlayerSync, getPlayerSync, insertSessionWithToken, updateAccountSync, deleteSession, getDeviceBindingSync, insertDeviceBindingSync, deleteDeviceBindingSync } from "../../data/wdfpData";
 import { SessionType } from "../../data/types";
 import { saveAccountDefaultPlayer } from "../../data/activeAccount";
@@ -100,19 +100,20 @@ const routes = async (fastify: FastifyInstance) => {
             insertDeviceBindingSync(deviceId, accountId)
         }
 
+        const viewerId = generateViewerId()
         await insertSessionWithToken({
-            token: String(accountId),
+            token: String(viewerId),
             accountId: accountId,
             type: SessionType.VIEWER,
             expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
         });
 
-        viewerIdToAccountId.set(accountId, accountId);
+        viewerIdToAccountId.set(viewerId, accountId);
 
         reply.header("content-type", "application/x-msgpack");
         reply.status(200).send({
             data_headers: generateDataHeaders({
-                viewer_id: accountId,
+                viewer_id: viewerId,
                 short_udid: shortUdid,
                 udid: udid,
             }),
