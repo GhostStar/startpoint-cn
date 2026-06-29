@@ -184,7 +184,8 @@ async function handleEnterComs(client: SessionClient, coms: { name: string }[]):
     console.log(`[LOBBY] EnterComs: room=${client.roomNumber} real=${realMates.length} npc=${npcMates.length} total=${client.mates.length}`)
 
     setTimeout(() => {
-        sessionManager.broadcastToRoom(client.roomNumber, [1, [1, client.mates]])
+        // Send Mates only to triggering client — others get theirs via handleEnter
+        sessionManager.sendJson(client.socket, [1, [1, client.mates]])
     }, NPC_JOIN_DELAY_MS)
 
     setTimeout(() => {
