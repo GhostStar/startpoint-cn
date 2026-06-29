@@ -7,7 +7,7 @@ import {
     getSession, givePlayerItemSync, updatePlayerEquipmentSync
 } from "../../data/wdfpData";
 import { generateDataHeaders } from "../../utils";
-import { clientSerializeEquipment } from "../../lib/equipment";
+import { clientSerializeEquipment, buildFullEquipmentList } from "../../lib/equipment";
 import { calculateDissolveRewards } from "../../lib/equipment-dissolve";
 import { asAccountId, asPlayerId, AccountId, PlayerId } from "../../lib/types";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
@@ -92,11 +92,7 @@ const routes = async (fastify: FastifyInstance) => {
             returnItemList[parseInt(soulId)] = givePlayerItemSync(playerId, parseInt(soulId), count)
         }
 
-        const allEquipment = getPlayerEquipmentListSync(playerId)
-        const returnEquipmentList: Object[] = []
-        for (const [equipId, equip] of Object.entries(allEquipment)) {
-            returnEquipmentList.push(clientSerializeEquipment(parseInt(equipId), equip))
-        }
+        const returnEquipmentList = buildFullEquipmentList(playerId)
 
         const craftLog = totalCraftPoints > 0 ? `craft +${totalCraftPoints} ` : ""
         const starLog = totalStarGrains > 0 ? `star +${totalStarGrains} ` : ""
@@ -171,11 +167,7 @@ const routes = async (fastify: FastifyInstance) => {
             returnItemList[parseInt(soulId)] = givePlayerItemSync(playerId, parseInt(soulId), count)
         }
 
-        const allEquipment = getPlayerEquipmentListSync(playerId)
-        const returnEquipmentList: Object[] = []
-        for (const [equipId, equip] of Object.entries(allEquipment)) {
-            returnEquipmentList.push(clientSerializeEquipment(parseInt(equipId), equip))
-        }
+        const returnEquipmentList = buildFullEquipmentList(playerId)
 
         const soulTypes = Object.keys(totalAbilitySouls).length
         const soulDetail = Object.entries(totalAbilitySouls).map(([id, c]) => `${id}×${c}`).join(' ')
@@ -260,11 +252,7 @@ const routes = async (fastify: FastifyInstance) => {
             returnItemList[parseInt(soulId)] = givePlayerItemSync(playerId, parseInt(soulId), count)
         }
 
-        const allEquipment = getPlayerEquipmentListSync(playerId)
-        const returnEquipmentList: Object[] = []
-        for (const [equipId, equip] of Object.entries(allEquipment)) {
-            returnEquipmentList.push(clientSerializeEquipment(parseInt(equipId), equip))
-        }
+        const returnEquipmentList = buildFullEquipmentList(playerId)
 
         const craftLog = totalCraftPoints > 0 ? `craft +${totalCraftPoints} ` : ""
         const starLog = totalStarGrains > 0 ? `star +${totalStarGrains} ` : ""

@@ -8,7 +8,7 @@ import {
     updatePlayerItemSync
 } from "../../data/wdfpData";
 import { generateDataHeaders } from "../../utils";
-import { clientSerializeEquipment } from "../../lib/equipment";
+import { clientSerializeEquipment, buildFullEquipmentList } from "../../lib/equipment";
 import { getEquipmentDissolveSync } from "../../lib/assets";
 import { AccountId, PlayerId } from "../../lib/types";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
@@ -58,7 +58,8 @@ const routes = async (fastify: FastifyInstance) => {
         const session = await getSession(viewerId.toString())
         if (!session) return reply.status(400).send({ "error": "Bad Request", "message": "Invalid viewer id." })
 
-        const playerId = resolvePlayerIdSync(session.accountId)!
+        const accountId = session.accountId as AccountId
+        const playerId = resolvePlayerIdSync(accountId)! as PlayerId
         if (playerId === null) return reply.status(500).send({ "error": "Internal Server Error", "message": "No players bound to account." })
 
         const equipment = getPlayerEquipmentSync(playerId, equipmentId)
@@ -100,11 +101,15 @@ const routes = async (fastify: FastifyInstance) => {
             returnItemList[dissolveInfo.ability_soul_id] = givePlayerItemSync(playerId, dissolveInfo.ability_soul_id, upgradeCount)
         }
 
+        const returnEquipmentList = buildFullEquipmentList(playerId)
+
+        console.log(`[UPGRADE] account=${accountId} player=${playerId}: eid=${equipmentId} rarity=${equipmentRarity+1} level ${equipment.level-upgradeCount}->${equipment.level} stack ${equipment.stack+upgradeCount}->${equipment.stack} craft -${upgradeCost*upgradeCount}`)
+
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
             "data_headers": generateDataHeaders({ viewer_id: viewerId }),
             "data": {
-                "equipment_list": [clientSerializeEquipment(equipmentId, equipment)],
+                "equipment_list": returnEquipmentList,
                 "item_list": returnItemList,
                 "mail_arrived": false
             }
@@ -162,7 +167,6 @@ const routes = async (fastify: FastifyInstance) => {
             return reply.status(400).send({ "error": "Bad Request", "message": "Not enough craft points." })
         }
 
-        const returnEquipmentList: Object[] = []
         const returnItemList: Record<number, number> = {}
 
         for (const { equipmentId, upgradeCount } of upgrades) {
@@ -170,7 +174,6 @@ const routes = async (fastify: FastifyInstance) => {
             equipment.level += upgradeCount
             equipment.stack -= upgradeCount
             updatePlayerEquipmentSync(playerId, equipmentId, { level: equipment.level, stack: equipment.stack })
-            returnEquipmentList.push(clientSerializeEquipment(equipmentId, equipment))
             const dissolveInfo = getEquipmentDissolveSync(equipmentId)
             if (dissolveInfo && dissolveInfo.generate_ability_soul) {
                 returnItemList[dissolveInfo.ability_soul_id] = givePlayerItemSync(playerId, dissolveInfo.ability_soul_id, upgradeCount)
@@ -182,6 +185,8 @@ const routes = async (fastify: FastifyInstance) => {
         returnItemList[wrightpieceItemId] = newCraftPoints
 
         console.log(`[BULK_UPGRADE] account=${accountId} player=${playerId}: ${upgrades.length} equipment upgraded, craft points ${currentCraftPoints} -> ${newCraftPoints}`)
+
+        const returnEquipmentList = buildFullEquipmentList(playerId)
 
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
