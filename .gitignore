@@ -5,7 +5,6 @@ mitm_redirect
 scripts/in
 .cdn
 .misc
-web/public/tailwind.css
 scripts/__pycache__
 dist
 build
