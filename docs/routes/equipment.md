@@ -8,15 +8,19 @@ src/routes/api/
 ├── sell.ts               # 分解/出售 (sell_equipment, sell_stack, bulk_sell_stack)
 
 src/lib/
-├── equipment.ts          # clientSerializeEquipment, givePlayerEquipmentSync
+├── equipment.ts          # clientSerializeEquipment, buildFullEquipmentList
 ├── equipment-dissolve.ts # calculateDissolveRewards() — 统一溶解奖励计算
+├── validate/             # 存档校验系统（/load 时自动净化）
+│   ├── index.ts          # runPermanentValidators() + 注册表
+│   ├── types.ts          # SaveValidator + TemporalFilter 接口
+│   └── max-level.ts      # 装备觉醒等级净化（level > CDN max_level → clamp）
 
 src/data/domains/
 ├── equipment.ts          # DB CRUD (insert, update, delete, get)
 ├── party.ts              # countAbilitySoulUsedInPartiesSync() — 队伍魂珠引用统计
 
 assets/
-├── equipment_dissolve.json   # CDN提取：ability_soul_id, obtain_source, generate_ability_soul
+├── equipment_dissolve.json   # CDN提取：ability_soul_id, obtain_source, generate_ability_soul, max_level
 ├── item_sale.json            # CDN提取：sale_price, sellable, category
 ```
 
@@ -151,6 +155,23 @@ assets/
 
 实现：`src/lib/item-sell.ts` → `sellItemSync()`
 
+## 存档校验（Save Validator）
+
+`/load` 时自动运行永久净化器，修复非法数据：
+
+```
+/load → runPermanentValidators(playerId)
+  └── MaxLevelValidator: level > CDN.max_level → UPDATE level = max_level
+```
+
+| 验证器 | 类型 | 说明 |
+|--------|:---:|------|
+| `max-level` | 永久 | 装备 `level > CDN max_level` 自动回退 |
+| (预留) 编队引用 | 永久 | `character/equipment/ability_soul` 不存在时置 null |
+| (预留) EX 净化 | 暂时 | 未到开放时间的 EX 过滤输出（不改 DB） |
+
+**永久净化**写 DB，不可恢复。**暂时净化**（`TemporalFilter`）只过滤输出，时间到自动恢复。
+
 ## 相关文件
 
 | 文件 | 说明 |
@@ -159,9 +180,10 @@ assets/
 | `src/routes/api/sell.ts` | 分解/出售 |
 | `src/routes/api/item.ts` | `/item/sell` 魂珠出售 |
 | `src/lib/equipment.ts` | `buildFullEquipmentList()` 全量装备列表 |
-| `src/lib/equipment-dissolve.ts` | 溶解奖励计算 |
+| `src/lib/equipment-dissolve.ts` | 溶解奖励计算 + CDN 校验 |
 | `src/lib/item-sell.ts` | 魂珠出售逻辑 |
+| `src/lib/validate/` | 存档校验系统（/load 自动净化） |
 | `scripts/gen_cdn_data.ts` | CDN 数据提取 |
-| `assets/equipment_dissolve.json` | 装备溶解 CDN 数据 |
+| `assets/equipment_dissolve.json` | 装备溶解 CDN 数据（含 max_level） |
 | `assets/item_sale.json` | 道具售价 CDN 数据 |
 | `assets/equipment_craft.json` | 锻造/溶解/觉醒常量（按稀有度） |
