@@ -32,7 +32,7 @@ function findHostClient(roomNumber: string): SessionClient | undefined {
 }
 
 function countRealPlayers(mates: any[]): number {
-    return mates.filter(m => (m.viewerId ?? 0) < 900000000).length
+    return mates.filter(m => !m.comId).length  // real player has no comId
 }
 
 export function checkHostAutoReady(roomNumber: string): void {
@@ -107,7 +107,7 @@ async function handleEnterComs(client: SessionClient, coms: { name: string }[]):
         }
     }
 
-    const realMates = client.mates.filter(m => (m.viewerId ?? 0) < 900000000)
+    const realMates = client.mates.filter(m => !m.comId)
 
     // Determine NPC count: first recruit → calculate and store; rematch → restore fixed count
     let needNPCs: number
@@ -254,7 +254,7 @@ function handleEnter(_socket: net.Socket, client: SessionClient, data: any[]): v
         if (hostClient && client.yourself) {
             hostClient.mates.push(client.yourself)
             while (hostClient.mates.length > 3) {
-                const npcIdx = hostClient.mates.findIndex(m => (m.viewerId ?? 0) >= 900000000)
+                const npcIdx = hostClient.mates.findIndex(m => !!m.comId)
                 if (npcIdx >= 0) hostClient.mates.splice(npcIdx, 1)
                 else break
             }
