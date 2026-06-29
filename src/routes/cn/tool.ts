@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { generateDataHeaders, generateViewerId } from "../../utils";
-import { insertAccountSync, getAccountSync, insertDefaultPlayerSync, getPlayerSync, insertSessionWithToken, updateAccountSync, deleteSession, getDeviceBindingSync, insertDeviceBindingSync, deleteDeviceBindingSync } from "../../data/wdfpData";
+import { insertAccountSync, getAccountSync, insertDefaultPlayerSync, getPlayerSync, insertSessionWithToken, updateAccountSync, deleteSession, deleteSessionSync, getDeviceBindingSync, insertDeviceBindingSync, deleteDeviceBindingSync, getSessionByAccountIdSync } from "../../data/wdfpData";
 import { SessionType } from "../../data/types";
 import { saveAccountDefaultPlayer } from "../../data/activeAccount";
 
@@ -77,7 +77,11 @@ const routes = async (fastify: FastifyInstance) => {
                 accountId = binding.account_id
                 newAccount = false
                 updateAccountSync({ id: accountId, lastLoginTime: new Date() })
-                try { deleteSession(String(accountId)) } catch (_) {}
+                // Reuse existing viewer_id if session exists for this account
+                const existingSession = getSessionByAccountIdSync(accountId, SessionType.VIEWER)
+                if (existingSession) {
+                    deleteSessionSync(existingSession.token)
+                }
             } else {
                 // Account was deleted — clean up stale binding and create new account
                 deleteDeviceBindingSync(deviceId)
@@ -100,7 +104,9 @@ const routes = async (fastify: FastifyInstance) => {
             insertDeviceBindingSync(deviceId, accountId)
         }
 
-        const viewerId = generateViewerId()
+        const viewerId = getSessionByAccountIdSync(accountId, SessionType.VIEWER)?.token
+            ? parseInt(getSessionByAccountIdSync(accountId, SessionType.VIEWER)!.token)
+            : generateViewerId()
         await insertSessionWithToken({
             token: String(viewerId),
             accountId: accountId,

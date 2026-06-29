@@ -113,6 +113,9 @@ export default function init(
         FOREIGN KEY (account_id) REFERENCES accounts (id) ON DELETE CASCADE
     )`).run();
 
+    // migration: device_bindings.name for admin panel identification
+    try { database.prepare(`ALTER TABLE device_bindings ADD COLUMN name TEXT DEFAULT NULL`).run(); } catch { /* column already exists */ }
+
     database.prepare(`CREATE TABLE IF NOT EXISTS players_options (
         key TEXT NOT NULL,
         value INTEGER NOT NULL,

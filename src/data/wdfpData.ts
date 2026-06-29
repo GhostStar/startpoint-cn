@@ -8,7 +8,7 @@ import { getPlayerRushEventEndlessBattleRankingSync } from "../lib/rush";
 // Re-exports from domain modules
 export { getAccountFromIdpIdSync, getAccount, getAllAccountsSync, deleteAccountSync, getAccountPlayersSync, getAccountPlayers, insertAccount, updateAccountSync, updateAccount, getAccountSync, insertAccountSync } from "./domains/account";
 // Session + DeviceBinding
-export { getSession, getViewerIdSync, getDeviceBindingSync, insertDeviceBindingSync, deleteDeviceBindingSync, getAccountSessionsOfType, insertSessionWithToken, insertSession, deleteSession, deleteAccountSessions, deleteAccountSessionsOfType, generateViewerIdSession } from "./domains/session";
+export { getSession, getViewerIdSync, getDeviceBindingSync, getAllDeviceBindingsSync, insertDeviceBindingSync, updateDeviceBindingNameSync, deleteDeviceBindingSync, getAccountSessionsOfType, insertSessionWithToken, insertSession, deleteSession, deleteSessionSync, deleteAccountSessions, deleteAccountSessionsOfType, generateViewerIdSession, getSessionByAccountIdSync } from "./domains/session";
 // DCPL + Player CRUD
 export { getPlayerSync, getAllPlayersSync, insertPlayerSync, insertMergedPlayerDataSync, insertDefaultPlayerSync, updatePlayerSync, replacePlayerDataSync, deletePlayerSync, collectPlayerDataPooledExpSync, collectPlayerPooledExpSync, dailyResetPlayerDataSync, dailyResetPlayerSync, getPlayerDailyChallengePointListSync, insertPlayerDailyChallengePointListSync, updatePlayerDailyChallengePointSync, getDefaultPlayerPartyGroupsSync, getPlayerFromAccountIdSync, getAccountFromPlayerIdSync } from "./domains/player";
 import { insertDefaultPlayerSync, insertPlayerDailyChallengePointListSync } from "./domains/player";

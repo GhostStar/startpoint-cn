@@ -3,6 +3,7 @@ import { getServerTime, getServerDate, setServerTime, getTimeOffset } from "../.
 import { getAllAccountsSync, getAccountPlayersSync, getPlayerSync, getPlayerCharactersSync, deletePlayerSync, deleteAccountSync, updatePlayerSync, insertDefaultPlayerSync, replacePlayerDataSync } from "../../data/wdfpData";
 import { getClientSerializedData, deserializePlayerData } from "../../data/utils";
 import { getActivePlayerId, setActivePlayerId, getSelectedAccountId, setSelectedAccountId, saveTimeOffset, saveAccountDefaultPlayer } from "../../data/activeAccount";
+import { updateDeviceBindingNameSync, getAllDeviceBindingsSync } from "../../data/wdfpData";
 
 interface TimeQuery {
     time: string | undefined
@@ -191,6 +192,16 @@ const routes = async (fastify: FastifyInstance) => {
         replacePlayerDataSync(mergedData)
 
         saveAccountDefaultPlayer(accountId, newPlayer.id)
+        return reply.redirect('/player')
+    })
+
+    // Device binding rename
+    fastify.post("/device/rename", async (request: FastifyRequest, reply: FastifyReply) => {
+        const body = request.body as { device_id: number; name: string }
+        const deviceId = body.device_id
+        if (!deviceId) return reply.status(400).send({ error: "Missing device_id" })
+
+        updateDeviceBindingNameSync(deviceId, body.name || null)
         return reply.redirect('/player')
     })
 }

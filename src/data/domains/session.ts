@@ -82,18 +82,37 @@ export function getViewerIdSync(accountId: number): number {
 /**
  * Device binding: maps device_id → account_id
  */
-export function getDeviceBindingSync(deviceId: number): { device_id: number, account_id: number } | null {
-    const row = getDb().prepare(`SELECT device_id, account_id FROM device_bindings WHERE device_id = ?`).get(deviceId) as any
+export function getDeviceBindingSync(deviceId: number): { device_id: number, account_id: number, name: string | null } | null {
+    const row = getDb().prepare(`SELECT device_id, account_id, name FROM device_bindings WHERE device_id = ?`).get(deviceId) as any
     return row ?? null
 }
 
-export function insertDeviceBindingSync(deviceId: number, accountId: number): void {
-    getDb().prepare(`INSERT OR REPLACE INTO device_bindings (device_id, account_id, last_seen) VALUES (?, ?, ?)`)
-        .run(deviceId, accountId, new Date().toISOString())
+export function insertDeviceBindingSync(deviceId: number, accountId: number, name?: string): void {
+    getDb().prepare(`INSERT OR REPLACE INTO device_bindings (device_id, account_id, last_seen, name) VALUES (?, ?, ?, ?)`)
+        .run(deviceId, accountId, new Date().toISOString(), name ?? null)
 }
 
 export function deleteDeviceBindingSync(deviceId: number): void {
     getDb().prepare(`DELETE FROM device_bindings WHERE device_id = ?`).run(deviceId)
+}
+
+/** Get all device bindings for admin panel */
+export function getAllDeviceBindingsSync(): { device_id: number, account_id: number, name: string | null }[] {
+    return getDb().prepare(`SELECT device_id, account_id, name FROM device_bindings`).all() as any[]
+}
+
+export function updateDeviceBindingNameSync(deviceId: number, name: string | null): void {
+    getDb().prepare(`UPDATE device_bindings SET name = ? WHERE device_id = ?`).run(name, deviceId)
+}
+
+/**
+ * Synchronously gets a session by account_id and type (for viewer_id reuse).
+ */
+export function getSessionByAccountIdSync(accountId: number, type: SessionType): Session | null {
+    const raw = getDb().prepare(`
+    SELECT token, account_id, expires, type FROM sessions WHERE account_id = ? AND type = ?
+    `).get(accountId, type) as RawSession | undefined
+    return raw ? buildSession(raw) : null
 }
 
 /**
@@ -214,7 +233,7 @@ export function insertSession(
  * 
  * @param token The token of the session to delete.
  */
-function deleteSessionSync(
+export function deleteSessionSync(
     token: string
 ) {
     getDb().prepare(`DELETE FROM sessions WHERE token = ?`).run(token)
