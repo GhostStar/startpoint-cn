@@ -65,8 +65,10 @@ const routes = async (fastify: FastifyInstance) => {
         const equipment = getPlayerEquipmentSync(playerId, equipmentId)
         if (!equipment) return reply.status(400).send({ "error": "Bad Request", "message": "Player does not own equipment." })
 
+        const cdnInfo = getEquipmentDissolveSync(equipmentId)
+        const maxLevel = cdnInfo?.max_level ?? 5
         const newLevel = equipment.level + upgradeCount
-        if (newLevel > 5) return reply.status(400).send({ "error": "Bad Request", "message": "Cannot upgrade weapon more than 4 times." })
+        if (newLevel > maxLevel) return reply.status(400).send({ "error": "Bad Request", "message": "Reached max awakening level." })
 
         const newStack = useStack ? equipment.stack - upgradeCount : equipment.stack
         if (newStack < 0) return reply.status(400).send({ "error": "Bad Request", "message": "Not enough stack." })
@@ -146,7 +148,8 @@ const routes = async (fastify: FastifyInstance) => {
             const equipment = getPlayerEquipmentSync(playerId, equipmentId)
             if (!equipment) continue
 
-            const upgradeCount = Math.min(5 - equipment.level, equipment.stack)
+            const maxLvl = getEquipmentDissolveSync(equipmentId)?.max_level ?? 5
+            const upgradeCount = Math.min(maxLvl - equipment.level, equipment.stack)
             if (upgradeCount <= 0) continue
 
             const rarity = Math.floor(equipmentId / 1000000) - 1

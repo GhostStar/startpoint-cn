@@ -4,6 +4,7 @@ import { getPlayerSync, dailyResetPlayerDataSync, collectPlayerDataPooledExpSync
 import { getClientSerializedData } from "../../data/utils";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { getDisplayHost } from "../../multi/room/serializer";
+import { runPermanentValidators } from "../../lib/validate";
 
 interface CnLoadBody {
     device_id: number;
@@ -103,6 +104,9 @@ const routes = async (fastify: FastifyInstance) => {
         const now = getServerDate();
         dailyResetPlayerDataSync(player, now);
         collectPlayerDataPooledExpSync(player, now);
+
+        // Run save validators (permanent fixes: max_level, etc.)
+        runPermanentValidators(playerId);
 
         // 若自定义时间与 lastLogin 不同步，强制对齐（防止客户端弹"日期变了"）
         if (now.toDateString() !== player.lastLoginTime.toDateString()) {

@@ -626,6 +626,7 @@ export interface EquipmentDissolveEntry {
     ability_soul_id: number
     obtain_source: number
     generate_ability_soul: boolean
+    max_level: number
 }
 
 // ─── Item sale CDN data ─────────────────────────────────────────────────

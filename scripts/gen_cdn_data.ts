@@ -46,6 +46,7 @@ function extractEquipmentDissolve() {
       ability_soul_id: parseInt(String(r[10] ?? id), 10),
       obtain_source: parseInt(String(r[15] ?? "0"), 10),
       generate_ability_soul: generateAbilitySoul,
+      max_level: parseInt(String(r[8] ?? "5"), 10),
     };
   }
 
