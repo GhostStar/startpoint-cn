@@ -16,18 +16,3 @@ def convert_rush_event_ranking_reward(obj):
             converted_groups[group_id] = rewards
         converted[event_id] = converted_groups
     return converted
-# def convert_mana_nodes_save_data(obj):
-#     converted = {}
-
-#     for character_id, levels in obj.items():
-#         nodes = []
-#         for _, level in levels.items():
-#             for _, node in level.items():
-#                 nodes.append(int(node[0]))
-#         converted[character_id] = nodes
-
-#     return {
-#         "user_character_mana_node_list": converted
-#     }
-
-

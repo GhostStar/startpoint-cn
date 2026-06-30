@@ -1,3 +1,4 @@
+import json
 import os
 
 def convert_gacha_rarities(path):

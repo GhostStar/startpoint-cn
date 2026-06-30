@@ -1,4 +1,6 @@
 import os
+import util
+from .rarities import convert_gacha_rarities
 
 def convert_gacha(obj):
     converted = {}
@@ -21,12 +23,9 @@ def convert_gacha(obj):
                     "discountCost": discount_single_cost,
                     "movieName": gacha_data[17],
                     "guaranteeMovieName": gacha_data[18],
-                    #"onceFreeMulti": True if gacha_data[20] == "true" else False,
-                    #"dailyFreeMulti": True if gacha_data[21] == "true" else False,
                     "startDate": gacha_data[29],
                     "endDate": gacha_data[30]
                 }
-                # get rarity files
                 converted_gacha["pool"] = {
                     "3": convert_gacha_rarities(os.path.join(util.FILE_INPUT, "gacha_odds", f"{gacha_data[14]}.json")),
                     "2": convert_gacha_rarities(os.path.join(util.FILE_INPUT, "gacha_odds", f"{gacha_data[15]}.json")),
@@ -44,25 +43,11 @@ def convert_gacha(obj):
                     "startDate": gacha_data[29],
                     "endDate": gacha_data[30]
                 }
-                # get rarity files
                 converted_gacha["pool"] = {
                     "3": convert_gacha_rarities(os.path.join(util.FILE_INPUT, "gacha_odds", f"{gacha_data[22]}.json")),
                     "2": convert_gacha_rarities(os.path.join(util.FILE_INPUT, "gacha_odds", f"{gacha_data[23]}.json")),
                     "1": convert_gacha_rarities(os.path.join(util.FILE_INPUT, "gacha_odds", f"{gacha_data[24]}.json")),
                 }
                 converted[gacha_id] = converted_gacha
-                pass
     
     return converted
-
-
-
-def convert_gacha_campaigns(obj):
-    campaign_map = {}
-    for campaign_id, data in obj.items():
-        campaign_id = int(campaign_id)
-        for gacha_id in data[5].split(","):
-            campaign_map[gacha_id] = campaign_id
-    return campaign_map
-
-

@@ -10,6 +10,3 @@ def convert_ex_ability(obj):
         converted[tier].append(int(ability_id))
     return converted
 
-box_total_counts = {}
-
-
