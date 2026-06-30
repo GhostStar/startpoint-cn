@@ -423,6 +423,11 @@ const routes = async (fastify: FastifyInstance) => {
             upsertFn: (pid, eid, fid, score, chars, unisons) => upsertPlayerCarnivalEventRecordSync(pid, eid, fid, score, chars, unisons),
         })
 
+        const itemList = {
+            ...(activeQuestData.entryItemId ? { [activeQuestData.entryItemId]: getPlayerItemSync(playerId, activeQuestData.entryItemId) ?? 0 } : {}),
+            ...scoreRewardsResult.items,
+            ...(rushEventRewardsResult?.items ?? {})
+        }
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
             "data_headers": dataHeaders,
@@ -476,11 +481,7 @@ const routes = async (fastify: FastifyInstance) => {
                 "start_time": dataHeaders['servertime'],
                 "is_multi": "single",
                 "quest_name": "",
-                "item_list": {
-                    ...(activeQuestData.entryItemId ? { [activeQuestData.entryItemId]: getPlayerItemSync(playerId, activeQuestData.entryItemId) ?? 0 } : {}),
-                    ...scoreRewardsResult.items,
-                    ...(rushEventRewardsResult?.items ?? {})
-                },
+                "item_list": itemList,
                 "rush_event": rushEventData,
                 "carnival_event": carnivalEventData,
                 "user_daily_challenge_point_list": dailyChallengePointList ?? [],

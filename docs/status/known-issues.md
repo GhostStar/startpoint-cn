@@ -150,6 +150,7 @@ CLOCK:checkClockState stateIdx=X avail=Y — 时钟状态检查
 | 日期弹框循环 | `stubMsgpackReply` 用 `getServerTime()` |
 | codeMap 转换存废 | 已改 identity 函数 |
 | 月卡 404 | stub 已加 |
+| 首页立绘 F1010/8703/8704 | `favorite_party_group_list` 从空数组/空值改为从 `user_party_group_list` 构建真实数据，字段名对齐 `fromPartyInfo`（`name→party_name`, `edited→party_edited`） |
 
 ## 新增功能
 
@@ -469,7 +470,7 @@ canManaBoard2Open(151165) = false (时间未到)
 
 ---
 
-**最后更新：2026-06-24**（详细变更见 [CHANGELOG.md](./CHANGELOG.md)）
+**最后更新：2026-07-01**（详细变更见 [CHANGELOG.md](./CHANGELOG.md)）
 
 ## 参考文档
 

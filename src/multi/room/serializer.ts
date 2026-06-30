@@ -36,6 +36,14 @@ export interface SerializedRoom {
     share_room_options: number;
     room_sequence: number;
     room_member_count: number;
+    // Fields required by the client's MultiBattleQuestGetRoomsRealRemote parser.
+    // establisher_character must be an Int (null crashes the client with ClientError 8700).
+    establisher_character: number;
+    establisher_character_evolution_img_level: number;
+    establisher_follow: number;
+    establisher_name: string;
+    is_pickup: boolean;
+    mates: number;
 }
 
 export interface SerializedRoomConnection {
@@ -53,6 +61,7 @@ export interface SerializedRoomConnection {
 }
 
 export function serializeRoom(room: MultiRoom): SerializedRoom {
+    const charId = Number(room.host_main_character_id) || 1;
     return {
         access_token: room.access_token,
         category_id: room.category,
@@ -68,6 +77,13 @@ export function serializeRoom(room: MultiRoom): SerializedRoom {
         share_room_options: room.share_room_options,
         room_sequence: room.room_sequence,
         room_member_count: room.mates.length,
+        // Required by client parser (see SerializedRoom).
+        establisher_character: charId,
+        establisher_character_evolution_img_level: 0,
+        establisher_follow: 1,
+        establisher_name: `Player${room.host_viewer_id}`,
+        is_pickup: false,
+        mates: room.mates.length,
     };
 }
 
