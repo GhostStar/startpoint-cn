@@ -1,64 +1,4 @@
-box_total_counts = {}
-
-def convert_box_rewards(obj):
-    converted = {}
-    for gacha_id, boxes in obj.items():
-        converted_gacha = {}
-        box_total_counts[str(gacha_id)] = {}
-        for box_id, box in boxes.items():
-            converted_box = {}
-            box_total_counts[str(gacha_id)][str(box_id)] = 0
-            for _, reward in box.items():
-                reward = reward[0]  # extract inner array
-                converted_reward = {
-                    "type": int(reward[2]),
-                    "count": int(reward[4]),
-                    "available": int(reward[5]),
-                    "tier": int(reward[6])
-                }
-                box_total_counts[str(gacha_id)][str(box_id)] += converted_reward["available"]
-                if reward[3] != "":
-                    converted_reward["id"] = int(reward[3])
-                
-                converted_box[reward[0]] = converted_reward
-            converted_gacha[box_id] = converted_box
-        converted[gacha_id] = converted_gacha
-    return converted
-
-
-def convert_box_gacha(obj):
-    converted = {}
-    for gacha_id, gacha in obj.items():
-        gacha = gacha[0]  # extract inner array
-        converted[gacha_id] = {
-            "itemId": int(gacha[2]),
-            "count": int(gacha[3]),
-            "availableCounts": box_total_counts.get(str(gacha_id), {})
-        }
-    return converted
-
-
-def convert_gacha_rarities(path):
-    converted = []
-    with open(path, "r") as file:
-        obj = json.load(file)
-        total_odds = 0
-        for rarity_entry in list(obj.values())[0].values():
-            odds = int(rarity_entry[2])
-            converted.append({
-                "id": int(rarity_entry[0]),
-                "rank": int(rarity_entry[1]),
-                "odds": odds,
-                "isRateUp": True if rarity_entry[3] == 'true' else False
-            })
-            total_odds += odds
-
-        # calculate rarities
-        for converted_rarity in converted:
-            converted_rarity["rarity"] = round((converted_rarity["odds"] / total_odds) * 1000, 2)
-
-    return converted
-
+import os
 
 def convert_gacha(obj):
     converted = {}
@@ -116,6 +56,7 @@ def convert_gacha(obj):
     return converted
 
 
+
 def convert_gacha_campaigns(obj):
     campaign_map = {}
     for campaign_id, data in obj.items():
@@ -123,4 +64,5 @@ def convert_gacha_campaigns(obj):
         for gacha_id in data[5].split(","):
             campaign_map[gacha_id] = campaign_id
     return campaign_map
+
 
