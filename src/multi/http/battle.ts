@@ -22,6 +22,11 @@ import { computeRealTimeStamina, getRankDegree, getMaxStamina } from "../../lib/
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { BattleQuest, EquipmentItemReward, PlayerRewardResult, QuestCategory } from "../../lib/types";
 import type { Player } from "../../data/types";
+import { trackCharacterClears } from "../../lib/quest/finish/character-clear-tracker";
+import { trackPowerflip } from "../../lib/quest/finish/powerflip-tracker";
+import { trackLeaderPowerflip } from "../../lib/quest/finish/leader-powerflip-tracker";
+import { trackPartyCoClears } from "../../lib/quest/finish/party-co-clear-tracker";
+import type { FinishContext } from "../../lib/quest/finish/types";
 
 interface PlayerContext { playerId: number; player: Player }
 
@@ -235,22 +240,22 @@ export function registerBattleRoutes(fastify: FastifyInstance): void {
             if (value !== null && (value as any).id !== null && (value as any).id !== undefined) partyCharacterIdsArray.push((value as any).id);
         }
 
-        // Track co-op party character clears for awakening missions
-        if (leaderId) incrementPlayerCharacterClearSync(playerId, leaderId, true, true)
-        const seen = new Set<number>([leaderId].filter(Boolean) as number[])
-        for (let i = 1; i < (bodyPartyStatistics.characters || []).length; i++) {
-            const c = bodyPartyStatistics.characters[i]
-            if (c?.id && !seen.has(c.id)) {
-                incrementPlayerCharacterClearSync(playerId, c.id, true, false)
-                seen.add(c.id)
-            }
+        // Track mission progress (decoupled from core quest mechanics)
+        const finishCtx: FinishContext = {
+            playerId, questCategory, questId,
+            questAccomplished,
+            clearTime, clearRank,
+            party: bodyPartyStatistics as any,
+            statistics: (body as any).statistics || (body as any).quest_statistics || {},
+            player,
+            questPreviouslyCompleted,
+            questProgress,
+            isMulti: true,
         }
-        for (const c of (bodyPartyStatistics.unison_characters || [])) {
-            if (c?.id && !seen.has(c.id)) {
-                incrementPlayerCharacterClearSync(playerId, c.id, true, false)
-                seen.add(c.id)
-            }
-        }
+        trackCharacterClears(finishCtx)
+        trackLeaderPowerflip(finishCtx)
+        trackPartyCoClears(finishCtx)
+        trackPowerflip(finishCtx)
 
         const rewardCharacterExpResult = givePlayerCharactersExpSync(
             playerId, partyCharacterIdsArray, questData.characterExpReward || 0,

@@ -1,6 +1,7 @@
 // Character awakening mission computer (category 9)
 
 import { getPlayerSync, getPlayerQuestProgressSync, getPlayerCharacterSync, getPlayerCharactersSync, getPlayerCharacterClearSync } from "../../data/wdfpData"
+import { getDb } from "../../data/db"
 import { getCharacterStoryQuestIds, getCharacterIdFromMission } from "./character-queries"
 import type { MissionComputer, CategoryContext } from "./types"
 import type { PlayerCharacter } from "../../data/types"
@@ -12,6 +13,8 @@ interface AwakeContext extends CategoryContext {
     leaderClears: Map<string, number>
     multiClears: Map<string, number>
     leaderMultiClears: Map<string, number>
+    leaderPowerflips: Map<string, number>
+    coClears: Map<string, number>  // "a_b" → count for multi-char missions
     charData: Map<string, PlayerCharacter>
 }
 
@@ -39,8 +42,24 @@ const BOND_TOKEN_MISSION_IDS = new Set([1410033, 2210043, 2510043, 2610073])
 const LEADER_REQUIRED_IDS = new Set([1510062, 1610022, 1610023, 2310012, 2610072])
 const COOP_MISSION_IDS = new Set([1310053, 1510063])
 const COMBO_MISSION_IDS = new Set([1210013])
+const POWERFLIP_CHAR_IDS = new Set([1210012])
+
+// Multi-character party missions: mission_id → required character IDs (from col[24])
+const MULTI_CHAR_MISSIONS: Map<number, number[]> = new Map([
+    [2110012, [211001, 231001]],
+    [2210042, [10, 221004]],
+    [2410632, [241063, 243007]],
+    [2410633, [241063, 243007, 361009]],
+    [2510042, [251004, 1]],
+    [3310032, [331003, 1]],
+    [3310033, [331003, 10]],
+])
 
 // ─── Computer ───
+
+function coClearKey(a: number, b: number): string {
+    return a < b ? `${a}_${b}` : `${b}_${a}`
+}
 
 function buildAwakeContext(playerId: number): AwakeContext {
     const player = getPlayerSync(playerId)!
@@ -54,11 +73,8 @@ function buildAwakeContext(playerId: number): AwakeContext {
         const list: CategoryContext["questProgress"][string] = []
         for (const qp of quests) {
             list.push({
-                questId: qp.questId,
-                finished: qp.finished,
-                clearRank: qp.clearRank,
-                bestElapsedTimeMs: qp.bestElapsedTimeMs,
-                leaderCharacterId: qp.leaderCharacterId,
+                questId: qp.questId, finished: qp.finished, clearRank: qp.clearRank,
+                bestElapsedTimeMs: qp.bestElapsedTimeMs, leaderCharacterId: qp.leaderCharacterId,
             })
             if (qp.finished) {
                 totalQuestClears++
@@ -76,6 +92,7 @@ function buildAwakeContext(playerId: number): AwakeContext {
     const leaderClears = new Map<string, number>()
     const multiClears = new Map<string, number>()
     const leaderMultiClears = new Map<string, number>()
+    const leaderPowerflips = new Map<string, number>()
     const charData = new Map<string, PlayerCharacter>()
     for (const [cid, char] of Object.entries(allChars)) {
         charData.set(cid, char)
@@ -84,20 +101,25 @@ function buildAwakeContext(playerId: number): AwakeContext {
         leaderClears.set(cid, row.leader_clear_count)
         multiClears.set(cid, row.multi_count)
         leaderMultiClears.set(cid, row.leader_multi_count)
+        leaderPowerflips.set(cid, row.leader_power_flip_count)
+    }
+
+    // Pre-fetch co-clear counts for multi-char missions
+    const coClears = new Map<string, number>()
+    const rows = getDb().prepare(`
+    SELECT char_id_a, char_id_b, co_clear_count FROM players_party_member_co_clears
+    WHERE player_id = ?
+    `).all(playerId) as { char_id_a: number; char_id_b: number; co_clear_count: number }[]
+    for (const r of rows) {
+        coClears.set(coClearKey(r.char_id_a, r.char_id_b), r.co_clear_count)
     }
 
     return {
-        playerId,
-        player,
-        questProgress,
-        totalQuestClears,
-        totalStories,
+        playerId, player, questProgress,
+        totalQuestClears, totalStories,
         rankCounts: { rank_ss: ssClears, rank_s: sClears, rank_a: aClears, rank_b: bClears },
-        charClears,
-        leaderClears,
-        multiClears,
-        leaderMultiClears,
-        charData,
+        charClears, leaderClears, multiClears, leaderMultiClears,
+        leaderPowerflips, coClears, charData,
     }
 }
 
@@ -130,6 +152,20 @@ export const AwakeComputer: MissionComputer = {
             return 1
         }
 
+        // Multi-character party missions
+        const reqChars = MULTI_CHAR_MISSIONS.get(missionId)
+        if (reqChars) {
+            // Check min co_clear_count across all pairs
+            let minCo = Infinity
+            for (let i = 0; i < reqChars.length - 1; i++) {
+                for (let j = i + 1; j < reqChars.length; j++) {
+                    const count = actx.coClears.get(coClearKey(reqChars[i], reqChars[j])) ?? 0
+                    if (count < minCo) minCo = count
+                }
+            }
+            return minCo === Infinity ? 0 : minCo
+        }
+
         const isLeaderRequired = LEADER_REQUIRED_IDS.has(missionId)
 
         switch (lastDigit) {
@@ -139,6 +175,7 @@ export const AwakeComputer: MissionComputer = {
             case AwakeType.PARTY_OR_SPECIAL:
                 if (charId === '1') return ctx.totalStories
                 if (charId === '263002') return ctx.player.totalManaObtained ?? 0
+                if (POWERFLIP_CHAR_IDS.has(missionId)) return actx.leaderPowerflips.get(charId) ?? 0
                 return isLeaderRequired
                     ? actx.leaderClears.get(charId) ?? 0
                     : actx.charClears.get(charId) ?? 0

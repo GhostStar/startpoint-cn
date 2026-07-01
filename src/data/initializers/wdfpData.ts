@@ -90,6 +90,7 @@ export default function init(
         multi_count INTEGER NOT NULL DEFAULT 0,
         leader_clear_count INTEGER NOT NULL DEFAULT 0,
         leader_multi_count INTEGER NOT NULL DEFAULT 0,
+        leader_power_flip_count INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (player_id, character_id),
         FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
     )`).run();
@@ -103,8 +104,17 @@ export default function init(
     // migration: add leader_character_id to quest_progress for quest-clear leader validation
     try { database.prepare(`ALTER TABLE players_quest_progress ADD COLUMN leader_character_id INTEGER`).run(); } catch { /* column already exists */ }
 
-    // migration: add max_combo_achieved for combo mission tracking
-    try { database.prepare(`ALTER TABLE players ADD COLUMN max_combo_achieved INTEGER NOT NULL DEFAULT 0`).run(); } catch { /* column already exists */ }
+    // migration: add leader_power_flip_count for per-character powerflip missions
+    try { database.prepare(`ALTER TABLE players_character_quest_clears ADD COLUMN leader_power_flip_count INTEGER NOT NULL DEFAULT 0`).run(); } catch { /* column already exists */ }
+
+    database.prepare(`CREATE TABLE IF NOT EXISTS players_party_member_co_clears (
+        player_id INTEGER NOT NULL,
+        char_id_a INTEGER NOT NULL,
+        char_id_b INTEGER NOT NULL,
+        co_clear_count INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (player_id, char_id_a, char_id_b),
+        FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
+    )`).run();
 
     database.prepare(`CREATE TABLE IF NOT EXISTS players_periodic_snapshots (
         player_id INTEGER NOT NULL,

@@ -16,6 +16,11 @@ import { handleRaidEventFinish } from "../../lib/quest/finish/raid-handler";
 import { calculateClearRank } from "../../lib/quest/finish/quest-calc";
 import { validateSessionAndPlayer } from "../../lib/quest/finish/session-validator";
 import { handleDailyChallengePoint } from "../../lib/quest/finish/challenge-point";
+import { trackCharacterClears } from "../../lib/quest/finish/character-clear-tracker";
+import { trackPowerflip } from "../../lib/quest/finish/powerflip-tracker";
+import { trackLeaderPowerflip } from "../../lib/quest/finish/leader-powerflip-tracker";
+import { trackPartyCoClears } from "../../lib/quest/finish/party-co-clear-tracker";
+import type { FinishContext } from "../../lib/quest/finish/types";
 import { readFileSync, existsSync } from "fs";
 import path from "path";
 import questEntryCosts from "../../../assets/quest_entry_costs.json";
@@ -328,41 +333,24 @@ const routes = async (fastify: FastifyInstance) => {
         const bodyPartyStatistics = body.statistics.party
         const partyCharacterIds = [...bodyPartyStatistics.characters, ...bodyPartyStatistics.unison_characters]
 
-        // Track ALL party characters quest clears for awakening missions
-        // Leader (position 0) tracked separately for "以X为队长" tasks
-        if (leaderId) {
-            incrementPlayerCharacterClearSync(playerId, leaderId, false, true)  // isLeader=true for "以X为队长" missions
-        }
-        // Other party members for "队伍中编有X" tasks
-        const seen = new Set<number>([leaderId].filter(Boolean) as number[])
-        for (let i = 1; i < bodyPartyStatistics.characters.length; i++) {
-            const c = bodyPartyStatistics.characters[i]
-            if (c?.id && !seen.has(c.id)) {
-                incrementPlayerCharacterClearSync(playerId, c.id, false)
-                seen.add(c.id)
-            }
-        }
-        for (const c of bodyPartyStatistics.unison_characters) {
-            if (c?.id && !seen.has(c.id)) {
-                incrementPlayerCharacterClearSync(playerId, c.id, false)
-                seen.add(c.id)
-            }
+        // Build finish context for mission trackers
+        const finishCtx: FinishContext = {
+            playerId, questCategory, questId,
+            questAccomplished,
+            clearTime: body.elapsed_time_ms,
+            clearRank,
+            party: body.statistics.party as any,
+            statistics: (body as any).statistics,
+            player: playerData,
+            questPreviouslyCompleted,
+            questProgress,
         }
 
-        // Accumulate zone-level counters (power flip, dash, skill) for mission progress
-        const zones = (body as any).statistics.zones || []
-        let powerFlipCount = 0, dashCount = 0
-        for (const zone of zones) {
-            powerFlipCount += zone.use_power_flip_count ?? 0
-            dashCount += zone.use_dash_count ?? 0
-        }
-        if (powerFlipCount > 0 || dashCount > 0) {
-            updatePlayerSync({
-                id: playerId,
-                totalPowerflips: (playerData.totalPowerflips ?? 0) + powerFlipCount,
-                totalDashes: (playerData.totalDashes ?? 0) + dashCount
-            })
-        }
+        // Track mission progress (decoupled from core quest mechanics)
+        trackCharacterClears(finishCtx)
+        trackLeaderPowerflip(finishCtx)
+        trackPartyCoClears(finishCtx)
+        trackPowerflip(finishCtx)
         const partyCharacterIdsArray: number[] = []
         for (const value of partyCharacterIds.values()) {
             if (value !== null && value.id !== null) partyCharacterIdsArray.push(value.id);
