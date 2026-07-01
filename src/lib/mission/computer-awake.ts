@@ -75,6 +75,7 @@ function buildAwakeContext(playerId: number): AwakeContext {
             list.push({
                 questId: qp.questId, finished: qp.finished, clearRank: qp.clearRank,
                 bestElapsedTimeMs: qp.bestElapsedTimeMs, leaderCharacterId: qp.leaderCharacterId,
+                multiClearCount: qp.multiClearCount,
             })
             if (qp.finished) {
                 totalQuestClears++

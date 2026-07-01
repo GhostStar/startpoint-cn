@@ -9,6 +9,7 @@ export interface PlayerQuestProgressEntry {
     clearRank: number | null | undefined
     bestElapsedTimeMs: number | undefined
     leaderCharacterId: number | undefined
+    multiClearCount: number | undefined
 }
 
 /** Per-category pre-computed context — built once, read many times */

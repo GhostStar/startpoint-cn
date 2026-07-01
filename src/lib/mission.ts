@@ -6,6 +6,7 @@ export {
     getCompletedStageNumbers,
     getActiveMissionRewards,
     getAwakeMissionRewards,
+    getEventMissionRewards,
     getMissionsByPattern,
     getMissionPattern,
     isComputablePattern,

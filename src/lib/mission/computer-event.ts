@@ -3,13 +3,13 @@
 
 import { getPlayerSync, getPlayerQuestProgressSync } from "../../data/wdfpData"
 import { getMissionPattern } from "./patterns"
-import { getMissionIdsByCategory } from "./stages"
 import questMap from "../../../assets/mission_event_quest_map.json"
 import type { MissionComputer, CategoryContext } from "./types"
 
 interface QuestMapping {
     questIds: number[]
     categories: number[]
+    countMode: string  // "single" = finished-based, "multi" = multi_clear_count
 }
 
 function buildContext(playerId: number, _category: number): CategoryContext {
@@ -22,7 +22,12 @@ function buildContext(playerId: number, _category: number): CategoryContext {
     for (const [section, quests] of Object.entries(questProgressRaw)) {
         const list: CategoryContext["questProgress"][string] = []
         for (const qp of quests) {
-            list.push({ questId: qp.questId, finished: qp.finished, clearRank: qp.clearRank, bestElapsedTimeMs: qp.bestElapsedTimeMs, leaderCharacterId: qp.leaderCharacterId })
+            list.push({
+                questId: qp.questId, finished: qp.finished,
+                clearRank: qp.clearRank, bestElapsedTimeMs: qp.bestElapsedTimeMs,
+                leaderCharacterId: qp.leaderCharacterId,
+                multiClearCount: qp.multiClearCount,
+            })
             if (qp.finished) {
                 totalQuestClears++
                 if (section === '3') totalStories++
@@ -56,14 +61,18 @@ export const EventComputer: MissionComputer = {
         const mapping = (questMap as Record<string, QuestMapping>)[pattern]
         if (!mapping) return dbProgress
 
-        // Count completed quests across all relevant categories
+        const isMulti = mapping.countMode === "multi"
+
         let count = 0
         for (const cat of mapping.categories) {
             const progress = ctx.questProgress[String(cat)]
             if (!progress) continue
             for (const q of progress) {
-                if (mapping.questIds.includes(q.questId) && q.finished) {
-                    count++
+                if (!mapping.questIds.includes(q.questId)) continue
+                if (isMulti) {
+                    count += q.multiClearCount ?? (q.finished ? 1 : 0)
+                } else {
+                    if (q.finished) count++
                 }
             }
         }

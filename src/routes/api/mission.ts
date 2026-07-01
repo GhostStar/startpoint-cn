@@ -4,7 +4,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { getPlayerActiveMissionsSync, getSession, givePlayerItemSync, insertDefaultPlayerCharacterSync, updatePlayerSync, updatePlayerActiveMissionSync, updatePlayerActiveMissionStageSync } from "../../data/wdfpData";
 import { generateDataHeaders } from "../../utils";
-import { getComputer, getMissionIdsByCategory, getMissionsByPattern, getCurrentStage, getActiveMissionRewards, getAwakeMissionRewards, getCompletedStageNumbers, getCharacterIdFromMission } from "../../lib/mission";
+import { getComputer, getMissionIdsByCategory, getMissionsByPattern, getCurrentStage, getActiveMissionRewards, getAwakeMissionRewards, getEventMissionRewards, getCompletedStageNumbers, getCharacterIdFromMission } from "../../lib/mission";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import type { CategoryContext } from "../../lib/mission/types";
 
@@ -94,7 +94,7 @@ const routes = async (fastify: FastifyInstance) => {
                 const completedStages = getCompletedStageNumbers(category, missionId, progress)
                 const existingStages = activeMissions[String(missionId)]?.stages
                 const isRecord = existingStages && !Array.isArray(existingStages)
-                const skipAutoGrant = category === 2 || category === 10
+                const skipAutoGrant = category === 2 || category === 10  // daily/weekly rewards via active_mission/receive
 
                 let localMana = ctx.player.freeMana
                 let localExp = ctx.player.expPool
@@ -105,7 +105,9 @@ const routes = async (fastify: FastifyInstance) => {
                     updatePlayerActiveMissionStageSync(playerId, s, missionId, true)
                     const rewards = category === 9
                         ? getAwakeMissionRewards(missionId, s)
-                        : getActiveMissionRewards(missionId, s)
+                        : category === 3
+                            ? getEventMissionRewards(missionId, s)
+                            : getActiveMissionRewards(missionId, s)
                     for (const r of rewards) {
                         if (r.kind === 1 || r.kind === 2) {
                             givePlayerItemSync(playerId, (r.itemId || r.equipmentId)!, r.amount)

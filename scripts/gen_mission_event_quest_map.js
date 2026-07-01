@@ -113,6 +113,7 @@ for (const [mid, rows] of Object.entries(missions)) {
 
     let questIds = [];
     let categories = [];
+    let countMode = "single";  // 'single' for finished-based, 'multi' for multi_clear_count
 
     switch (c7) {
         case "2": // BOSS_BATTLE — col[9]=stage_group
@@ -173,8 +174,16 @@ for (const [mid, rows] of Object.entries(missions)) {
             break;
     }
 
+    // Determine count mode from pattern type (col[2])
+    const patternType = r[2] || "";
+    if (["16", "17", "20"].includes(patternType)) {
+        countMode = "multi";  // multi_battle_clear / multi_host_count / attention
+    } else if (patternType === "15") {
+        countMode = "finish";  // single_battle_clear_time — use finished flag
+    }
+
     if (questIds.length > 0) {
-        result[pattern] = { questIds, categories };
+        result[pattern] = { questIds, categories, countMode };
         mapped++;
     } else {
         skipped++;

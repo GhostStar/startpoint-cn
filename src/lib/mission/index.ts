@@ -13,7 +13,7 @@ export { getMissionIdsByCategory, getCurrentStage, getCompletedStageNumbers } fr
 
 // Rewards
 export type { ActiveMissionReward } from "./rewards"
-export { getActiveMissionRewards, getAwakeMissionRewards } from "./rewards"
+export { getActiveMissionRewards, getAwakeMissionRewards, getEventMissionRewards } from "./rewards"
 
 // Patterns (for update_mission_progress)
 export type { PatternMatch } from "./patterns"
