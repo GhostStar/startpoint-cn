@@ -223,7 +223,7 @@ export const AwakeComputer: MissionComputer = {
                 const s1 = AwakeComputer.compute(missionId - 3, ctx, dbProgress)
                 const s2 = AwakeComputer.compute(missionId - 2, ctx, dbProgress)
                 const s3 = AwakeComputer.compute(missionId - 1, ctx, dbProgress)
-                return (s1 >= 1 && s2 >= 1 && s3 >= 1) ? 1 : 0
+                return (s1 >= 1 ? 1 : 0) + (s2 >= 1 ? 1 : 0) + (s3 >= 1 ? 1 : 0)
             }
         }
 
