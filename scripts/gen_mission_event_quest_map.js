@@ -18,7 +18,42 @@ function readJSON(filePath) {
 }
 
 /** Extract all quest_ids from a nested stage_group → difficulty → rows structure */
-function collectQuests(data, key) {
+function collectQuestsFromKeyed(data, key) {
+    if (!data || !data[key]) return [];
+    const ids = [];
+    for (const [, rows] of Object.entries(data[key])) {
+        if (rows[0] && rows[0][0]) ids.push(Number(rows[0][0]));
+    }
+    return ids;
+}
+
+/** Extract quest_ids from boss_battle's double-nested structure: {col: {stage_group: {diff: [row]}}} */
+function collectBossBattleQuests(data, stageGroup) {
+    if (!data) return [];
+    for (const [, inner] of Object.entries(data)) {
+        if (inner && inner[stageGroup]) {
+            return collectQuestsFromKeyed(inner, stageGroup);
+        }
+    }
+    return [];
+}
+
+/** Collect ALL quest_ids from boss_battle's double-nested structure */
+function collectAllBossBattleQuests(data) {
+    if (!data) return [];
+    const ids = [];
+    for (const [, inner] of Object.entries(data)) {
+        for (const [, diffMap] of Object.entries(inner)) {
+            for (const [, rows] of Object.entries(diffMap)) {
+                if (rows[0] && rows[0][0]) ids.push(Number(rows[0][0]));
+            }
+        }
+    }
+    return ids;
+}
+
+/** Extract quest_ids from a flat keyed structure */
+function collectQuestsFromFlat(data, key) {
     if (!data || !data[key]) return [];
     const ids = [];
     for (const [, rows] of Object.entries(data[key])) {
@@ -82,20 +117,23 @@ for (const [mid, rows] of Object.entries(missions)) {
     switch (c7) {
         case "2": // BOSS_BATTLE — col[9]=stage_group
             if (c9 && c9 !== "(None)" && c9 !== "") {
-                questIds = collectQuests(BOSS_BATTLE, c9);
+                questIds = collectBossBattleQuests(BOSS_BATTLE, c9);
+            } else {
+                // col[9] empty = ALL boss battles count
+                questIds = collectAllBossBattleQuests(BOSS_BATTLE);
             }
             categories = [2];
             break;
 
         case "5": // ADVENT_EVENT — col[8]=stage_group
             if (c8 && c8 !== "(None)" && c8 !== "") {
-                questIds = collectQuests(ADVENT_EVENT, c8);
+                questIds = collectQuestsFromFlat(ADVENT_EVENT, c8);
             }
             categories = [7, 8];
             break;
 
         case "7": // CHALLENGE_DUNGEON — folder=1, all quests
-            questIds = collectAllFromFolder(CHALLENGE_DUNGEON, "1");
+            questIds = collectQuestsFromKeyed(CHALLENGE_DUNGEON, "1");
             categories = [13];
             break;
 
@@ -108,28 +146,28 @@ for (const [mid, rows] of Object.entries(missions)) {
 
         case "10": // WORLD_STORY_BOSS — col[8]=event_id
             if (c8 && c8 !== "(None)" && c8 !== "") {
-                questIds = collectQuests(WORLD_STORY_BOSS, c8);
+                questIds = collectQuestsFromKeyed(WORLD_STORY_BOSS, c8);
             }
             categories = [19];
             break;
 
         case "15": // CARNIVAL — col[8]=folder_id
             if (c8 && c8 !== "(None)" && c8 !== "") {
-                questIds = collectQuests(CARNIVAL, c8);
+                questIds = collectQuestsFromKeyed(CARNIVAL, c8);
             }
             categories = [22];
             break;
 
         case "16": // RAID — col[8]=stage_group
             if (c8 && c8 !== "(None)" && c8 !== "") {
-                questIds = collectQuests(RAID, c8);
+                questIds = collectQuestsFromKeyed(RAID, c8);
             }
             categories = [23];
             break;
 
         case "17": // RUSH — col[8]=event_id
             if (c8 && c8 !== "(None)" && c8 !== "") {
-                questIds = collectQuests(RUSH, c8);
+                questIds = collectQuestsFromKeyed(RUSH, c8);
             }
             categories = [24];
             break;
