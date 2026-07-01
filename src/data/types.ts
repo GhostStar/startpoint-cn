@@ -226,6 +226,7 @@ export interface RawPlayerQuestProgress {
     clear_rank?: number
     best_elapsed_time_ms?: number
     leader_character_id?: number
+    multi_clear_count?: number
 }
 
 export interface PlayerQuestProgress {
@@ -235,6 +236,7 @@ export interface PlayerQuestProgress {
     clearRank?: number
     bestElapsedTimeMs?: number
     leaderCharacterId?: number
+    multiClearCount?: number
     unlocked?: boolean
 }
 

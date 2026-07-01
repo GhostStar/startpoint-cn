@@ -104,6 +104,9 @@ export default function init(
     // migration: add leader_character_id to quest_progress for quest-clear leader validation
     try { database.prepare(`ALTER TABLE players_quest_progress ADD COLUMN leader_character_id INTEGER`).run(); } catch { /* column already exists */ }
 
+    // migration: add multi_clear_count for event mission multi-battle tracking
+    try { database.prepare(`ALTER TABLE players_quest_progress ADD COLUMN multi_clear_count INTEGER NOT NULL DEFAULT 0`).run(); } catch { /* column already exists */ }
+
     // migration: add leader_power_flip_count for per-character powerflip missions
     try { database.prepare(`ALTER TABLE players_character_quest_clears ADD COLUMN leader_power_flip_count INTEGER NOT NULL DEFAULT 0`).run(); } catch { /* column already exists */ }
 
@@ -324,6 +327,7 @@ export default function init(
         clear_rank INTEGER,
         best_elapsed_time_ms INTEGER,
         leader_character_id INTEGER,
+        multi_clear_count INTEGER NOT NULL DEFAULT 0,
         player_id INTEGER NOT NULL,
         PRIMARY KEY (section, quest_id, player_id),
         FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE

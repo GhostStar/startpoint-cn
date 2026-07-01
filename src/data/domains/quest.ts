@@ -18,7 +18,8 @@ function buildPlayerQuestProgress(
         highScore: raw.high_score,
         clearRank: raw.clear_rank,
         bestElapsedTimeMs: raw.best_elapsed_time_ms,
-        leaderCharacterId: raw.leader_character_id
+        leaderCharacterId: raw.leader_character_id,
+        multiClearCount: raw.multi_clear_count
     }
 }
 
@@ -33,7 +34,7 @@ export function getPlayerQuestProgressSync(
 ): Record<string, PlayerQuestProgress[]> {
 
     const rawProgress = getDb().prepare(`
-    SELECT section, quest_id, finished, unlocked, high_score, clear_rank, best_elapsed_time_ms, leader_character_id
+    SELECT section, quest_id, finished, unlocked, high_score, clear_rank, best_elapsed_time_ms, leader_character_id, multi_clear_count
     FROM players_quest_progress
     WHERE player_id = ?
     `).all(playerId) as RawPlayerQuestProgress[]
@@ -68,7 +69,7 @@ export function getPlayerSingleQuestProgressSync(
 ): PlayerQuestProgress | null {
 
     const rawProgress = getDb().prepare(`
-    SELECT section, quest_id, finished, unlocked, high_score, clear_rank, best_elapsed_time_ms, leader_character_id
+    SELECT section, quest_id, finished, unlocked, high_score, clear_rank, best_elapsed_time_ms, leader_character_id, multi_clear_count
     FROM players_quest_progress
     WHERE player_id = ? AND section = ? AND quest_id = ?
     `).get(playerId, Number(section), Number(questId)) as RawPlayerQuestProgress

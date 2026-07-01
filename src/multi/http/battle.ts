@@ -21,6 +21,7 @@ import { givePlayerRewardsSync, givePlayerRewardSync, givePlayerScoreRewardsSync
 import { computeRealTimeStamina, getRankDegree, getMaxStamina } from "../../lib/stamina";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { BattleQuest, EquipmentItemReward, PlayerRewardResult, QuestCategory } from "../../lib/types";
+import { getDb } from "../../data/db";
 import type { Player } from "../../data/types";
 import { trackCharacterClears } from "../../lib/quest/finish/character-clear-tracker";
 import { trackPowerflip } from "../../lib/quest/finish/powerflip-tracker";
@@ -215,6 +216,12 @@ export function registerBattleRoutes(fastify: FastifyInstance): void {
         const oldRkDegree = getRankDegree(beforeRankPoint);
         const newDegreeId = getRankDegree(newRankPoint);
         const didLevelUp = newDegreeId > oldRkDegree;
+
+        // Increment multi clear count for event mission tracking
+        getDb().prepare(`
+        UPDATE players_quest_progress SET multi_clear_count = multi_clear_count + 1
+        WHERE player_id = ? AND section = ? AND quest_id = ?
+        `).run(playerId, Number(questCategory), Number(questId))
         updatePlayerSync({
             id: playerId,
             freeMana: newMana,
