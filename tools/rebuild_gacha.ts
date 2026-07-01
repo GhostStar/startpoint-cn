@@ -112,6 +112,17 @@ const UP_TARGETS: Record<string, Record<number, number>> = {
     "2": { 1: 0.10, 2: 0.08 },
 };
 
+// Fes gacha actual odds (verified in-game 2026-07)
+// Key = UP count, Value = odds multiplier (normal character odds=1)
+// 3 UP: UP 0.7% / normal 0.052% ≈ 13.46 → 13
+// 4 UP: UP 0.5% / normal 0.056% ≈  8.93 → 9
+// 19 UP (revival): UP 0.3% / normal 0.014% ≈ 21.43 → 21
+const FES_UP_ODDS: Record<number, number> = {
+    3: 13,
+    4: 9,
+    19: 21,
+};
+
 // Revival Fes pool — all historical fes ★5 limited characters
 // These are NOT in CDN columns [21-28] because the pool key `revival_fes_1_character_5`
 // references an external CDN pool file that's not available locally.
@@ -279,18 +290,28 @@ function buildBanner(
     }
 
     // Calculate UP odds per tier
-    // Formula: w = tier_non_up × target / (1 - target × tier_up_count)
+    // For fes banners, use verified in-game odds instead of the general formula
+    const poolKey5 = String(row[16] || "");
+    const isFesPool = poolKey5.startsWith("new_character_pickup_") || poolKey5.startsWith("revival_fes_");
     const tierOdds: Record<string, number> = {};
+
     for (const pk of ["1", "2"]) {
         const tierUpCount = upByTier[pk].size;
         if (tierUpCount === 0) continue;
-        const target = UP_TARGETS[pk]?.[tierUpCount];
-        if (target === undefined) continue;
-        const tierNonUp = poolTemplate[pk].length;
-        const denom = 1 - target * tierUpCount;
-        tierOdds[pk] = denom > 0
-            ? Math.max(1, Math.round(tierNonUp * target / denom))
-            : 50;
+
+        if (isFesPool && FES_UP_ODDS[tierUpCount] !== undefined) {
+            // Fes banner: use verified game odds
+            tierOdds[pk] = FES_UP_ODDS[tierUpCount];
+        } else {
+            // General formula: w = tier_non_up × target / (1 - target × tier_up_count)
+            const target = UP_TARGETS[pk]?.[tierUpCount];
+            if (target === undefined) continue;
+            const tierNonUp = poolTemplate[pk].length;
+            const denom = 1 - target * tierUpCount;
+            tierOdds[pk] = denom > 0
+                ? Math.max(1, Math.round(tierNonUp * target / denom))
+                : 50;
+        }
     }
 
     // Apply UP characters to pool
@@ -322,16 +343,16 @@ function buildBanner(
 
     // Revival Fes: inject all historical fes ★5 characters into the pool
     // These banners reference `revival_fes_1_character_5` which is an external CDN pool file
-    const poolKey5 = String(row[16] || "");
     if (poolKey5.startsWith("revival_fes_")) {
+        const revivalOdds = FES_UP_ODDS[19] ?? 21;
         for (const fid of REVIVAL_FES_5STAR) {
             // Only add if not already in pool (avoid duplicates)
             if (!pool["1"].some(item => item.id === fid)) {
                 pool["1"].push({
                     id: fid,
                     rank: 5,
-                    odds: 1,        // no rate-up (19 UP exceeds UP_TARGETS)
-                    isRateUp: false,
+                    odds: revivalOdds,
+                    isRateUp: true,
                     rarity: 100,    // placeholder, recalculated below
                 });
             }
@@ -400,7 +421,8 @@ function validateL2(
     banner: GachaBanner,
     template: Record<string, PoolItem[]>,
     permanentSet: Set<number>,
-    upSet: Set<string>
+    upSet: Set<string>,
+    isFesBanner: boolean = false
 ): string[] {
     if (banner.type !== 0) return []; // Equipment banners skip
 
@@ -443,11 +465,12 @@ function validateL2(
             }
         }
 
-        // 5c. UP marks — account for UP_TARGETS limits
-        // If tierUpCount exceeds UP_TARGETS table, no rate-up is applied (Python behavior)
+        // 5c. UP marks — account for UP_TARGETS limits and fes odds
+        // Fes banners use verified game odds (FES_UP_ODDS) instead of formula
         const tierUpCount = upIdsInTier.size;
         const target = UP_TARGETS[pk]?.[tierUpCount];
-        const hasRateUp = pk !== "3" && target !== undefined; // ★3 has no rate-up
+        const fesOdds = isFesBanner ? FES_UP_ODDS[tierUpCount] : undefined;
+        const hasRateUp = pk !== "3" && (target !== undefined || fesOdds !== undefined);
 
         for (const item of actualItems) {
             const inUpSet = upIdsInTier.has(item.id);
@@ -455,10 +478,17 @@ function validateL2(
             if (item.isRateUp !== expIsUp) {
                 errors.push(`UP_MARK gid=${gachaId} tier=${pk} id=${item.id} exp=${expIsUp} act=${item.isRateUp}`);
             }
-            if (!expIsUp && item.odds !== 1) {
-                errors.push(`ODDS gid=${gachaId} tier=${pk} id=${item.id} odds=${item.odds} exp=1`);
-            }
-            if (expIsUp && item.odds <= 1) {
+            // Odds validation
+            if (expIsUp && fesOdds !== undefined) {
+                // Fes banner: expect exact odds
+                if (item.odds !== fesOdds) {
+                    errors.push(`ODDS_FES gid=${gachaId} tier=${pk} id=${item.id} odds=${item.odds} exp=${fesOdds}`);
+                }
+            } else if (!expIsUp) {
+                if (item.odds !== 1) {
+                    errors.push(`ODDS gid=${gachaId} tier=${pk} id=${item.id} odds=${item.odds} exp=1`);
+                }
+            } else if (expIsUp && item.odds <= 1) {
                 errors.push(`ODDS_UP gid=${gachaId} tier=${pk} id=${item.id} odds=${item.odds} exp>1`);
             }
         }
@@ -625,6 +655,7 @@ function main() {
     console.log("\n--- Building Banners ---");
     const output: Record<string, GachaBanner> = {};
     const upCache: Record<string, Set<string>> = {};
+    const fesCache: Record<string, boolean> = {};
     let skipped = 0;
     let equipCount = 0;
     let charCount = 0;
@@ -636,9 +667,13 @@ function main() {
         output[gid] = banner;
         upCache[gid] = extractUpChars(gid, cdnGacha, cdnFeature, cdnChars);
 
-        // Revival Fes: inject known UP characters for L2 validation
+        // Detect fes banners for L2 validation
         const cdnRow = cdnGacha[gid]?.[0];
-        if (cdnRow && Array.isArray(cdnRow) && String(cdnRow[16] || "").startsWith("revival_fes_")) {
+        const pk5 = cdnRow && Array.isArray(cdnRow) ? String(cdnRow[16] || "") : "";
+        fesCache[gid] = pk5.startsWith("new_character_pickup_") || pk5.startsWith("revival_fes_");
+
+        // Revival Fes: inject known UP characters for L2 validation
+        if (pk5.startsWith("revival_fes_")) {
             for (const fid of REVIVAL_FES_5STAR) {
                 upCache[gid].add(String(fid));
             }
@@ -665,7 +700,7 @@ function main() {
 
     for (const gid of Object.keys(output)) {
         if (output[gid].type !== 0) continue;
-        const errs = validateL2(gid, output[gid], template, permanentSet, upCache[gid]);
+        const errs = validateL2(gid, output[gid], template, permanentSet, upCache[gid], fesCache[gid]);
         if (errs.length > 0) {
             l2TotalErrors += errs.length;
             l2ErrorBanners.push(gid);
