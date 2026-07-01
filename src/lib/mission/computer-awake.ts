@@ -5,6 +5,14 @@ import { getDb } from "../../data/db"
 import { getCharacterStoryQuestIds, getCharacterIdFromMission } from "./character-queries"
 import type { MissionComputer, CategoryContext } from "./types"
 import type { PlayerCharacter } from "../../data/types"
+import charAwakeDefs from "../../../assets/mission_char_awake.json"
+
+// Slot 1 missions that count story reading (not party clears)
+const STORY_MISSION_IDS = new Set<number>(
+    Object.entries(charAwakeDefs)
+        .filter(([, rows]) => /阅读|剧情/.test(rows[0][3]))
+        .map(([mid]) => Number(mid))
+)
 
 // ─── Awake-specific context (extends base) ───
 
@@ -238,14 +246,14 @@ enum AwakeType {
     ALL_COMPLETE = 4,
 }
 
-function computeStoryOrParty(_missionId: number, actx: AwakeContext, charId: string): number {
-    const storyIds = getCharacterStoryQuestIds(charId)
-    if (storyIds.length === 0) {
-        return actx.charClears.get(charId) ?? 0
+function computeStoryOrParty(missionId: number, actx: AwakeContext, charId: string): number {
+    if (STORY_MISSION_IDS.has(missionId)) {
+        const storyIds = getCharacterStoryQuestIds(charId)
+        let count = 0
+        for (const qid of storyIds) {
+            if (actx.questProgress['3']?.find(q => q.questId === qid)?.finished) count++
+        }
+        return count
     }
-    let count = 0
-    for (const qid of storyIds) {
-        if (actx.questProgress['3']?.find(q => q.questId === qid)?.finished) count++
-    }
-    return count
+    return actx.charClears.get(charId) ?? 0
 }
