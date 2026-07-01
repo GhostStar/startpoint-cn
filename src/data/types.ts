@@ -488,6 +488,7 @@ export interface RawPlayer {
     total_dashes: number
     total_mana_obtained: number
     max_combo_achieved: number
+    total_login_days: number
     tutorial_step: number | null
     tutorial_skip_flag: number | null
     tutorial_gacha_character_id: number | null
@@ -524,6 +525,7 @@ export interface Player {
     totalDashes: number
     totalManaObtained: number
     maxComboAchieved: number
+    totalLoginDays: number
     tutorialStep: number | null
     tutorialSkipFlag: boolean | null
     tutorialGachaCharacterId: number | null

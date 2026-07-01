@@ -14,7 +14,8 @@ interface AwakeContext extends CategoryContext {
     multiClears: Map<string, number>
     leaderMultiClears: Map<string, number>
     leaderPowerflips: Map<string, number>
-    coClears: Map<string, number>  // "a_b" → count for multi-char missions
+    coClears: Map<string, number>
+    raceClears: Map<string, number>
     charData: Map<string, PlayerCharacter>
 }
 
@@ -39,10 +40,15 @@ const QUEST_CLEAR_MAP: Map<number, QuestClearTarget> = new Map([
 ])
 
 const BOND_TOKEN_MISSION_IDS = new Set([1410033, 2210043, 2510043, 2610073])
-const LEADER_REQUIRED_IDS = new Set([1510062, 1610022, 1610023, 2310012, 2610072])
+const LEADER_REQUIRED_IDS = new Set([1510062, 1610022, 1610023, 2610072])
 const COOP_MISSION_IDS = new Set([1310053, 1510063])
 const COMBO_MISSION_IDS = new Set([1210013])
 const POWERFLIP_CHAR_IDS = new Set([1210012])
+
+/** Mission 2310012: 人+龙+魔 race composition */
+const RACE_MISSION_IDS: Map<number, string> = new Map([
+    [2310012, "Beast+Dragon+Human"],  // 人(Human)+龙(Dragon)+魔(Beast) — tentative mapping
+])
 
 // Multi-character party missions: mission_id → required character IDs (from col[24])
 const MULTI_CHAR_MISSIONS: Map<number, number[]> = new Map([
@@ -115,12 +121,22 @@ function buildAwakeContext(playerId: number): AwakeContext {
         coClears.set(coClearKey(r.char_id_a, r.char_id_b), r.co_clear_count)
     }
 
+    // Pre-fetch race clears for race-composition missions
+    const raceClears = new Map<string, number>()
+    const raceRows = getDb().prepare(`
+    SELECT race_key, clear_count FROM players_party_race_clears
+    WHERE player_id = ?
+    `).all(playerId) as { race_key: string; clear_count: number }[]
+    for (const r of raceRows) {
+        raceClears.set(r.race_key, r.clear_count)
+    }
+
     return {
         playerId, player, questProgress,
         totalQuestClears, totalStories,
         rankCounts: { rank_ss: ssClears, rank_s: sClears, rank_a: aClears, rank_b: bClears },
         charClears, leaderClears, multiClears, leaderMultiClears,
-        leaderPowerflips, coClears, charData,
+        leaderPowerflips, coClears, raceClears, charData,
     }
 }
 
@@ -151,6 +167,12 @@ export const AwakeComputer: MissionComputer = {
                 if (!matches.some(q => q.leaderCharacterId === qc.leaderCharId)) return 0
             }
             return 1
+        }
+
+        // Race-composition missions (e.g., 人+龙+魔)
+        const raceKey = RACE_MISSION_IDS.get(missionId)
+        if (raceKey) {
+            return actx.raceClears.get(raceKey) ?? 0
         }
 
         // Multi-character party missions

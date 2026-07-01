@@ -62,6 +62,7 @@ export default function init(
         total_dashes INTEGER NOT NULL DEFAULT 0,
         total_mana_obtained INTEGER NOT NULL DEFAULT 0,
         max_combo_achieved INTEGER NOT NULL DEFAULT 0,
+        total_login_days INTEGER NOT NULL DEFAULT 0,
         account_id INTEGER NOT NULL,
         tutorial_step INTEGER,
         tutorial_skip_flag INTEGER,
@@ -110,12 +111,23 @@ export default function init(
     // migration: add leader_power_flip_count for per-character powerflip missions
     try { database.prepare(`ALTER TABLE players_character_quest_clears ADD COLUMN leader_power_flip_count INTEGER NOT NULL DEFAULT 0`).run(); } catch { /* column already exists */ }
 
+    // migration: add total_login_days for weekly mission tracking
+    try { database.prepare(`ALTER TABLE players ADD COLUMN total_login_days INTEGER NOT NULL DEFAULT 0`).run(); } catch { /* column already exists */ }
+
     database.prepare(`CREATE TABLE IF NOT EXISTS players_party_member_co_clears (
         player_id INTEGER NOT NULL,
         char_id_a INTEGER NOT NULL,
         char_id_b INTEGER NOT NULL,
         co_clear_count INTEGER NOT NULL DEFAULT 0,
         PRIMARY KEY (player_id, char_id_a, char_id_b),
+        FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
+    )`).run();
+
+    database.prepare(`CREATE TABLE IF NOT EXISTS players_party_race_clears (
+        player_id INTEGER NOT NULL,
+        race_key TEXT NOT NULL,
+        clear_count INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (player_id, race_key),
         FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
     )`).run();
 

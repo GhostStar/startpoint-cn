@@ -327,6 +327,7 @@ function buildPlayer(
         totalDashes: raw.total_dashes || 0,
         totalManaObtained: raw.total_mana_obtained || 0,
         maxComboAchieved: raw.max_combo_achieved || 0,
+        totalLoginDays: raw.total_login_days || 0,
         tutorialStep: raw.tutorial_step,
         tutorialSkipFlag: raw.tutorial_skip_flag === null ? null : deserializeBoolean(raw.tutorial_skip_flag),
         tutorialGachaCharacterId: raw.tutorial_gacha_character_id,
@@ -341,7 +342,7 @@ export function getPlayerSync(
         transition_state, role, name, last_login_time, comment,
         vmoney, free_vmoney, rank_point, star_crumb,
         bond_token, exp_pool, exp_pooled_time, leader_character_id, party_slot,
-        degree_id, birth, free_mana, paid_mana, enable_auto_3x, total_stamina_used, total_powerflips, total_dashes, total_mana_obtained, max_combo_achieved, tutorial_step, tutorial_skip_flag, tutorial_gacha_character_id
+        degree_id, birth, free_mana, paid_mana, enable_auto_3x, total_stamina_used, total_powerflips, total_dashes, total_mana_obtained, max_combo_achieved, total_login_days, tutorial_step, tutorial_skip_flag, tutorial_gacha_character_id
     FROM players
     WHERE id = ?    
     `).get(playerId) as RawPlayer | undefined
@@ -360,7 +361,7 @@ export function getAllPlayersSync(
         transition_state, role, name, last_login_time, comment,
         vmoney, free_vmoney, rank_point, star_crumb,
         bond_token, exp_pool, exp_pooled_time, leader_character_id, party_slot,
-        degree_id, birth, free_mana, paid_mana, enable_auto_3x, total_stamina_used, total_powerflips, total_dashes, total_mana_obtained, max_combo_achieved, tutorial_step, tutorial_skip_flag, tutorial_gacha_character_id
+        degree_id, birth, free_mana, paid_mana, enable_auto_3x, total_stamina_used, total_powerflips, total_dashes, total_mana_obtained, max_combo_achieved, total_login_days, tutorial_step, tutorial_skip_flag, tutorial_gacha_character_id
     FROM players
     LIMIT ?
     OFFSET ?
@@ -412,6 +413,7 @@ export function insertPlayerSync(
         total_dashes: player.totalDashes ?? 0,
         total_mana_obtained: player.totalManaObtained ?? 0,
         max_combo_achieved: player.maxComboAchieved ?? 0,
+        total_login_days: player.totalLoginDays ?? 0,
         account_id: accountId,
         tutorial_step: player.tutorialStep ?? null,
         tutorial_skip_flag: player.tutorialSkipFlag !== null ? serializeBoolean(player.tutorialSkipFlag) : null,
@@ -430,7 +432,7 @@ export function insertPlayerSync(
         transition_state, role, name, last_login_time, comment, vmoney, free_vmoney,
         rank_point, star_crumb, bond_token, exp_pool, exp_pooled_time, leader_character_id,
         party_slot, degree_id, birth, free_mana, paid_mana, enable_auto_3x,
-        total_stamina_used, total_powerflips, total_dashes, total_mana_obtained, max_combo_achieved, account_id,
+        total_stamina_used, total_powerflips, total_dashes, total_mana_obtained, max_combo_achieved, total_login_days, account_id,
         tutorial_step, tutorial_skip_flag, tutorial_gacha_character_id,
         time_offset${idCol})
     VALUES (@stamina, @stamina_heal_time, @boost_point, @boss_boost_point,
@@ -438,7 +440,7 @@ export function insertPlayerSync(
         @vmoney, @free_vmoney, @rank_point, @star_crumb, @bond_token,
         @exp_pool, @exp_pooled_time, @leader_character_id, @party_slot,
         @degree_id, @birth, @free_mana, @paid_mana, @enable_auto_3x,
-        @total_stamina_used, @total_powerflips, @total_dashes, @total_mana_obtained, @max_combo_achieved, @account_id,
+        @total_stamina_used, @total_powerflips, @total_dashes, @total_mana_obtained, @max_combo_achieved, @total_login_days, @account_id,
         @tutorial_step, @tutorial_skip_flag, @tutorial_gacha_character_id,
         @time_offset${idVal})
     `).run(params)
@@ -1067,6 +1069,7 @@ export function updatePlayerSync(
         'totalDashes': 'total_dashes',
         'totalManaObtained': 'total_mana_obtained',
         'maxComboAchieved': 'max_combo_achieved',
+        'totalLoginDays': 'total_login_days',
         'tutorialStep': 'tutorial_step',
         'tutorialSkipFlag': 'tutorial_skip_flag',
         'tutorialGachaCharacterId': 'tutorial_gacha_character_id'
@@ -1187,7 +1190,8 @@ export function dailyResetPlayerDataSync(
             id: playerId,
             lastLoginTime: loginDate,
             bossBoostPoint: 3,
-            boostPoint: 3
+            boostPoint: 3,
+            totalLoginDays: (player.totalLoginDays ?? 0) + 1
         })
 
         // Reset daily challenge points — sync with CDN and rebuild if missing
