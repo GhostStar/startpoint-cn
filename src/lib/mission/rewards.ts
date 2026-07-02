@@ -27,11 +27,15 @@ export function getActiveMissionRewards(missionId: number, stage: number): Activ
         const amount = parseInt(row[base + 1]) || 0
         if (amount === 0) continue
 
-        const reward: ActiveMissionReward = { kind, amount }
         const itemId = row[base + 2] ? parseInt(row[base + 2]) : undefined
         const charId = row[base + 3] ? parseInt(row[base + 3]) : undefined
         const equipId = row[base + 4] ? parseInt(row[base + 4]) : undefined
 
+        // Skip item/equipment rewards with missing IDs (prevents SQL NOT NULL crash)
+        if (kind === 1 && !itemId) continue
+        if (kind === 2 && !equipId) continue
+
+        const reward: ActiveMissionReward = { kind, amount }
         if (itemId) reward.itemId = itemId
         if (charId) reward.characterId = charId
         if (equipId) reward.equipmentId = equipId
@@ -55,8 +59,12 @@ export function getAwakeMissionRewards(missionId: number, stage: number): Active
     const amount = parseInt(row[base + 1]) || 0
     if (amount === 0) return []
 
-    const reward: ActiveMissionReward = { kind, amount }
     const itemId = row[base + 2] ? parseInt(row[base + 2]) : undefined
+
+    // Skip item/equipment rewards with missing IDs (prevents SQL NOT NULL crash)
+    if ((kind === 1 || kind === 2) && !itemId) return []
+
+    const reward: ActiveMissionReward = { kind, amount }
     if (itemId) reward.itemId = itemId
     result.push(reward)
     return result
@@ -77,8 +85,12 @@ export function getEventMissionRewards(missionId: number, stage: number): Active
     const amount = parseInt(row[base + 1]) || 0
     if (amount === 0) return []
 
-    const reward: ActiveMissionReward = { kind, amount }
     const itemId = row[base + 2] ? parseInt(row[base + 2]) : undefined
+
+    // Skip item/equipment rewards with missing IDs (prevents SQL NOT NULL crash)
+    if ((kind === 1 || kind === 2) && !itemId) return []
+
+    const reward: ActiveMissionReward = { kind, amount }
     if (itemId) reward.itemId = itemId
     result.push(reward)
     return result
