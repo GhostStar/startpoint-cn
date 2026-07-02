@@ -30,10 +30,64 @@ TS 重写生成工具，替代 Python 脚本，更新 changelog：
 | L1 | 模板完整性：271 常驻全部入库，tier 分桶正确 |
 | L2 | Banner 完全校验：每个 banner 的 tier 数量、人员、UP 标记、odds、rarity sum≈1000 |
 | L3 | 新旧对比：报告缺失修复 + 角色丢失检测 + 池大小变化统计 |
+| L4 | 缺失角色报告：列出不在任何 gacha 池中的角色（含赠送/教程/特殊角色） |
+| L5 | 三源对比：Global starpoint / 旧版 CN / 新版 CN 的常驻池大小对比 |
 
 ### 1.5 revival_fes 复刻流星祭修复
 
 `revival_fes_1_character_5` 池键（gid=213, 1704）的 UP 角色存储在 CDN 外部池文件中，本地 `extractUpChars` 无法提取。从 12 个非 revival fes banner 的 UP 角色中汇总 19 个历史 fes ★5 限定角色，硬编码注入。
+
+### 1.6 常驻池时间维度
+
+**新增文件：**
+- `tools/add_available_from.ts` — 为 character_table.json 的常驻角色添加 `available_from` 字段
+
+**修改文件：**
+- `data/character_table.json` — 271 常驻新增 `available_from` 字段
+- `tools/rebuild_gacha.ts` — `buildPoolTemplate` 加 `asOfDate` + `floorDate` 参数
+
+**逻辑：**
+1. 91 个 JP 开服角色（verify from CDN gacha_odds by commit 44931d4）→ `available_from = "2019-12-01"`
+2. 其他常驻角色 → 首次 UP banner 的 endDate + 1 天
+3. `floorDate = "2021-10-26"`（CN 国服开服日）：JP 日期早于此的全部提升到此日期
+4. 生成时过滤：`available_from ≤ max(banner.startDate, floorDate)`
+
+**效果：**
+- 日服 2019-12 banner → 常驻池 ≈ 15（JP 开服量）
+- 国服 2021-10 banner → 常驻池 ≈ 228（JP 累积至此时）
+- 国服 2024-08 banner → 常驻池 = 271（全量）
+
+### 1.7 gacha.json 生成逻辑文档
+
+**数据源：**
+| 数据源 | 用途 |
+|--------|------|
+| `data/character_table.json` | 常驻池模板（含 `available_from` 时间维） |
+| `assets/cdndata/gacha.json` | 584 banner 元数据 + UP 角色列 [21-28] |
+| `assets/cdndata/gacha_feature_content.json` | UP 角色提取 |
+| `assets/cdndata/character.json` | 角色元素数据 [3] + UP 校验 |
+
+**生成流程：**
+```
+buildPoolTemplate(charTable, element?, asOfDate?, floorDate?)
+  ├─ 筛选 source=常驻卡池
+  ├─ 时间过滤: available_from ≤ max(asOfDate, floorDate)
+  ├─ 元素过滤 (optional)
+  └─ rarity → tier 分桶
+
+extractUpChars(gachaId)
+  ├─ 从 feature_content 扫描 6 位 code
+  └─ 从 gacha.json 列 [21-28] 扫描 5-6 位 code
+
+buildBanner(gachaId)
+  ├─ 解析元数据 (type, costs, dates, movie)
+  ├─ 装备池 → 硬编码 EQ_POOL
+  └─ 角色池:
+      ├─ 选模板 (全常驻 or 元素筛选)
+      ├─ 注入 UP 角色 (isRateUp, odds 计算)
+      ├─ 概率: fes 用 FES_UP_ODDS，其他用 UP_TARGETS 公式
+      └─ rarity 归一化 (sum ≈ 1000)
+```
 
 ---
 

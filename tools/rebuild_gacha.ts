@@ -16,6 +16,10 @@ const CDN_FC_PATH = path.join(ROOT, "assets/cdndata/gacha_feature_content.json")
 const CDN_CHARS_PATH = path.join(ROOT, "assets/cdndata/character.json");
 const OUTPUT_PATH = path.join(ROOT, "assets/gacha.json");
 const OLD_GACHA_PATH = path.join(ROOT, "assets/gacha_old.json");
+const GLOBAL_GACHA_PATH = path.join(ROOT, "..", "starpoint", "assets", "gacha.json");
+
+// CN launch date: JP dates before this are capped to this floor
+const CN_FLOOR = "2021-10-26";
 
 // ── Types ─────────────────────────────────────────────────────
 interface PoolItem {
@@ -46,6 +50,7 @@ interface CharacterTableEntry {
     code_name: string;
     rarity: number;
     source: string;
+    available_from?: string;
 }
 
 // ── Constants ─────────────────────────────────────────────────
@@ -180,14 +185,22 @@ function detectElement(poolKey: string): number | null {
 function buildPoolTemplate(
     charTable: CharacterTableEntry[],
     cdnChars: Record<string, any>,
-    element?: number
+    element?: number,
+    asOfDate?: string,
+    floorDate?: string
 ): Record<string, PoolItem[]> {
     const template: Record<string, PoolItem[]> = { "1": [], "2": [], "3": [] };
+
+    // Effective cutoff: max(asOfDate, floorDate) for CN timeline alignment
+    const cutoff = floorDate && asOfDate && asOfDate < floorDate ? floorDate : asOfDate;
 
     for (const item of charTable) {
         if (item.source !== "常驻卡池") continue;
         const code = String(item.code_number || "");
         if (!code) continue;
+
+        // Time filter: only include characters available at banner time
+        if (cutoff && item.available_from && item.available_from > cutoff.substring(0, 10)) continue;
 
         // Element filter (for element pickup banners)
         if (element !== undefined) {
@@ -319,7 +332,7 @@ function buildBanner(
     if (element !== null) {
         // Element pickup: use element-filtered template
         if (!elementTemplateCache[element]) {
-            elementTemplateCache[element] = buildPoolTemplate(charTable, cdnChars, element);
+            elementTemplateCache[element] = buildPoolTemplate(charTable, cdnChars, element, startDate, CN_FLOOR);
         }
         poolTemplate = elementTemplateCache[element];
         tierNonUpBasis = elementTemplateCache[element];
@@ -687,7 +700,7 @@ function main() {
     console.log(`  old gacha.json (comparison): ${oldGacha ? Object.keys(oldGacha).length + " banners" : "N/A"}`);
 
     // ── Build pool template
-    const template = buildPoolTemplate(charTable, cdnChars);
+    const template = buildPoolTemplate(charTable, cdnChars, undefined, undefined, CN_FLOOR);
     console.log(`\nTemplate pool: ★5=${template["1"].length} ★4=${template["2"].length} ★3=${template["3"].length}` +
         ` total=${template["1"].length + template["2"].length + template["3"].length}`);
 
@@ -780,6 +793,74 @@ function main() {
 
     // ── L3: Compare with old gacha.json
     validateL3(output, oldGacha);
+
+    // ── L4: Missing character report ────────────────────────────
+    console.log("\n--- L4: Characters NOT in any gacha pool ---");
+    const allCharIds = new Set<number>();
+    for (const [gid, banner] of Object.entries(output)) {
+        if (banner.type !== 0) continue;
+        for (const items of Object.values(banner.pool)) {
+            for (const item of items) allCharIds.add(item.id);
+        }
+    }
+
+    let missingPermCount = 0;
+    for (const char of charTable) {
+        if (char.source !== "常驻卡池") continue;
+        const id = parseInt(String(char.code_number));
+        if (!allCharIds.has(id)) {
+            missingPermCount++;
+            console.log(`  MISSING permanent: ${char.code_number} ${char.name} ★${char.rarity}`);
+        }
+    }
+
+    // Also list non-gacha characters (赠送/教程/特殊)
+    const nonGachaChars = charTable.filter(c => c.source !== "常驻卡池" && c.source !== "限定卡池" && c.source !== "联动");
+    console.log(`\n  Permanent chars missing from all pools: ${missingPermCount}`);
+    console.log(`  Non-gacha characters (赠送/教程/其他):`);
+    for (const char of nonGachaChars) {
+        console.log(`    ${char.code_number} ${char.name} ★${char.rarity} source=${char.source}`);
+    }
+
+    // ── L5: Three-source comparison (old CN / global / new) ─────
+    console.log("\n--- L5: Three-source comparison ---");
+    const globalExists = fs.existsSync(GLOBAL_GACHA_PATH);
+    if (globalExists) {
+        const globalGacha: Record<string, GachaBanner> = JSON.parse(fs.readFileSync(GLOBAL_GACHA_PATH, "utf-8"));
+        const globalB1 = globalGacha["1"];
+        if (globalB1 && globalB1.pool) {
+            const global5 = new Set((globalB1.pool["1"] || []).map(i => i.id));
+            const global4 = new Set((globalB1.pool["2"] || []).map(i => i.id));
+            const global3 = new Set((globalB1.pool["3"] || []).map(i => i.id));
+            const globalAll = new Set([...global5, ...global4, ...global3]);
+
+            const oldExists = fs.existsSync(OLD_GACHA_PATH);
+            let oldAll: Set<number> = new Set();
+            if (oldExists) {
+                const oldGacha = JSON.parse(fs.readFileSync(OLD_GACHA_PATH, "utf-8")) as Record<string, GachaBanner>;
+                const oldB1 = oldGacha["1"];
+                if (oldB1 && oldB1.pool) {
+                    for (const items of Object.values(oldB1.pool)) {
+                        for (const item of items) oldAll.add(item.id);
+                    }
+                }
+            }
+
+            const newB1 = output["1"];
+            const newAll = new Set<number>();
+            if (newB1 && newB1.pool) {
+                for (const items of Object.values(newB1.pool)) {
+                    for (const item of items) newAll.add(item.id);
+                }
+            }
+
+            console.log(`  Global banner1 permanent: ★5=${global5.size} ★4=${global4.size} ★3=${global3.size} total=${globalAll.size}`);
+            console.log(`  Old CN banner1 permanent: ${oldAll.size}`);
+            console.log(`  New CN banner1 permanent: ${newAll.size}`);
+        }
+    } else {
+        console.log("  Global gacha.json not found, skipped.");
+    }
 
     // ── Write output
     fs.writeFileSync(OUTPUT_PATH, JSON.stringify(output, null, 2));
