@@ -142,8 +142,7 @@ const routes = async (fastify: FastifyInstance) => {
         return reply.status(200).send({
             "data_headers": generateDataHeaders({ viewer_id: viewerId }),
             "data": {
-                "mission_progress_list": missionProgressList,
-                "mail_arrived": false
+                "mission_progress_list": missionProgressList
             }
         })
     })
@@ -188,8 +187,7 @@ const routes = async (fastify: FastifyInstance) => {
             "data_headers": generateDataHeaders({ viewer_id: viewerId }),
             "data": {
                 "mission_info": [],
-                "degree_list": [],
-                "mail_arrived": false
+                "degree_list": []
             }
         })
     })
