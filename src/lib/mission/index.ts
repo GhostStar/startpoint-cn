@@ -36,9 +36,9 @@ export function isActiveMissionId(id: number | string): boolean {
 }
 
 export function filterToActiveMissions<T>(missions: Record<string, T>): Record<string, T> {
-    const out: Record<string, T> = {}
-    for (const [id, value] of Object.entries(missions)) {
-        if (activeMissionIdSet.has(Number(id))) out[id] = value
-    }
-    return out
+    // No-op: return all missions unmodified.
+    // Previously filtered to only active_reward entries, but this excluded
+    // category 9 (awake) missions from the /load response, causing the
+    // ability awakening page to show "未完成" even when all missions are done.
+    return missions
 }
