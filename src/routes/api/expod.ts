@@ -1,7 +1,11 @@
 // Handles the insertion of mana into characters.
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getAccountPlayers, getPlayerCharacterSync, getPlayerCharactersSync, getPlayerItemsSync, getPlayerSync, getSession, givePlayerItemSync, updatePlayerCharacterSync, updatePlayerSync } from "../../data/wdfpData";
+import { getAccountPlayers } from "../../data/domains/account"
+import { getPlayerCharacterSync, getPlayerCharactersSync, updatePlayerCharacterSync } from "../../data/domains/character"
+import { getPlayerItemsSync, givePlayerItemSync } from "../../data/domains/item"
+import { getPlayerSync, updatePlayerSync } from "../../data/domains/player"
+import { getSession } from "../../data/domains/session"
 import { characterMaxOverLimits } from "./character";
 import { givePlayerCharactersExpSync } from "../../lib/character";
 import { generateDataHeaders, getServerTime } from "../../utils";

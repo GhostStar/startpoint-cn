@@ -1,6 +1,10 @@
 // Active mission reward claiming endpoint
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getPlayerActiveMissionsSync, getSession, getPlayerSync, updatePlayerSync, givePlayerItemSync, insertDefaultPlayerCharacterSync, updatePlayerActiveMissionStageSync } from "../../data/wdfpData";
+import { getPlayerActiveMissionsSync, updatePlayerActiveMissionStageSync } from "../../data/domains/mission"
+import { getPlayerSync, updatePlayerSync } from "../../data/domains/player"
+import { getSession } from "../../data/domains/session"
+import { givePlayerItemSync } from "../../data/domains/item"
+import { insertDefaultPlayerCharacterSync } from "../../data/domains/character"
 import { generateDataHeaders, getServerTime } from "../../utils";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { getActiveMissionRewards, getAwakeMissionRewards } from "../../lib/mission/index";

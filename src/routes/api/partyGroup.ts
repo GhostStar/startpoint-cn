@@ -1,7 +1,10 @@
 // Handles the insertion of mana into characters.
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getAccountPlayers, getPlayerSync, getSession, updatePlayerPartyGroupSync } from "../../data/wdfpData";
+import { getAccountPlayers } from "../../data/domains/account"
+import { getPlayerSync } from "../../data/domains/player"
+import { getSession } from "../../data/domains/session"
+import { updatePlayerPartyGroupSync } from "../../data/domains/party"
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { generateDataHeaders } from "../../utils";
 

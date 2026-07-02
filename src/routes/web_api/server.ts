@@ -1,9 +1,11 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { getServerTime, getServerDate, setServerTime, getTimeOffset } from "../../utils";
-import { getAllAccountsSync, getAccountPlayersSync, getPlayerSync, getPlayerCharactersSync, deletePlayerSync, deleteAccountSync, updatePlayerSync, insertDefaultPlayerSync, replacePlayerDataSync } from "../../data/wdfpData";
+import { deleteAccountSync, getAccountPlayersSync, getAllAccountsSync } from "../../data/domains/account"
+import { deletePlayerSync, getPlayerSync, insertDefaultPlayerSync, replacePlayerDataSync, updatePlayerSync } from "../../data/domains/player"
+import { getAllDeviceBindingsSync, updateDeviceBindingNameSync } from "../../data/domains/session"
+import { getPlayerCharactersSync } from "../../data/domains/character"
 import { getClientSerializedData, deserializePlayerData } from "../../data/utils";
 import { getActivePlayerId, setActivePlayerId, getSelectedAccountId, setSelectedAccountId, saveTimeOffset, saveAccountDefaultPlayer } from "../../data/activeAccount";
-import { updateDeviceBindingNameSync, getAllDeviceBindingsSync } from "../../data/wdfpData";
 
 interface TimeQuery {
     time: string | undefined

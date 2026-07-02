@@ -1,5 +1,5 @@
 import { getEquipmentDissolveSync } from "../assets"
-import { getPlayerEquipmentListSync, updatePlayerEquipmentSync } from "../../data/wdfpData"
+import { getPlayerEquipmentListSync, updatePlayerEquipmentSync } from "../../data/domains/equipment"
 import { SaveValidator } from "./types"
 
 /**

@@ -3,9 +3,10 @@
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
-    getPlayerEquipmentSync, getSession, givePlayerItemSync,
-    updatePlayerEquipmentSync
-} from "../../data/wdfpData";
+    getPlayerEquipmentSync, updatePlayerEquipmentSync,
+} from "../../data/domains/equipment";
+import { givePlayerItemSync } from "../../data/domains/item";
+import { getSession } from "../../data/domains/session";
 import { generateDataHeaders } from "../../utils";
 import { clientSerializeEquipment, buildFullEquipmentList } from "../../lib/equipment";
 import { calculateDissolveRewards } from "../../lib/equipment-dissolve";

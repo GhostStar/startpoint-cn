@@ -3,7 +3,10 @@
  * Returns player profile info, settings, and party groups.
  */
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getSession, getPlayerSync, getPlayerCharactersSync, getPlayerPartyGroupListSync, updatePlayerSync } from "../../data/wdfpData";
+import { getPlayerCharactersSync } from "../../data/domains/character"
+import { getPlayerPartyGroupListSync } from "../../data/domains/party"
+import { getPlayerSync, updatePlayerSync } from "../../data/domains/player"
+import { getSession } from "../../data/domains/session"
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 // removed getAccountPlayers "../../data/wdfpData";
 import { generateDataHeaders } from "../../utils";

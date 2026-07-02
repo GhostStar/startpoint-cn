@@ -2,7 +2,13 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { readFileSync } from "fs";
 import path from "path";
 import { staticPagesDir } from ".";
-import { getAllPlayersSync, getPlayerSync, getPlayerCharactersSync, getPlayerItemsSync, getPlayerEquipmentListSync, getAllAccountsSync, getAccountPlayersSync, getPlayerQuestProgressSync, getPlayerDrawnQuestsSync, getAllDeviceBindingsSync, getSessionByAccountIdSync } from "../../data/wdfpData";
+import { getAccountPlayersSync, getAllAccountsSync } from "../../data/domains/account"
+import { getAllDeviceBindingsSync, getSessionByAccountIdSync } from "../../data/domains/session"
+import { getAllPlayersSync, getPlayerSync } from "../../data/domains/player"
+import { getPlayerCharactersSync } from "../../data/domains/character"
+import { getPlayerDrawnQuestsSync, getPlayerQuestProgressSync } from "../../data/domains/quest"
+import { getPlayerEquipmentListSync } from "../../data/domains/equipment"
+import { getPlayerItemsSync } from "../../data/domains/item"
 import { SessionType } from "../../data/types";
 import { getActivePlayerId, getSelectedAccountId, getAccountDefaultPlayer } from "../../data/activeAccount";
 import characterTable from "../../../docs/generated/character_table.json";

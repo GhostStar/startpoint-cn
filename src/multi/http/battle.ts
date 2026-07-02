@@ -7,14 +7,18 @@ import { insertActiveQuest, activeQuests } from "../../routes/api/singleBattleQu
 import {
     deletePlayerActiveQuestSync,
     updatePlayerActiveQuestContinueCountSync,
+} from "../../data/domains/quest_active";
+import { incrementPlayerCharacterClearSync } from "../../data/domains/character_clear";
+import {
     getPlayerSync,
+    updatePlayerSync,
+} from "../../data/domains/player";
+import {
     getPlayerSingleQuestProgressSync,
     insertPlayerQuestProgressSync,
     updatePlayerQuestProgressSync,
-    updatePlayerSync,
-    getSession,
-    incrementPlayerCharacterClearSync,
-} from "../../data/wdfpData";
+} from "../../data/domains/quest";
+import { getSession } from "../../data/domains/session";
 import { getQuestFromCategorySync } from "../../lib/assets";
 import { getCharactersEvolutionImgLevels, givePlayerCharactersExpSync } from "../../lib/character";
 import { givePlayerRewardsSync, givePlayerRewardSync, givePlayerScoreRewardsSync } from "../../lib/quest";

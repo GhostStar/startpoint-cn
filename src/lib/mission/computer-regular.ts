@@ -1,6 +1,7 @@
 // Regular & Daily mission computer (categories 1, 2)
 
-import { getPlayerSync, getPlayerQuestProgressSync } from "../../data/wdfpData"
+import { getPlayerQuestProgressSync } from "../../data/domains/quest"
+import { getPlayerSync } from "../../data/domains/player"
 import { isComputablePattern, getMissionPattern } from "./patterns"
 import { getSnapshot } from "./snapshot"
 import type { MissionComputer, CategoryContext } from "./types"

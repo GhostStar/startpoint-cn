@@ -2,7 +2,11 @@
 // Uses lib/mission/ computer registry for compute dispatch
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getPlayerActiveMissionsSync, getSession, givePlayerItemSync, insertDefaultPlayerCharacterSync, updatePlayerSync, updatePlayerActiveMissionSync, updatePlayerActiveMissionStageSync } from "../../data/wdfpData";
+import { getPlayerActiveMissionsSync, updatePlayerActiveMissionStageSync, updatePlayerActiveMissionSync } from "../../data/domains/mission"
+import { getSession } from "../../data/domains/session"
+import { givePlayerItemSync } from "../../data/domains/item"
+import { insertDefaultPlayerCharacterSync } from "../../data/domains/character"
+import { updatePlayerSync } from "../../data/domains/player"
 import { generateDataHeaders } from "../../utils";
 import { getComputer, getMissionIdsByCategory, getMissionsByPattern, getCurrentStage, getActiveMissionRewards, getAwakeMissionRewards, getEventMissionRewards, getCompletedStageNumbers, getCharacterIdFromMission } from "../../lib/mission/index";
 import { resolvePlayerIdSync } from "../../data/activeAccount";

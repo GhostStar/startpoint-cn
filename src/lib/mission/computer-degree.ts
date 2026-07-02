@@ -1,6 +1,6 @@
 // Degree mission computer (category 5)
 
-import { getPlayerSync } from "../../data/wdfpData"
+import { getPlayerSync } from "../../data/domains/player"
 import { getRankDegree } from "../stamina"
 import type { MissionComputer, CategoryContext } from "./types"
 

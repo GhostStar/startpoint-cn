@@ -1,7 +1,8 @@
 // Event mission computer (category 3)
 // Uses pre-generated mission_event_quest_map.json for O(1) pattern→quest lookup
 
-import { getPlayerSync, getPlayerQuestProgressSync } from "../../data/wdfpData"
+import { getPlayerQuestProgressSync } from "../../data/domains/quest"
+import { getPlayerSync } from "../../data/domains/player"
 import { getMissionPattern } from "./patterns"
 import questMap from "../../../assets/mission_event_quest_map.json"
 import type { MissionComputer, CategoryContext } from "./types"

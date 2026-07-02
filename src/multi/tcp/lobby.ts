@@ -4,7 +4,7 @@ import { getRoom, updateRoomState } from "../room/manager"
 import { NpcMateProvider } from "../npc/controller"
 import { buildRealParty } from "./handshake"
 import { PartyCategory } from "../../data/types"
-import { getPlayerPartyGroupListSync } from "../../data/wdfpData"
+import { getPlayerPartyGroupListSync } from "../../data/domains/party"
 
 const NPC_JOIN_DELAY_MS = parseInt(process.env.NPC_JOIN_DELAY_MS || "2000")
 const NPC_READY_DELAY_MS = parseInt(process.env.NPC_READY_DELAY_MS || "500")

@@ -1,5 +1,5 @@
 import { PlayerEquipment } from "../data/types";
-import { getPlayerEquipmentListSync, getPlayerEquipmentSync, insertPlayerEquipmentSync, updatePlayerEquipmentSync } from "../data/wdfpData";
+import { getPlayerEquipmentListSync, getPlayerEquipmentSync, insertPlayerEquipmentSync, updatePlayerEquipmentSync } from "../data/domains/equipment"
 
 /**
  * Serializes a PlayerEquipment object for sending to the game client.

@@ -1,5 +1,8 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getPlayerSync, getPlayerItemSync, getPlayerQuestProgressSync, getSession, insertPlayerQuestProgressSync, updatePlayerItemSync, updatePlayerQuestProgressSync, updatePlayerSync } from "../../data/wdfpData";
+import { getPlayerItemSync, updatePlayerItemSync } from "../../data/domains/item"
+import { getPlayerQuestProgressSync, insertPlayerQuestProgressSync, updatePlayerQuestProgressSync } from "../../data/domains/quest"
+import { getPlayerSync, updatePlayerSync } from "../../data/domains/player"
+import { getSession } from "../../data/domains/session"
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { getQuestFromCategorySync } from "../../lib/assets";
 import { generateDataHeaders } from "../../utils";

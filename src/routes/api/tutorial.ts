@@ -1,5 +1,8 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getPlayerSync, getPlayerTriggeredTutorialsSync, getSession, insertPlayerTriggeredTutorialSync, updatePlayerSync, insertMailSync, insertReceiveHistorySync, MailType } from "../../data/wdfpData";
+import { MailType, insertMailSync, insertReceiveHistorySync } from "../../data/domains/mail"
+import { getPlayerSync, updatePlayerSync } from "../../data/domains/player"
+import { getPlayerTriggeredTutorialsSync, insertPlayerTriggeredTutorialSync } from "../../data/domains/tutorial"
+import { getSession } from "../../data/domains/session"
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { generateDataHeaders, getServerTime } from "../../utils";
 import { getGachaSync } from "../../lib/assets";

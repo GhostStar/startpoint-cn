@@ -3,10 +3,13 @@
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import {
-    getPlayerEquipmentSync, getPlayerItemSync, getPlayerSync, getSession,
-    givePlayerItemSync, playerOwnsEquipmentSync, updatePlayerEquipmentSync,
-    updatePlayerItemSync
-} from "../../data/wdfpData";
+    getPlayerEquipmentSync, playerOwnsEquipmentSync, updatePlayerEquipmentSync,
+} from "../../data/domains/equipment";
+import {
+    getPlayerItemSync, givePlayerItemSync, updatePlayerItemSync,
+} from "../../data/domains/item";
+import { getPlayerSync } from "../../data/domains/player";
+import { getSession } from "../../data/domains/session";
 import { generateDataHeaders } from "../../utils";
 import { clientSerializeEquipment, buildFullEquipmentList } from "../../lib/equipment";
 import { getEquipmentDissolveSync, getConfigSync, getEquipmentCraftSync } from "../../lib/assets";

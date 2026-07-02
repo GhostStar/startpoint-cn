@@ -1,6 +1,6 @@
 // Fallback computer — returns DB-stored progress for unhandled categories
 
-import { getPlayerSync } from "../../data/wdfpData"
+import { getPlayerSync } from "../../data/domains/player"
 import type { MissionComputer, CategoryContext } from "./types"
 
 function buildMinimal(playerId: number): CategoryContext {

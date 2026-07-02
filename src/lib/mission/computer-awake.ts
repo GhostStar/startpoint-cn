@@ -1,6 +1,9 @@
 // Character awakening mission computer (category 9)
 
-import { getPlayerSync, getPlayerQuestProgressSync, getPlayerCharacterSync, getPlayerCharactersSync, getPlayerCharacterClearSync } from "../../data/wdfpData"
+import { getPlayerCharacterClearSync } from "../../data/domains/character_clear"
+import { getPlayerCharacterSync, getPlayerCharactersSync } from "../../data/domains/character"
+import { getPlayerQuestProgressSync } from "../../data/domains/quest"
+import { getPlayerSync } from "../../data/domains/player"
 import { getDb } from "../../data/db"
 import { getCharacterStoryQuestIds, getCharacterIdFromMission } from "./character-queries"
 import type { MissionComputer, CategoryContext } from "./types"

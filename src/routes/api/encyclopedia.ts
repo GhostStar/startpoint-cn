@@ -1,7 +1,7 @@
 // Handles the insertion of mana into characters.
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getSession } from "../../data/wdfpData";
+import { getSession } from "../../data/domains/session"
 import { generateDataHeaders } from "../../utils";
 import encyclopedia from "../../../assets/encyclopedia.json";
 

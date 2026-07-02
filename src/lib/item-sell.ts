@@ -1,5 +1,7 @@
 import { getItemSaleSync } from "./assets";
-import { countAbilitySoulUsedInPartiesSync, getPlayerItemSync, getPlayerSync, updatePlayerItemSync, updatePlayerSync } from "../data/wdfpData";
+import { countAbilitySoulUsedInPartiesSync } from "../data/domains/party"
+import { getPlayerItemSync, updatePlayerItemSync } from "../data/domains/item"
+import { getPlayerSync, updatePlayerSync } from "../data/domains/player"
 import { getConfigSync } from "./assets";
 
 export type ItemSellResult =

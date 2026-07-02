@@ -1,4 +1,5 @@
-import { getPlayerSync, getSession } from "../../../data/wdfpData"
+import { getPlayerSync } from "../../../data/domains/player"
+import { getSession } from "../../../data/domains/session"
 import { resolvePlayerIdSync } from "../../../data/activeAccount"
 import type { Player } from "../../../data/types"
 

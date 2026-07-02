@@ -1,6 +1,8 @@
 // Handles item usage (stamina recovery items, etc.)
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getPlayerItemSync, getPlayerSync, getSession, updatePlayerItemSync, updatePlayerSync } from "../../data/wdfpData";
+import { getPlayerItemSync, updatePlayerItemSync } from "../../data/domains/item"
+import { getPlayerSync, updatePlayerSync } from "../../data/domains/player"
+import { getSession } from "../../data/domains/session"
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { getConfigSync } from "../../lib/assets";
 import { generateDataHeaders, getServerTime, realToVirtual } from "../../utils";

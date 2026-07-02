@@ -1,7 +1,14 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { getMergedPlayerDataSync, reviveMergedPlayerDates } from "../../data/utils";
 import { validatePlayerField, VALID_CHARACTER_IDS, VALID_ITEM_IDS, MAX_INT } from "./validation";
-import { getAllPlayersSync, replacePlayerDataSync, getPlayerSync, updatePlayerSync, getPlayerCharactersSync, getPlayerItemsSync, getPlayerEquipmentListSync, insertPlayerCharacterSync, insertDefaultPlayerCharacterSync, updatePlayerItemSync, getPlayerDailyChallengePointListSync, insertPlayerDailyChallengePointListSync, updatePlayerDailyChallengePointSync, deleteAllPlayerMailSync, getDb, getDefaultPlayerPartyGroupsSync, insertPlayerPartyGroupListSync, dailyResetPlayerDataSync, getPlayerQuestProgressSync } from "../../data/wdfpData";
+import { dailyResetPlayerDataSync, getAllPlayersSync, getDefaultPlayerPartyGroupsSync, getPlayerDailyChallengePointListSync, getPlayerSync, insertPlayerDailyChallengePointListSync, replacePlayerDataSync, updatePlayerDailyChallengePointSync, updatePlayerSync } from "../../data/domains/player"
+import { deleteAllPlayerMailSync } from "../../data/domains/mail"
+import { getDb } from "../../data/db"
+import { getPlayerCharactersSync, insertDefaultPlayerCharacterSync, insertPlayerCharacterSync } from "../../data/domains/character"
+import { getPlayerEquipmentListSync } from "../../data/domains/equipment"
+import { getPlayerItemsSync, updatePlayerItemSync } from "../../data/domains/item"
+import { getPlayerQuestProgressSync } from "../../data/domains/quest"
+import { insertPlayerPartyGroupListSync } from "../../data/domains/party"
 import { PartyCategory } from "../../data/types";
 import { takeSnapshot } from "../../lib/mission/snapshot";
 import { getServerDate } from "../../utils";

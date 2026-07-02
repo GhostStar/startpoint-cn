@@ -1,7 +1,13 @@
 // Handles the insertion of mana into characters.
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getAccountPlayers, getPlayerBoxGachaDrawnRewardsSync, getPlayerBoxGachaSync, getPlayerItemSync, getPlayerSync, getSession, insertPlayerBoxGachaDrawnRewardSync, insertPlayerBoxGachaSync, playerOwnsEquipmentSync, updatePlayerBoxGachaDrawnRewardSync, updatePlayerBoxGachaSync, updatePlayerEquipmentSync, updatePlayerItemSync, updatePlayerPartyGroupSync } from "../../data/wdfpData";
+import { getAccountPlayers } from "../../data/domains/account"
+import { getPlayerBoxGachaDrawnRewardsSync, getPlayerBoxGachaSync, insertPlayerBoxGachaDrawnRewardSync, insertPlayerBoxGachaSync, updatePlayerBoxGachaDrawnRewardSync, updatePlayerBoxGachaSync } from "../../data/domains/boxGacha"
+import { getPlayerItemSync, updatePlayerItemSync } from "../../data/domains/item"
+import { getPlayerSync } from "../../data/domains/player"
+import { getSession } from "../../data/domains/session"
+import { playerOwnsEquipmentSync, updatePlayerEquipmentSync } from "../../data/domains/equipment"
+import { updatePlayerPartyGroupSync } from "../../data/domains/party"
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { generateDataHeaders, getServerTime } from "../../utils";
 import { getBoxGachaSync } from "../../lib/assets";

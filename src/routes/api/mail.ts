@@ -1,6 +1,10 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getPlayerSync, getSession, getPlayerMailsSync, getPlayerMailCountSync, receiveMailSync, receiveAllMailsSync, insertDefaultPlayerCharacterSync, updatePlayerSync, insertPlayerEquipmentSync, insertReceiveHistorySync, MailType, RawPlayerMail } from "../../data/wdfpData";
-import { getPlayerItemSync, givePlayerItemSync, getPlayerCharacterSync, updatePlayerCharacterSync } from "../../data/wdfpData";
+import { MailType, RawPlayerMail, getPlayerMailCountSync, getPlayerMailsSync, insertReceiveHistorySync, receiveAllMailsSync, receiveMailSync } from "../../data/domains/mail"
+import { getPlayerCharacterSync, insertDefaultPlayerCharacterSync, updatePlayerCharacterSync } from "../../data/domains/character"
+import { getPlayerItemSync, givePlayerItemSync } from "../../data/domains/item"
+import { getPlayerSync, updatePlayerSync } from "../../data/domains/player"
+import { getSession } from "../../data/domains/session"
+import { insertPlayerEquipmentSync } from "../../data/domains/equipment"
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { generateDataHeaders, getServerTime } from "../../utils";
 import { clientSerializeDate } from "../../data/utils";

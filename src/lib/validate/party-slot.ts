@@ -1,4 +1,4 @@
-import { getPlayerSync, updatePlayerSync } from "../../data/wdfpData"
+import { getPlayerSync, updatePlayerSync } from "../../data/domains/player"
 import { SaveValidator } from "./types"
 
 const PARTY_SLOT_MAX = 120

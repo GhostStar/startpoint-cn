@@ -1,5 +1,13 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { deletePlayerRushEventPlayedPartyListSync, getPlayerActiveQuestSync, insertPlayerActiveQuestSync, deletePlayerActiveQuestSync, updatePlayerActiveQuestContinueCountSync, getPlayerDailyChallengePointListSync, getPlayerItemSync, getPlayerRushEventPlayedPartiesSync, getPlayerRushEventSync, getPlayerSingleQuestProgressSync, getPlayerSync, getSession, givePlayerItemSync, insertPlayerQuestProgressSync, insertPlayerRushEventClearedFolderSync, insertPlayerRushEventPlayedPartySync, incrementPlayerCharacterClearSync, updatePlayerDailyChallengePointSync, updatePlayerEquipmentSync, updatePlayerItemSync, updatePlayerQuestProgressSync, updatePlayerRushEventSync, updatePlayerSync, upsertPlayerCarnivalEventRecordSync } from "../../data/wdfpData";
+import { deletePlayerActiveQuestSync, getPlayerActiveQuestSync, insertPlayerActiveQuestSync, updatePlayerActiveQuestContinueCountSync } from "../../data/domains/quest_active"
+import { deletePlayerRushEventPlayedPartyListSync, getPlayerRushEventPlayedPartiesSync, getPlayerRushEventSync, insertPlayerRushEventClearedFolderSync, insertPlayerRushEventPlayedPartySync, updatePlayerRushEventSync } from "../../data/domains/rushEvent"
+import { getPlayerDailyChallengePointListSync, getPlayerSync, updatePlayerDailyChallengePointSync, updatePlayerSync } from "../../data/domains/player"
+import { getPlayerItemSync, givePlayerItemSync, updatePlayerItemSync } from "../../data/domains/item"
+import { getPlayerSingleQuestProgressSync, insertPlayerQuestProgressSync, updatePlayerQuestProgressSync } from "../../data/domains/quest"
+import { getSession } from "../../data/domains/session"
+import { incrementPlayerCharacterClearSync } from "../../data/domains/character_clear"
+import { updatePlayerEquipmentSync } from "../../data/domains/equipment"
+import { upsertPlayerCarnivalEventRecordSync } from "../../data/domains/carnivalEvent"
 import { getQuestFromCategorySync, getRushEventFolderClearRewards } from "../../lib/assets";
 import { getCharactersEvolutionImgLevels, givePlayerCharactersExpSync } from "../../lib/character";
 import { givePlayerRewardsSync, givePlayerRewardSync, givePlayerScoreRewardsSync } from "../../lib/quest";

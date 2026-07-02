@@ -1,5 +1,6 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getSession, getReceiveHistorySync } from "../../data/wdfpData";
+import { getReceiveHistorySync } from "../../data/domains/mail"
+import { getSession } from "../../data/domains/session"
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { generateDataHeaders } from "../../utils";
 

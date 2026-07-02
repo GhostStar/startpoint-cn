@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getSession } from "../../data/wdfpData";
+import { getSession } from "../../data/domains/session"
 import { generateDataHeaders } from "../../utils";
 
 interface StartBody {

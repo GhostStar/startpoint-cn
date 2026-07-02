@@ -1,7 +1,11 @@
 // Handles the insertion of mana into characters.
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getAccountPlayers, getPlayerCharacterManaNodesSync, getPlayerCharacterSync, getPlayerCharactersManaNodesSync, getPlayerCharactersSync, getPlayerItemSync, getPlayerSync, getSession, givePlayerItemSync, hasPlayerUnlockedCharacterManaNodeSync, insertPlayerCharacterBondTokenSync, insertPlayerCharacterManaNodesSync, updatePlayerCharacterBondTokenSync, updatePlayerCharacterSync, updatePlayerItemSync, updatePlayerSync } from "../../data/wdfpData";
+import { getAccountPlayers } from "../../data/domains/account"
+import { getPlayerCharacterManaNodesSync, getPlayerCharacterSync, getPlayerCharactersManaNodesSync, getPlayerCharactersSync, hasPlayerUnlockedCharacterManaNodeSync, insertPlayerCharacterBondTokenSync, insertPlayerCharacterManaNodesSync, updatePlayerCharacterBondTokenSync, updatePlayerCharacterSync } from "../../data/domains/character"
+import { getPlayerItemSync, givePlayerItemSync, updatePlayerItemSync } from "../../data/domains/item"
+import { getPlayerSync, updatePlayerSync } from "../../data/domains/player"
+import { getSession } from "../../data/domains/session"
 import { generateDataHeaders } from "../../utils";
 import { getCharacterDataSync, getCharacterManaBoardCountSync, getCharacterManaNodeSync, getCharacterManaNodesSync } from "../../lib/assets";
 import { characterExpCaps, givePlayerCharacterSync } from "../../lib/character";

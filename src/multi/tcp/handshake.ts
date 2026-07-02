@@ -8,13 +8,21 @@
 import * as net from "net"
 import {
     getSession,
-    getAccountPlayers,
+} from "../../data/domains/session"
+import { getAccountPlayers } from "../../data/domains/account"
+import {
     getPlayerSync,
+} from "../../data/domains/player"
+import {
     getPlayerPartyGroupListSync,
+} from "../../data/domains/party"
+import {
     getPlayerCharacterSync,
     getPlayerCharacterManaNodesSync,
+} from "../../data/domains/character"
+import {
     getPlayerEquipmentSync,
-} from "../../data/wdfpData"
+} from "../../data/domains/equipment"
 import { PartyCategory, PlayerParty } from "../../data/types"
 import { sessionManager } from "../state/SessionManager"
 import type { SessionClient } from "../state/SessionManager"

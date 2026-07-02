@@ -1,7 +1,9 @@
 // Handles mail.
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getAccountPlayers, getPlayerQuestProgressSync, getPlayerSingleQuestProgressSync, getSession } from "../../data/wdfpData";
+import { getAccountPlayers } from "../../data/domains/account"
+import { getPlayerQuestProgressSync, getPlayerSingleQuestProgressSync } from "../../data/domains/quest"
+import { getSession } from "../../data/domains/session"
 import { generateDataHeaders } from "../../utils";
 import { QuestCategory } from "../../lib/types";
 import { PlayerQuestProgress } from "../../data/types";

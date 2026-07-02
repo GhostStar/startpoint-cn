@@ -2,7 +2,7 @@
 // Leader (position 0) tracked separately for "以X为队长" tasks
 // Other party members for "队伍中编有X" tasks
 
-import { incrementPlayerCharacterClearSync } from "../../../data/wdfpData"
+import { incrementPlayerCharacterClearSync } from "../../../data/domains/character_clear"
 import type { FinishContext } from "./types"
 
 export function trackCharacterClears(ctx: FinishContext): void {

@@ -2,7 +2,8 @@
 // Returns active_mission_list (Array format for data.active_mission_list)
 // and mana_board_awake per character (for data.character_list[i].mana_board_awake)
 
-import { getPlayerActiveMissionsSync, getPlayerCharactersSync } from "../../data/wdfpData"
+import { getPlayerActiveMissionsSync } from "../../data/domains/mission"
+import { getPlayerCharactersSync } from "../../data/domains/character"
 import { getComputer } from "./registry"
 import { getMissionIdsByCategory, getCompletedStageNumbers, getMissionStageIds } from "./stages"
 import { getCharacterIdFromMission } from "./character-queries"

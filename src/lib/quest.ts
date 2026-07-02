@@ -1,5 +1,7 @@
 import { randomInt } from "crypto";
-import { getPlayerCharacterSync, getPlayerSync, givePlayerItemSync, updatePlayerSync } from "../data/wdfpData";
+import { getPlayerCharacterSync } from "../data/domains/character"
+import { getPlayerSync, updatePlayerSync } from "../data/domains/player"
+import { givePlayerItemSync } from "../data/domains/item"
 import { getRareScoreRewardGroup } from "./assets";
 import { givePlayerCharacterSync } from "./character";
 import { givePlayerEquipmentSync } from "./equipment";

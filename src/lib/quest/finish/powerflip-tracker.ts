@@ -1,6 +1,6 @@
 // Accumulates zone-level powerflip and dash counters for mission progress
 
-import { updatePlayerSync } from "../../../data/wdfpData"
+import { updatePlayerSync } from "../../../data/domains/player"
 import type { FinishContext } from "./types"
 
 export function trackPowerflip(ctx: FinishContext): void {

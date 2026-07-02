@@ -1,6 +1,8 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { generateDataHeaders, generateViewerId } from "../../utils";
-import { insertAccountSync, getAccountSync, insertDefaultPlayerSync, getPlayerSync, insertSessionWithToken, updateAccountSync, getDeviceBindingSync, insertDeviceBindingSync, deleteDeviceBindingSync, deleteAccountSessionsOfTypeSync, getAccountSessionsOfTypeSync } from "../../data/wdfpData";
+import { deleteAccountSessionsOfTypeSync, deleteDeviceBindingSync, getAccountSessionsOfTypeSync, getDeviceBindingSync, insertDeviceBindingSync, insertSessionWithToken } from "../../data/domains/session"
+import { getAccountSync, insertAccountSync, updateAccountSync } from "../../data/domains/account"
+import { getPlayerSync, insertDefaultPlayerSync } from "../../data/domains/player"
 import { SessionType } from "../../data/types";
 import { saveAccountDefaultPlayer } from "../../data/activeAccount";
 
