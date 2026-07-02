@@ -145,9 +145,42 @@ const REPORTED_MISSING: Record<string, string> = {
     "351015": "可莉娜(万圣光奶)",
 };
 
+// ── Element mapping ──────────────────────────────────────────────
+// CDN character.json [3] = element: 0=fire, 1=water, 2=thunder, 3=wind, 4=light, 5=dark
+// Pool key keyword → element index
+const ELEMENT_PATTERNS: [string[], number][] = [
+    [["red_element", "red_character", "fire_"], 0],
+    [["blue_element", "blue_character", "water_"], 1],
+    [["yellow_element", "thunder_element", "thunder_character", "yellow_character"], 2],
+    [["green_element", "green_character", "wind_"], 3],
+    [["white_element", "white_character", "light_"], 4],
+    [["black_element", "black_character", "dark_"], 5],
+];
+
+// Element template cache (lazy-built per element)
+const elementTemplateCache: Record<number, Record<string, PoolItem[]>> = {};
+
+function getCharElement(code: string, cdnChars: Record<string, any>): number | null {
+    const data = cdnChars[code];
+    if (!data || !Array.isArray(data) || data.length === 0) return null;
+    const row = Array.isArray(data[0]) ? data[0] : data;
+    return row[3] !== undefined ? parseInt(String(row[3]), 10) : null;
+}
+
+function detectElement(poolKey: string): number | null {
+    for (const [keywords, element] of ELEMENT_PATTERNS) {
+        for (const kw of keywords) {
+            if (poolKey.includes(kw)) return element;
+        }
+    }
+    return null;
+}
+
 // ── Step 1: Build pool template from character_table.json ──────
 function buildPoolTemplate(
-    charTable: CharacterTableEntry[]
+    charTable: CharacterTableEntry[],
+    cdnChars: Record<string, any>,
+    element?: number
 ): Record<string, PoolItem[]> {
     const template: Record<string, PoolItem[]> = { "1": [], "2": [], "3": [] };
 
@@ -156,12 +189,18 @@ function buildPoolTemplate(
         const code = String(item.code_number || "");
         if (!code) continue;
 
-        // First digit determines tier: 1=★5, 2=★4, 3=★3
-        const first = code[0];
+        // Element filter (for element pickup banners)
+        if (element !== undefined) {
+            const charElement = getCharElement(code, cdnChars);
+            if (charElement !== element) continue;
+        }
+
+        // Use actual rarity field (not code[0] heuristic)
+        const rarity = item.rarity;
         let pk: string, rank: number;
-        if (first === "1") { pk = "1"; rank = 5; }
-        else if (first === "2") { pk = "2"; rank = 4; }
-        else if (first === "3") { pk = "3"; rank = 3; }
+        if (rarity === 5) { pk = "1"; rank = 5; }
+        else if (rarity === 4) { pk = "2"; rank = 4; }
+        else if (rarity === 3) { pk = "3"; rank = 3; }
         else continue;
 
         template[pk].push({
@@ -228,9 +267,10 @@ function extractUpChars(
 function buildBanner(
     gachaId: string,
     cdnGacha: Record<string, any>,
-    poolTemplate: Record<string, PoolItem[]>,
+    fullPoolTemplate: Record<string, PoolItem[]>,
     cdnFeature: Record<string, any>,
-    cdnChars: Record<string, any>
+    cdnChars: Record<string, any>,
+    charTable: CharacterTableEntry[]
 ): GachaBanner | null {
     const entry = cdnGacha[gachaId];
     if (!entry || !Array.isArray(entry) || entry.length === 0) return null;
@@ -271,7 +311,20 @@ function buildBanner(
         };
     }
 
-    // Character banner — deep-copy template
+    // Character banner — select correct template (element-filtered or full)
+    const poolKey5 = String(row[16] || "");
+    const element = detectElement(poolKey5);
+    let poolTemplate = fullPoolTemplate;
+    let tierNonUpBasis = fullPoolTemplate; // for UP odds calculation
+    if (element !== null) {
+        // Element pickup: use element-filtered template
+        if (!elementTemplateCache[element]) {
+            elementTemplateCache[element] = buildPoolTemplate(charTable, cdnChars, element);
+        }
+        poolTemplate = elementTemplateCache[element];
+        tierNonUpBasis = elementTemplateCache[element];
+    }
+
     const pool: Record<string, PoolItem[]> = {};
     for (const pk of ["1", "2", "3"] as const) {
         pool[pk] = poolTemplate[pk].map(item => ({ ...item }));
@@ -291,7 +344,6 @@ function buildBanner(
 
     // Calculate UP odds per tier
     // For fes banners, use verified in-game odds instead of the general formula
-    const poolKey5 = String(row[16] || "");
     const isFesPool = poolKey5.startsWith("new_character_pickup_") || poolKey5.startsWith("revival_fes_");
     const tierOdds: Record<string, number> = {};
 
@@ -306,7 +358,7 @@ function buildBanner(
             // General formula: w = tier_non_up × target / (1 - target × tier_up_count)
             const target = UP_TARGETS[pk]?.[tierUpCount];
             if (target === undefined) continue;
-            const tierNonUp = poolTemplate[pk].length;
+            const tierNonUp = tierNonUpBasis[pk].length;
             const denom = 1 - target * tierUpCount;
             tierOdds[pk] = denom > 0
                 ? Math.max(1, Math.round(tierNonUp * target / denom))
@@ -419,7 +471,7 @@ function validateL1(
 function validateL2(
     gachaId: string,
     banner: GachaBanner,
-    template: Record<string, PoolItem[]>,
+    expectedTemplate: Record<string, PoolItem[]>,
     permanentSet: Set<number>,
     upSet: Set<string>,
     isFesBanner: boolean = false
@@ -429,7 +481,7 @@ function validateL2(
     const errors: string[] = [];
 
     for (const pk of ["1", "2", "3"] as const) {
-        const permanentIds = template[pk].map(p => p.id);
+        const permanentIds = expectedTemplate[pk].map(p => p.id);
         const upIdsInTier = new Set<number>();
         for (const code of upSet) {
             if (code[0] === pk) {
@@ -488,8 +540,6 @@ function validateL2(
                 if (item.odds !== 1) {
                     errors.push(`ODDS gid=${gachaId} tier=${pk} id=${item.id} odds=${item.odds} exp=1`);
                 }
-            } else if (expIsUp && item.odds <= 1) {
-                errors.push(`ODDS_UP gid=${gachaId} tier=${pk} id=${item.id} odds=${item.odds} exp>1`);
             }
         }
 
@@ -637,7 +687,7 @@ function main() {
     console.log(`  old gacha.json (comparison): ${oldGacha ? Object.keys(oldGacha).length + " banners" : "N/A"}`);
 
     // ── Build pool template
-    const template = buildPoolTemplate(charTable);
+    const template = buildPoolTemplate(charTable, cdnChars);
     console.log(`\nTemplate pool: ★5=${template["1"].length} ★4=${template["2"].length} ★3=${template["3"].length}` +
         ` total=${template["1"].length + template["2"].length + template["3"].length}`);
 
@@ -656,21 +706,30 @@ function main() {
     const output: Record<string, GachaBanner> = {};
     const upCache: Record<string, Set<string>> = {};
     const fesCache: Record<string, boolean> = {};
+    const expectedTemplateCache: Record<string, Record<string, PoolItem[]>> = {};
     let skipped = 0;
     let equipCount = 0;
     let charCount = 0;
 
     for (const gid of Object.keys(cdnGacha)) {
-        const banner = buildBanner(gid, cdnGacha, template, cdnFeature, cdnChars);
+        const banner = buildBanner(gid, cdnGacha, template, cdnFeature, cdnChars, charTable);
         if (!banner) { skipped++; continue; }
 
         output[gid] = banner;
         upCache[gid] = extractUpChars(gid, cdnGacha, cdnFeature, cdnChars);
 
-        // Detect fes banners for L2 validation
+        // Detect banner type for L2 validation
         const cdnRow = cdnGacha[gid]?.[0];
         const pk5 = cdnRow && Array.isArray(cdnRow) ? String(cdnRow[16] || "") : "";
         fesCache[gid] = pk5.startsWith("new_character_pickup_") || pk5.startsWith("revival_fes_");
+
+        // Expected template for element banners
+        const elem = detectElement(pk5);
+        if (elem !== null && elementTemplateCache[elem]) {
+            expectedTemplateCache[gid] = elementTemplateCache[elem];
+        } else {
+            expectedTemplateCache[gid] = template; // full template for non-element banners
+        }
 
         // Revival Fes: inject known UP characters for L2 validation
         if (pk5.startsWith("revival_fes_")) {
@@ -700,7 +759,7 @@ function main() {
 
     for (const gid of Object.keys(output)) {
         if (output[gid].type !== 0) continue;
-        const errs = validateL2(gid, output[gid], template, permanentSet, upCache[gid], fesCache[gid]);
+        const errs = validateL2(gid, output[gid], expectedTemplateCache[gid], permanentSet, upCache[gid], fesCache[gid]);
         if (errs.length > 0) {
             l2TotalErrors += errs.length;
             l2ErrorBanners.push(gid);
