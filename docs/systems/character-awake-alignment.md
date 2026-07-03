@@ -157,3 +157,66 @@ find wf-awake-source -name "*Awake*" -o -name "*awake*"
 # 5. 如果导出卡死，用 strings 从 SWF 提取字符串参考
 strings worldflipper_android_release.swf | grep -i "CharacterAwake"
 ```
+
+---
+
+## 实现参考 (2026-07-03)
+
+### 数据流向
+
+```
+┌──────────────────────────────────────────────────────────────┐
+│ /load 响应                                                   │
+│ ├─ data.active_mission_list  ──→ ReceiveCommonResponse       │
+│ │   └─ applyCommonResponseActiveMission: exists() 安全过滤    │
+│ ├─ user_character_list[i].mana_board_awake = { "1": N }      │
+│ │   └─ PlayerLogic.applyManaBoardAwake                      │
+│ └─ user_character_mana_node_list[i].awake_level = N          │
+│     └─ serialize-player.ts 从 DB 读取真实值                   │
+└──────────────────────────────────────────────────────────────┘
+```
+
+### 端点
+
+#### `POST /character/awake_mana_node`
+
+```
+请求:  { viewer_id, character_id, api_count, mana_node_multiplied_id_list, awake_level }
+响应:  {
+    user_info:   { free_mana, paid_mana },
+    character_list: [{ character_id, mana_board_awake: {1:N}, evolution_level, bond_token_list, ... }],
+    user_character_mana_node_list: { char_id: [{ multiplied_id, awake_level }] },
+    item_list:   { ... },
+    mail_arrived: false
+}
+```
+
+- 已到目标等级的节点跳过（idempotent）
+- `awake_level=1` 时也会轮询 `receive_bond_token` ── 但因 status=2 直接返回 200
+
+### CDN 关键表
+
+| 文件 | 结构 | 用途 |
+|------|------|------|
+| `mana_node_awake.json` | `{ rarity → slot → pedestal_size → [items, counts, mana] }` | 觉醒消耗 |
+| `mana_board.json` | `{ charId → level → nodeIdx → [multiplied_id, x, y, road, pedestal_size, parent] }` | pedstal_size 查表 |
+| `mana_node.json` | `{ charId → level → nodeId → { field6 } }` | field6→slot 映射 |
+
+**slot 推导**: `field6`=1/2/3="" → ability slot 1/2/3 或 skill slot 4
+
+### DB 变更
+
+```sql
+ALTER TABLE players_characters_mana_nodes ADD COLUMN awake_level INTEGER NOT NULL DEFAULT 0
+```
+
+### 常见问题排查
+
+| 现象 | 根因 | 定位 |
+|------|------|------|
+| H400 `awake_mana_node` | CDN 成本查表失败 | 检查 `rarity`=`character.json[charId][3]`；`slot`=`field6`；`pedestal_size`=`mana_board.json[charId][level][nodeIdx][4]` |
+| H400 `receive_bond_token` | status=2 已领取 | 兜底返回 200，不发重复奖励 |
+| `/load` 中 `awake_level` 恒为 0 | serialize-player.ts 未读 DB | 已修复：通过 `MergedPlayerData.characterManaNodeAwakeLevels` |
+| 觉醒后重进玛纳板仍显示「未觉醒」 | 同上 | 同上 |
+| C8601 `active_mission_list` | ActiveMissionRepository 不认识 cat9 mission ID | 不把 cat9 放入 `all_active_mission_list`；用 `data.active_mission_list` 通道 |
+```
