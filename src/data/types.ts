@@ -735,6 +735,7 @@ export interface MergedPlayerData {
     clearedRegularMissionList: Record<string, number>,
     characterList: Record<string, PlayerCharacter>,
     characterManaNodeList: Record<string, number[]>,
+    characterManaNodeAwakeLevels?: Record<string, Record<number, number>>,
     partyGroupList: Record<string, PlayerPartyGroup>,
     itemList: Record<string, number>,
     equipmentList: Record<string, PlayerEquipment>,

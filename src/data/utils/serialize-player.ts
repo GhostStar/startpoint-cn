@@ -197,10 +197,15 @@ export function serializePlayerData(
         "cleared_regular_mission_list": toSerialize.clearedRegularMissionList,
         "user_character_list": userCharacterList,
         "user_character_mana_node_list": (() => {
+                const awakeLevels = toSerialize.characterManaNodeAwakeLevels ?? {}
                 const list: Record<string, { multiplied_id: number, awake_level: number }[]> = {}
                 for (const [charId, nodeIds] of Object.entries(toSerialize.characterManaNodeList)) {
                     if (nodeIds.length > 0) {
-                        list[charId] = nodeIds.map(id => ({ multiplied_id: id, awake_level: 0 }))
+                        const charLevels = awakeLevels[charId] ?? {}
+                        list[charId] = nodeIds.map(id => ({
+                            multiplied_id: id,
+                            awake_level: charLevels[id] ?? 0
+                        }))
                     }
                 }
                 return list

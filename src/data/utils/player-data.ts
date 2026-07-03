@@ -4,7 +4,7 @@ import { ClientPlayerData, DailyChallengePointListEntry, MergedPlayerData, Party
 import { deserializePlayerRushEventPlayedParty, deserializeRushEvent, getPlayerRushEventListClearedFoldersSync, getPlayerRushEventListPlayedPartiesSync, getPlayerRushEventListSync, serializePlayerRushEventPlayedParty } from "../domains/rushEvent"
 import { getPlayerActiveMissionsSync, getPlayerClearedRegularMissionListSync } from "../domains/mission"
 import { getPlayerBoxGachasSync } from "../domains/boxGacha"
-import { getPlayerCharactersManaNodesSync, getPlayerCharactersSync } from "../domains/character"
+import { getPlayerCharactersManaNodesSync, getPlayerCharactersSync, getPlayerCharactersManaNodeAwakeLevelsSync } from "../domains/character"
 import { getPlayerDailyChallengePointListSync, getPlayerSync, updatePlayerSync } from "../domains/player"
 import { getPlayerDrawnQuestsSync, getPlayerQuestProgressSync } from "../domains/quest"
 import { getPlayerEquipmentListSync } from "../domains/equipment"
@@ -91,6 +91,7 @@ export function getClientSerializedData(
         clearedRegularMissionList: getPlayerClearedRegularMissionListSync(playerId),
         characterList: getPlayerCharactersSync(playerId),
         characterManaNodeList: getPlayerCharactersManaNodesSync(playerId),
+        characterManaNodeAwakeLevels: getPlayerCharactersManaNodeAwakeLevelsSync(playerId),
         partyGroupList: getPlayerPartyGroupListSync(playerId),
         itemList: getPlayerItemsSync(playerId),
         equipmentList: getPlayerEquipmentListSync(playerId),

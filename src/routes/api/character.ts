@@ -146,11 +146,34 @@ const routes = async (fastify: FastifyInstance) => {
             "message": "Character not owned."
         })
 
-        const bondTokenReceivable = characterData.bondTokenList[manaBoardIndex - 1]?.status === 1
-        if (!bondTokenReceivable) return reply.status(400).send({
+        const bondToken = characterData.bondTokenList[manaBoardIndex - 1]
+        if (!bondToken || bondToken.status === 0) return reply.status(400).send({
             "error": "Bad Request",
             "message": "Cannot receive bond token."
         })
+
+        // Already claimed — return current state without re-issuing
+        if (bondToken.status === 2) {
+            const alreadyList: Object[] = []
+            for (const entry of characterData.bondTokenList) {
+                alreadyList.push({ "mana_board_index": entry.manaBoardIndex, "status": entry.status })
+            }
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+                "data": {
+                    "user_info": { "bond_token": player.bondToken },
+                    "character_list": [{
+                        "character_id": characterId,
+                        "bond_token_list": alreadyList,
+                        "create_time": clientSerializeDate(characterData.joinTime),
+                        "update_time": clientSerializeDate(characterData.updateTime),
+                        "join_time": clientSerializeDate(characterData.joinTime)
+                    }],
+                    "mail_arrived": false
+                }
+            })
+        }
 
         // reward the bond token
         const newBondTokens = player.bondToken + 1
@@ -549,10 +572,14 @@ const routes = async (fastify: FastifyInstance) => {
             })
 
             const currentAwakeLevel = charAwakeLevels[manaNodeId] ?? 0
-            if (currentAwakeLevel >= targetAwakeLevel) return reply.status(400).send({
-                "error": "Bad Request",
-                "message": `Mana node '${manaNodeId}' already at awake_level ${currentAwakeLevel} (target: ${targetAwakeLevel}).`
-            })
+            if (currentAwakeLevel >= targetAwakeLevel) {
+                // Already at target — include in response with current level, skip costs
+                userCharacterManaNodeListItem.push({
+                    "multiplied_id": manaNodeId,
+                    "awake_level": currentAwakeLevel
+                })
+                continue
+            }
 
             // Get character rarity for CDN awake cost lookup
             const charAssetData = getCharacterDataSync(characterId)
@@ -578,6 +605,32 @@ const routes = async (fastify: FastifyInstance) => {
             userCharacterManaNodeListItem.push({
                 "multiplied_id": manaNodeId,
                 "awake_level": targetAwakeLevel
+            })
+        }
+
+        // All nodes already at target level — return current state, no deductions
+        if (manaCost === 0) {
+            console.log(`[MANA] awake_mana_node: all nodes already at level ${targetAwakeLevel}, returning current state`)
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+                "data": {
+                    "user_info": { "free_mana": player.freeMana, "paid_mana": player.paidMana },
+                    "character_list": [{
+                        "mana_board_awake": { "1": targetAwakeLevel },
+                        "evolution_level": characterData.evolutionLevel,
+                        "evolution_img_level": characterData.evolutionLevel,
+                        "character_id": characterId,
+                        "create_time": clientSerializeDate(characterData.joinTime),
+                        "update_time": clientSerializeDate(characterData.updateTime),
+                        "join_time": clientSerializeDate(characterData.joinTime),
+                        "bond_token_list": (characterData.bondTokenList || []).map((e: any) => ({ "mana_board_index": e.manaBoardIndex, "status": e.status }))
+                    }],
+                    "evolution": [],
+                    "item_list": {},
+                    "user_character_mana_node_list": { [String(characterId)]: userCharacterManaNodeListItem },
+                    "mail_arrived": false
+                }
             })
         }
 
