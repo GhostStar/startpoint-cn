@@ -16,6 +16,7 @@ export interface AwakeMissionEntry {
 
 export interface AwakeSummary {
     activeMissionList: AwakeMissionEntry[]
+    manaBoardAwakeMap: Map<string, Record<number, number>>
 }
 
 export function computeAwakeSummary(playerId: number): AwakeSummary {
@@ -34,9 +35,12 @@ export function computeAwakeSummary(playerId: number): AwakeSummary {
     const ctx = computer.buildContext(playerId, 9) as CategoryContext
 
     const activeMissionList: AwakeMissionEntry[] = []
+    const manaBoardAwakeMap = new Map<string, Record<number, number>>()
 
     for (const [charKId, missionIds] of charMissionMap) {
         if (!playerChars[charKId]) continue
+
+        let allComplete = true
 
         for (const missionId of missionIds) {
             const dbProgress = activeMissions[String(missionId)]?.progress ?? 0
@@ -54,8 +58,16 @@ export function computeAwakeSummary(playerId: number): AwakeSummary {
                 progress_value: progress,
                 stages,
             })
+
+            if (!allStageIds.every(sid => completedStages.includes(sid))) {
+                allComplete = false
+            }
+        }
+
+        if (allComplete) {
+            manaBoardAwakeMap.set(charKId, { 1: 1 })
         }
     }
 
-    return { activeMissionList }
+    return { activeMissionList, manaBoardAwakeMap }
 }
