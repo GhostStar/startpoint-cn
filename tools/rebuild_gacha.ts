@@ -149,14 +149,13 @@ const UP_TARGETS: Record<string, Record<number, number>> = {
     "2": { 1: 0.10, 2: 0.08 },
 };
 
-// Fes gacha actual odds (verified in-game 2026-07)
-// Key = UP count, Value = odds multiplier (normal character odds=1)
-// 3 UP: UP 0.7% / normal 0.052% ≈ 13.46 → 13
-// 4 UP: UP 0.5% / normal 0.056% ≈  8.93 → 9
-// 19 UP (revival): UP 0.3% / normal 0.014% ≈ 21.43 → 21
+// Fes gacha actual odds (verified in-game 2026-07-04)
+// 3 UP: UP 0.700% / normal 0.025% = 28
+// 4 UP: UP 0.500% / normal 0.030% = 17
+// 19 UP (revival): UP 0.300% / normal 0.014% = 21
 const FES_UP_ODDS: Record<number, number> = {
-    3: 13,
-    4: 9,
+    3: 28,
+    4: 17,
     19: 21,
 };
 
@@ -168,6 +167,9 @@ const REVIVAL_FES_5STAR = [
     111147, 111165, 121141, 121153, 121177, 131152, 131170, 141165, 141183, 141201,
     151129, 151147, 151153, 151165, 151182, 161153, 161159, 161177, 161201,
 ];
+
+// Final 6 限定属性池 (1705-1710): element revival pools at CN EOS
+const FINAL_SIX_IDS = new Set(["1705", "1706", "1707", "1708", "1709", "1710"]);
 
 // Characters reported as un-pullable (user's report from 2026-07-01)
 // Format: character_id → name
@@ -193,9 +195,6 @@ const ELEMENT_PATTERNS: [string[], number][] = [
     [["white_element", "white_character", "light_"], 4],
     [["black_element", "black_character", "dark_"], 5],
 ];
-
-// Element template cache (lazy-built per element)
-const elementTemplateCache: Record<number, Record<string, PoolItem[]>> = {};
 
 function getCharElement(code: string, cdnChars: Record<string, any>): number | null {
     const data = cdnChars[code];
@@ -304,6 +303,73 @@ function extractUpChars(
     return chars;
 }
 
+
+// ── Detect 限定属性池 (limited attribute pickup revival) ──────────
+// Returns true if pool key matches {color}_element_{pickup|character_pickup}_{N}
+// and col20 === "true" (use_pickup flag).
+function isLimitedAttrPool(gachaId: string, row: string[]): boolean {
+    const key = String(row[16] || "");
+    return /^[a-z]+_element_(pickup|character_pickup)_\d+/.test(key) && row[20] === "true";
+}
+
+// ── Get accumulated UP codes for 限定属性池 ───────────────────────
+// For series N: collects UP chars from same-color series 01..N-1.
+// For final-6 (1705-1710): also collects ALL element-matched UPs from every banner.
+function getAccumulatedUpCodes(
+    gachaId: string,
+    element: number | null,
+    cdnGacha: Record<string, any>,
+    cdnFeature: Record<string, any>,
+    cdnChars: Record<string, any>
+): Set<string> {
+    const chars = new Set<string>();
+    if (element === null) return chars;
+
+    const currentRow = cdnGacha[gachaId]?.[0] as string[] | undefined;
+    if (!currentRow) return chars;
+    const currentKey = String(currentRow[16] || "");
+    const currentStart = String(currentRow[29] || "2099-01-01");
+    const isLastSix = FINAL_SIX_IDS.has(gachaId);
+
+    // Extract series number from current pool key
+    const selfMatch = currentKey.match(/^([a-z]+)_element_(pickup|character_pickup)_(\d+)/);
+    if (!selfMatch) return chars;
+    const color = selfMatch[1];
+    const currentSeries = parseInt(selfMatch[3]);
+
+    for (const [otherGid, rows] of Object.entries(cdnGacha)) {
+        const otherRow = rows[0] as string[] | undefined;
+        if (!otherRow || otherGid === gachaId) continue;
+
+        const otherKey = String(otherRow[16] || "");
+        const otherStart = String(otherRow[29] || "2000-01-01");
+        if (otherStart >= currentStart) continue;
+
+        let upSet: Set<string>;
+
+        if (isLastSix) {
+            // 最后6池: collect ALL element-matched UPs from ALL banner types
+            upSet = extractUpChars(otherGid, cdnGacha, cdnFeature, cdnChars);
+            const filtered = new Set<string>();
+            for (const code of upSet) {
+                if (getCharElement(code, cdnChars) === element) filtered.add(code);
+            }
+            upSet = filtered;
+        } else {
+            // 常规限定属性池: collect UPs from same-color previous series only
+            const otherMatch = otherKey.match(/^([a-z]+)_element_(pickup|character_pickup)_(\d+)/);
+            if (!otherMatch || otherMatch[1] !== color) continue;
+            const otherSeries = parseInt(otherMatch[3]);
+            if (otherSeries >= currentSeries) continue;
+            upSet = extractUpChars(otherGid, cdnGacha, cdnFeature, cdnChars);
+        }
+
+        for (const code of upSet) chars.add(code);
+    }
+
+    return chars;
+}
+
 // ── Step 3: Build a single banner ──────────────────────────────
 function buildBanner(
     gachaId: string,
@@ -371,44 +437,68 @@ function buildBanner(
         };
     }
 
-    // Character banner — select correct template (full permanent for most, element-filtered for 1705-1710)
+    // Character banner — select correct template
     const poolKey5 = String(row[16] || "");
     const element = detectElement(poolKey5);
-    const isLastSixAttr = parseInt(gachaId, 10) >= 1705 && parseInt(gachaId, 10) <= 1710;
+    const isLimitedAttr = isLimitedAttrPool(gachaId, row);
+    const isLastSix = isLimitedAttr && FINAL_SIX_IDS.has(gachaId);
+    const hasCdnUp = isLimitedAttr && extractUpChars(gachaId, cdnGacha, cdnFeature, cdnChars).size > 0;
+
     let poolTemplate = fullPoolTemplate;
-    let tierNonUpBasis = fullPoolTemplate; // for UP odds calculation
-    if (element !== null && isLastSixAttr) {
-        // 1705-1710: use element-filtered template (no cache — each may have different startDate)
-        poolTemplate = buildPoolTemplate(charTable, cdnChars, element, startDate);
-        tierNonUpBasis = poolTemplate;
+    let tierNonUpBasis = fullPoolTemplate;
+    if (isLimitedAttr) {
+        if (hasCdnUp) {
+            // New element pickup (has UP chars): use FULL template
+            // poolTemplate and tierNonUpBasis stay as fullPoolTemplate
+        } else {
+            // Revival (no CDN UP chars): use element-filtered template (build fresh per banner)
+            poolTemplate = buildPoolTemplate(charTable, cdnChars, element!, startDate);
+            tierNonUpBasis = poolTemplate;
+        }
     }
-    // else: element pools use FULL permanent template (all elements), no element filtering
 
     const pool: Record<string, PoolItem[]> = {};
     for (const pk of ["1", "2", "3"] as const) {
         pool[pk] = poolTemplate[pk].map(item => ({ ...item }));
     }
 
-    // Extract UP characters
+    // Extract UP characters from CDN data
     const upCodes = extractUpChars(gachaId, cdnGacha, cdnFeature, cdnChars);
 
-    // Filter UP characters by element for attribute pools, clear for 1705-1710
-    if (element !== null) {
-        if (isLastSixAttr) {
-            upCodes.clear(); // 1705-1710: no UP characters
-        } else {
-            // Keep only UP characters matching the banner's element
-            const filteredUps = new Set<string>();
-            for (const code of upCodes) {
-                const charElement = getCharElement(code, cdnChars);
-                if (charElement === element) filteredUps.add(code);
+    // Filter UP characters by element for non-限定 attribute pools
+    if (element !== null && !isLimitedAttr) {
+        const filteredUps = new Set<string>();
+        for (const code of upCodes) {
+            const charElement = getCharElement(code, cdnChars);
+            if (charElement === element) filteredUps.add(code);
+        }
+        upCodes.clear();
+        for (const code of filteredUps) upCodes.add(code);
+    }
+
+    // 限定属性池: collect accumulated UP chars (revival pools only, no CDN UP)
+    const accumulatedUps = new Set<string>();
+    if (isLimitedAttr && !hasCdnUp) {
+        for (const code of getAccumulatedUpCodes(gachaId, element, cdnGacha, cdnFeature, cdnChars)) {
+            accumulatedUps.add(code);
+        }
+        // 最后6池 also include element-matched fes + collab characters
+        if (isLastSix) {
+            for (const fid of REVIVAL_FES_5STAR) {
+                if (getCharElement(String(fid), cdnChars) === element) accumulatedUps.add(String(fid));
             }
-            upCodes.clear();
-            for (const code of filteredUps) upCodes.add(code);
+            // Include 联动 characters matching this element
+            for (const char of charTable) {
+                if (char.source !== "联动") continue;
+                const code = String(char.code_number);
+                if (!code) continue;
+                const charElement = getCharElement(code, cdnChars);
+                if (charElement === element) accumulatedUps.add(code);
+            }
         }
     }
 
-    // Count UP per tier
+    // Count UP per tier (CDN UPs only for odds calculation)
     const upByTier: Record<string, Set<string>> = { "1": new Set(), "2": new Set(), "3": new Set() };
     for (const code of upCodes) {
         const first = code[0];
@@ -418,17 +508,20 @@ function buildBanner(
     }
 
     // Calculate UP odds per tier
-    // For fes banners, use verified in-game odds instead of the general formula
-    const isFesPool = poolKey5.startsWith("new_character_pickup_") || poolKey5.startsWith("revival_fes_");
+    // 流星祭復刻: use verified in-game odds; 限定属性池復活(no CDN UP): uniform (all odds=1)
+    const isFesRevival = poolKey5.startsWith("revival_fes_");
     const tierOdds: Record<string, number> = {};
 
     for (const pk of ["1", "2"]) {
         const tierUpCount = upByTier[pk].size;
         if (tierUpCount === 0) continue;
 
-        if (isFesPool && FES_UP_ODDS[tierUpCount] !== undefined) {
-            // Fes banner: use verified game odds
+        if (isFesRevival && FES_UP_ODDS[tierUpCount] !== undefined) {
+            // 流星祭復刻: use verified in-game odds
             tierOdds[pk] = FES_UP_ODDS[tierUpCount];
+        } else if (isLimitedAttr && !hasCdnUp) {
+            // 限定属性池復活(no CDN UP): all uniform, no accumulated UPs with rate-up
+            continue;
         } else {
             // General formula: w = tier_non_up × target / (1 - target × tier_up_count)
             const target = UP_TARGETS[pk]?.[tierUpCount];
@@ -441,7 +534,7 @@ function buildBanner(
         }
     }
 
-    // Apply UP characters to pool
+    // Apply CDN UP characters to pool (with rate-up odds)
     for (const code of upCodes) {
         const codeStr = String(code);
         const first = codeStr[0];
@@ -465,6 +558,33 @@ function buildBanner(
             odds: isUp ? tierOdds[pk] : 1,
             isRateUp: isUp,
             rarity: 100, // placeholder, recalculated below
+        });
+    }
+
+    // Apply accumulated UP characters (always uniform odds, no rate-up)
+    // These include: 限定属性池 revival accumulated UPs + 最后6池 element-matched UPs
+    for (const code of accumulatedUps) {
+        if (upCodes.has(code)) continue; // skip if already added as CDN UP
+        const codeStr = String(code);
+        const first = codeStr[0];
+        let pk: string, rank: number;
+        if (first === "1") { pk = "1"; rank = 5; }
+        else if (first === "2") { pk = "2"; rank = 4; }
+        else if (first === "3") { pk = "3"; rank = 3; }
+        else continue;
+
+        const charId = parseInt(codeStr, 10);
+        if (isNaN(charId)) continue;
+
+        // Remove existing entry with same ID from pool
+        pool[pk] = pool[pk].filter(item => item.id !== charId);
+
+        pool[pk].push({
+            id: charId,
+            rank,
+            odds: 1,
+            isRateUp: false,
+            rarity: 100,
         });
     }
 
@@ -549,7 +669,8 @@ function validateL2(
     expectedTemplate: Record<string, PoolItem[]>,
     permanentSet: Set<number>,
     upSet: Set<string>,
-    isFesBanner: boolean = false
+    isFesBanner: boolean = false,
+    isLimitedAttrRevival: boolean = false
 ): string[] {
     if (banner.type !== 0) return []; // Equipment banners skip
 
@@ -592,12 +713,11 @@ function validateL2(
             }
         }
 
-        // 5c. UP marks — account for UP_TARGETS limits and fes odds
-        // Fes banners use verified game odds (FES_UP_ODDS) instead of formula
+        // 5c. UP marks — 限定属性池復活: always uniform (no rate-up)
         const tierUpCount = upIdsInTier.size;
         const target = UP_TARGETS[pk]?.[tierUpCount];
         const fesOdds = isFesBanner ? FES_UP_ODDS[tierUpCount] : undefined;
-        const hasRateUp = pk !== "3" && (target !== undefined || fesOdds !== undefined);
+        const hasRateUp = !isLimitedAttrRevival && pk !== "3" && (target !== undefined || fesOdds !== undefined);
 
         for (const item of actualItems) {
             const inUpSet = upIdsInTier.has(item.id);
@@ -786,6 +906,7 @@ function main() {
     const output: Record<string, GachaBanner> = {};
     const upCache: Record<string, Set<string>> = {};
     const fesCache: Record<string, boolean> = {};
+    const limitedAttrRevivalCache: Record<string, boolean> = {};
     const expectedTemplateCache: Record<string, Record<string, PoolItem[]>> = {};
     let skipped = 0;
     let equipCount = 0;
@@ -797,22 +918,48 @@ function main() {
 
         output[gid] = banner;
 
-        // Compute UP cache with element filtering (must match buildBanner logic)
+        // Compute UP cache and expected template (must match buildBanner logic)
         const rawUp = extractUpChars(gid, cdnGacha, cdnFeature, cdnChars);
-        const cdnRow = cdnGacha[gid]?.[0];
-        const pk5 = cdnRow && Array.isArray(cdnRow) ? String(cdnRow[16] || "") : "";
-        const startDate = cdnRow && Array.isArray(cdnRow) ? String(cdnRow[29] || "") : "";
+        const cdnRow = cdnGacha[gid]?.[0] as string[] | undefined;
+        const pk5 = cdnRow ? String(cdnRow[16] || "") : "";
+        const startDate = cdnRow ? String(cdnRow[29] || "") : "";
         const elem = detectElement(pk5);
-        const isLastSix = parseInt(gid, 10) >= 1705 && parseInt(gid, 10) <= 1710;
+        const isLimited = cdnRow ? isLimitedAttrPool(gid, cdnRow) : false;
+        const isLastSix = isLimited && FINAL_SIX_IDS.has(gid);
 
-        fesCache[gid] = pk5.startsWith("new_character_pickup_") || pk5.startsWith("revival_fes_");
+        fesCache[gid] = pk5.startsWith("revival_fes_");
+        limitedAttrRevivalCache[gid] = isLimited && !rawUp.size; // 限定属性池復活 (no CDN UP)
 
-        // Filter UP characters by element for attribute pools (matches buildBanner)
-        if (elem !== null && isLastSix) {
-            upCache[gid] = new Set(); // 1705-1710: no UP
-            expectedTemplateCache[gid] = buildPoolTemplate(charTable, cdnChars, elem, startDate);
+        if (isLimited) {
+            // 限定属性池
+            const hasCdnUp = rawUp.size > 0;
+            if (hasCdnUp) {
+                // New element pickup: full template + CDN UPs only
+                expectedTemplateCache[gid] = template;
+                upCache[gid] = rawUp;
+            } else {
+                // Revival: element-filtered template + accumulated UPs only (build fresh)
+                expectedTemplateCache[gid] = elem !== null
+                    ? buildPoolTemplate(charTable, cdnChars, elem, startDate)
+                    : template;
+                const accumulated = getAccumulatedUpCodes(gid, elem, cdnGacha, cdnFeature, cdnChars);
+                if (isLastSix) {
+                    for (const fid of REVIVAL_FES_5STAR) {
+                        if (getCharElement(String(fid), cdnChars) === elem) accumulated.add(String(fid));
+                    }
+                    // Include 联动 characters matching this element
+                    for (const char of charTable) {
+                        if (char.source !== "联动") continue;
+                        const code = String(char.code_number);
+                        if (!code) continue;
+                        const charElement = getCharElement(code, cdnChars);
+                        if (charElement === elem) accumulated.add(code);
+                    }
+                }
+                upCache[gid] = accumulated;
+            }
         } else if (elem !== null) {
-            // Regular element pools: filter UP by element, full template
+            // 常驻属性池 or non-限定 element pool: filter UP by element, full template
             const filteredUps = new Set<string>();
             for (const code of rawUp) {
                 const charElement = getCharElement(code, cdnChars);
@@ -853,7 +1000,7 @@ function main() {
 
     for (const gid of Object.keys(output)) {
         if (output[gid].type !== 0) continue;
-        const errs = validateL2(gid, output[gid], expectedTemplateCache[gid], permanentSet, upCache[gid], fesCache[gid]);
+        const errs = validateL2(gid, output[gid], expectedTemplateCache[gid], permanentSet, upCache[gid], fesCache[gid], limitedAttrRevivalCache[gid]);
         if (errs.length > 0) {
             l2TotalErrors += errs.length;
             l2ErrorBanners.push(gid);
@@ -1010,6 +1157,48 @@ function main() {
     } else {
         console.log(`  Python gacha.json not found at ${PYTHON_GACHA_PATH}`);
         console.log(`  Generate it with: git show 96c65aa^:assets/gacha.json > ${PYTHON_GACHA_PATH}`);
+    }
+
+    // ── L7: Final-6 pools coverage check ──────────────────────────
+    console.log("\n--- L7: Final 6 pools (1705-1710) coverage ---");
+    const finalSixAllIds = new Set<number>();
+    for (const gid of FINAL_SIX_IDS) {
+        const banner = output[gid];
+        if (!banner || banner.type !== 0) {
+            console.log(`  gid=${gid}: NOT FOUND or not character banner`);
+            continue;
+        }
+        for (const pk of ["1", "2", "3"] as const) {
+            for (const item of (banner.pool[pk] || [])) {
+                finalSixAllIds.add(item.id);
+            }
+        }
+        const p1 = (banner.pool["1"] || []).length;
+        const p2 = (banner.pool["2"] || []).length;
+        const p3 = (banner.pool["3"] || []).length;
+        console.log(`  gid=${gid} "${banner.name}" ★5=${p1} ★4=${p2} ★3=${p3} total=${p1 + p2 + p3}`);
+    }
+
+    // Gather all gacha-obtainable characters
+    const gachaSources = ["常驻卡池", "限定卡池", "联动"];
+    const allGachaChars = charTable.filter(c => gachaSources.includes(c.source) && c.code_number);
+    const allGachaIds = new Set(allGachaChars.map(c => parseInt(String(c.code_number))));
+
+    let missingCount = 0;
+    console.log(`\n  可抽取角色合计: ${allGachaIds.size}`);
+    console.log(`  6池合并角色: ${finalSixAllIds.size}`);
+    console.log(`\n  6池未覆盖角色:`);
+    for (const c of allGachaChars) {
+        const id = parseInt(String(c.code_number));
+        if (!finalSixAllIds.has(id)) {
+            missingCount++;
+            console.log(`    ${c.code_number} ${c.name} ★${c.rarity} source=${c.source}`);
+        }
+    }
+    if (missingCount === 0) {
+        console.log(`    ✓ 全部覆盖，无缺失`);
+    } else {
+        console.log(`  总计缺失: ${missingCount} 角色`);
     }
 
     // ── Write output
