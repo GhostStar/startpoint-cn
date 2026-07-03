@@ -118,8 +118,19 @@ export function getAccumulatedUpCodes(
         for (const fid of REVIVAL_FES_5STAR) {
             if (getCharElement(String(fid), cdnChars) === element) chars.add(String(fid));
         }
-        // Note: 联动 characters are NOT included — they are collab-only
+
+        // Filter: exclude 联动 characters, keep 常驻/限定 + unknown
+        const filtered = new Set<string>();
+        for (const code of chars) {
+            const entry = charTable.find(c => String(c.code_number) === code);
+            // Include if: not in char_table (unknown but legitimate), or source is NOT 联动
+            if (!entry || entry.source !== "联动") {
+                filtered.add(code);
+            }
+        }
+        return filtered;
     }
+    // Note: 联动 characters are NOT included — they are collab-only
 
     return chars;
 }
