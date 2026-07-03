@@ -24,7 +24,6 @@ export interface SerializePlayerDataOptions {
     viewerId?: number
     serializeRushEventData?: boolean // should rush event data be serialized?
     activeMissionList?: { mission_id: number; progress_value: number; stages: { stage: number; received: boolean }[] }[]
-    manaBoardAwakeMap?: Map<string, Record<number, number>>
 }
 
 
@@ -72,7 +71,8 @@ export function serializePlayerData(
             converted_character['illustration_settings'] = character.illustrationSettings
         }
 
-        const manaBoard = options?.manaBoardAwakeMap?.get(characterId)
+        // Set mana_board_awake from actual node awake levels (post-awakening data, not mission-based)
+        const manaBoard = toSerialize.manaBoardAwakeMap?.get(characterId)
         if (manaBoard) {
             converted_character.mana_board_awake = manaBoard
         }

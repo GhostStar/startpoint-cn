@@ -188,11 +188,25 @@ const routes = async (fastify: FastifyInstance) => {
 
         // All nodes already at target — return current state
         if (manaCost === 0) {
+            // Check if ALL board 1 nodes are at target level
+            const board1Nodes = getCharacterManaNodesSync(characterId, 1)
+            let manaBoardAwake: Record<string, number> | undefined
+            if (board1Nodes) {
+                const totalBoardNodes = Object.keys(board1Nodes).length
+                const board1NodeIds = Object.keys(board1Nodes).map(Number)
+                let awakenedCount = 0
+                for (const nid of board1NodeIds) {
+                    if ((charAwakeLevels[nid] ?? 0) >= targetAwakeLevel) awakenedCount++
+                }
+                if (awakenedCount === totalBoardNodes) {
+                    manaBoardAwake = { "1": targetAwakeLevel }
+                }
+            }
             console.log(`[MANA] awake_mana_node: all nodes at level ${targetAwakeLevel}, returning current state`)
             return sendCharacterResponse(reply, viewerId, {
                 user_info: { free_mana: player.freeMana, paid_mana: player.paidMana },
                 character_list: [buildCharacterListEntry(characterId, characterData, {
-                    mana_board_awake: { "1": targetAwakeLevel },
+                    ...(manaBoardAwake ? { mana_board_awake: manaBoardAwake } : {}),
                     bond_token_list: (characterData.bondTokenList || []).map((e: any) => ({ mana_board_index: e.manaBoardIndex, status: e.status })),
                 })],
                 user_character_mana_node_list: { [String(characterId)]: userCharacterManaNodeListItem as { multiplied_id: number; awake_level: number }[] },
@@ -227,39 +241,33 @@ const routes = async (fastify: FastifyInstance) => {
             }
         }
 
-        // Bond token + evolution check for board 1
-        let characterEvolutionLevel = characterData.evolutionLevel
-        let evolutionData: Object = []
-        let bondTokenList: Object[] = []
-
+        // Only set mana_board_awake if ALL board 1 nodes have reached the target level
         const board1Nodes = getCharacterManaNodesSync(characterId, 1)
+        let manaBoardAwake: Record<string, number> | undefined
         if (board1Nodes) {
             const totalBoardNodes = Object.keys(board1Nodes).length
-            const learnedNodes = getPlayerCharacterManaNodesSync(playerId, characterId)
             const board1NodeIds = Object.keys(board1Nodes).map(Number)
-            const board1Learned = learnedNodes.filter(id => board1NodeIds.includes(id))
-            const isBoardComplete = board1Learned.length === totalBoardNodes
-
-            const bond = computeBondTokenAndEvolution(
-                playerId, characterId, characterData, 1, isBoardComplete
-            )
-            characterEvolutionLevel = bond.characterEvolutionLevel
-            evolutionData = bond.evolutionData
-            bondTokenList = bond.bondTokenList
+            // Re-read awake levels after updates
+            const updatedAwakeLevels = getPlayerCharactersManaNodeAwakeLevelsSync(playerId)
+            const charLevels = updatedAwakeLevels[String(characterId)] ?? {}
+            let awakenedCount = 0
+            for (const nid of board1NodeIds) {
+                if ((charLevels[nid] ?? 0) >= targetAwakeLevel) awakenedCount++
+            }
+            if (awakenedCount === totalBoardNodes) {
+                manaBoardAwake = { "1": targetAwakeLevel }
+            }
         }
 
-        console.log(`[MANA] awake_mana_node done: manaCost=${manaCost} nodes=${toAwakenNodeIds.length} boardComplete=${!!bondTokenList.length}`)
+        console.log(`[MANA] awake_mana_node done: manaCost=${manaCost} nodes=${toAwakenNodeIds.length} manaBoardAwake=${!!manaBoardAwake}`)
         return sendCharacterResponse(reply, viewerId, {
             user_info: { free_mana: newFreeMana, paid_mana: newPaidMana },
             character_list: [buildCharacterListEntry(characterId, characterData, {
-                mana_board_awake: { "1": targetAwakeLevel },
-                evolution_level: characterEvolutionLevel,
-                evolution_img_level: characterEvolutionLevel,
-                bond_token_list: bondTokenList,
+                ...(manaBoardAwake ? { mana_board_awake: manaBoardAwake } : {}),
             })],
             user_character_mana_node_list: { [String(characterId)]: userCharacterManaNodeListItem as { multiplied_id: number; awake_level: number }[] },
             item_list: newItemAmounts,
-            evolution: evolutionData,
+            evolution: [],
             mail_arrived: false,
         })
     })

@@ -184,3 +184,29 @@ export function sendCharacterResponse(
         "data": data,
     })
 }
+
+// ─── Mana board awake level computation ───
+
+/**
+ * Computes mana_board_awake for characters based on actual node awake levels.
+ * Only sets { "1": N } if at least one board 1 node has been awakened to level N.
+ *
+ * This replaces the old mission-based mana_board_awake — the client uses
+ * mana_board_awake to determine the board's "target awake level" for
+ * hasLearnedManaNode comparisons, so it must only be set AFTER actual awakening.
+ */
+export function computeManaBoardAwakeFromNodes(
+    characterManaNodeAwakeLevels: Record<string, Record<number, number>>
+): Map<string, Record<number, number>> {
+    const result = new Map<string, Record<number, number>>()
+    for (const [charId, nodeLevels] of Object.entries(characterManaNodeAwakeLevels)) {
+        let maxLevel = 0
+        for (const awakeLevel of Object.values(nodeLevels)) {
+            if (awakeLevel > maxLevel) maxLevel = awakeLevel
+        }
+        if (maxLevel > 0) {
+            result.set(charId, { 1: maxLevel })
+        }
+    }
+    return result
+}

@@ -17,6 +17,7 @@ import { getPlayerPartyGroupListSync } from "../domains/party"
 import { getPlayerTriggeredTutorialsSync } from "../domains/tutorial"
 import { filterToActiveMissions } from "../../lib/mission/index"
 import { computeAwakeSummary } from "../../lib/mission/index"
+import { computeManaBoardAwakeFromNodes } from "../../lib/character-helpers"
 
 /**
  * Generates default player data.
@@ -84,6 +85,10 @@ export function getClientSerializedData(
     // Compute awake mission summary for /load injection
     const awakeSummary = computeAwakeSummary(playerId)
 
+    // Fetch awake levels once, reuse for both node list and mana_board_awake
+    const nodeAwakeLevels = getPlayerCharactersManaNodeAwakeLevelsSync(playerId)
+    const manaBoardAwakeMap = computeManaBoardAwakeFromNodes(nodeAwakeLevels)
+
     return serializePlayerData({
         player: playerData,
         dailyChallengePointList: getPlayerDailyChallengePointListSync(playerId),
@@ -91,7 +96,8 @@ export function getClientSerializedData(
         clearedRegularMissionList: getPlayerClearedRegularMissionListSync(playerId),
         characterList: getPlayerCharactersSync(playerId),
         characterManaNodeList: getPlayerCharactersManaNodesSync(playerId),
-        characterManaNodeAwakeLevels: getPlayerCharactersManaNodeAwakeLevelsSync(playerId),
+        characterManaNodeAwakeLevels: nodeAwakeLevels,
+        manaBoardAwakeMap,
         partyGroupList: getPlayerPartyGroupListSync(playerId),
         itemList: getPlayerItemsSync(playerId),
         equipmentList: getPlayerEquipmentListSync(playerId),
@@ -112,7 +118,6 @@ export function getClientSerializedData(
     }, {
         ...options,
         activeMissionList: awakeSummary.activeMissionList,
-        manaBoardAwakeMap: awakeSummary.manaBoardAwakeMap,
     })
 }
 

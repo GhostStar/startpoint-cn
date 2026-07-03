@@ -236,9 +236,8 @@ function handleEnter(_socket: net.Socket, client: SessionClient, data: any[]): v
             if (clientsMap) {
                 for (const addr of set) {
                     const c = clientsMap.get(addr)
-                    if (c && c !== client && !c.isBattle && c.mates[0]) {
-                        const gm = c.mates.find((m: { viewerId: number }) => m.viewerId === c.viewerId)
-                        if (gm) client.mates.push(gm)
+                    if (c && c !== client && !c.isBattle && c.yourself) {
+                        client.mates.push(c.yourself)
                     }
                 }
             }
@@ -358,6 +357,7 @@ function handleNotify(socket: net.Socket, client: SessionClient, data: any[]): v
         case 2: handleChangeParty(socket, client, notifyData); break
         case 3: handleReady(socket, client, notifyData); break
         case 4: handleHeartbeat(socket, client, notifyData); break
+        case 5: case 7: case 8: case 9: break  // Suspend/ChangeAutoplay/ChangeAutoStart/Log — silently ignored
         case 6: handleStartBattle(socket, client, notifyData); break
         case 10: handleEnterComs(client, notifyData[1] as any[]); break
         default:
