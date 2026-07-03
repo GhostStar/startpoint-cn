@@ -113,13 +113,6 @@ export function buildBanner(
         for (const code of getAccumulatedUpCodes(gachaId, element, cdnGacha, cdnFeature, cdnChars, charTable)) {
             accumulatedUps.add(code);
         }
-        // Last 6 also include element-matched fes characters
-        if (isLastSix) {
-            for (const fid of REVIVAL_FES_5STAR) {
-                if (getCharElement(String(fid), cdnChars) === element) accumulatedUps.add(String(fid));
-            }
-            // Note: 联动 characters are NOT added — collab-only
-        }
     }
 
     // Count UP per tier (CDN UPs only for odds calculation)

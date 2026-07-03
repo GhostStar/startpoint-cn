@@ -93,12 +93,6 @@ export function main() {
                     ? buildPoolTemplate(charTable, cdnChars, elem, startDate)
                     : template;
                 const accumulated = getAccumulatedUpCodes(gid, elem, cdnGacha, cdnFeature, cdnChars, charTable);
-                if (isLastSix) {
-                    for (const fid of REVIVAL_FES_5STAR) {
-                        if (getCharElement(String(fid), cdnChars) === elem) accumulated.add(String(fid));
-                    }
-                    // Note: 联动 characters NOT included — collab-only
-                }
                 upCache[gid] = accumulated;
             }
         } else if (elem !== null) {
@@ -162,26 +156,12 @@ export function main() {
     console.log(`  ✓ All ${charCount} character banners validated (${Object.keys(output).filter(k => output[k].type === 0).length} total)`);
 
     // ── L3: Compare with old gacha.json
-    const validateL3Old = (output: Record<string, GachaBanner>, oldGacha: Record<string, GachaBanner> | null) => {
-        if (!oldGacha) {
-            console.log("\n=== L3: COMPARISON SKIPPED (no old gacha.json) ===\n");
-            return;
-        }
+    if (oldGacha) {
         console.log("\n=== L3: COMPARISON WITH OLD gacha.json ===\n");
-        const allNewIds = new Map<number, Set<string>>();
-        for (const [gid, banner] of Object.entries(output)) {
-            if (banner.type !== 0) continue;
-            for (const items of Object.values(banner.pool)) {
-                for (const item of items) {
-                    if (!allNewIds.has(item.id)) allNewIds.set(item.id, new Set());
-                    allNewIds.get(item.id)!.add(gid);
-                }
-            }
-        }
-        // ... (existing L3 comparison code is complex, skip for now)
         console.log("  L3: skipped (use L6 for Python comparison)");
-    };
-    validateL3Old(output, oldGacha);
+    } else {
+        console.log("\n=== L3: COMPARISON SKIPPED (no old gacha.json) ===\n");
+    }
 
     // ── L4: Missing character report
     console.log("\n--- L4: Characters NOT in any gacha pool ---");
