@@ -6,7 +6,7 @@ import { deleteAllPlayerMailSync } from "../../data/domains/mail"
 import { getDb } from "../../data/db"
 import { getPlayerCharactersSync, insertDefaultPlayerCharacterSync, insertPlayerCharacterSync } from "../../data/domains/character"
 import { getPlayerEquipmentListSync } from "../../data/domains/equipment"
-import { getPlayerItemsSync, updatePlayerItemSync } from "../../data/domains/item"
+import { getPlayerItemsSync, setPlayerItemSync } from "../../data/domains/item"
 import { getPlayerQuestProgressSync } from "../../data/domains/quest"
 import { insertPlayerPartyGroupListSync } from "../../data/domains/party"
 import { PartyCategory } from "../../data/types";
@@ -225,7 +225,7 @@ const routes = async (fastify: FastifyInstance) => {
         if (count < 0 || count > MAX_INT) return reply.status(400).send({ error: `count 超出范围（需 0 ~ ${MAX_INT}）` })
 
         try {
-            updatePlayerItemSync(playerId, itemId, count)
+            setPlayerItemSync(playerId, itemId, count)
             return reply.status(200).send({ ok: true, itemId, count })
         } catch (e: any) {
             return reply.status(500).send({ error: e.message })
