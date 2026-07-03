@@ -124,7 +124,7 @@ const routes = async (fastify: FastifyInstance) => {
             deleteAccountSync(accountId)
             // Clean up device bindings to prevent stale mapping on re-login
             try {
-                const db = require("../../data/wdfpData").getDb()
+                const db = require("../../data/db").getDb()
                 db.prepare(`DELETE FROM device_bindings WHERE account_id = ?`).run(accountId)
             } catch (_) {}
             // Remove stale default player mapping
@@ -151,7 +151,7 @@ const routes = async (fastify: FastifyInstance) => {
             deletePlayerSync(pid)
         }
         // Remove device bindings pointing to this account
-        const db = require("../../data/wdfpData").getDb()
+        const db = require("../../data/db").getDb()
         db.prepare(`DELETE FROM device_bindings WHERE account_id = ?`).run(accountId)
         deleteAccountSync(accountId)
         // Remove stale default player mapping
