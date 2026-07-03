@@ -1,14 +1,14 @@
 // Character mana node endpoints — learn and awake
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getPlayerCharacterManaNodesSync, getPlayerCharacterSync, getPlayerCharactersManaNodesSync, hasPlayerUnlockedCharacterManaNodeSync, insertPlayerCharacterManaNodesSync, updatePlayerCharacterBondTokenSync, updatePlayerCharacterSync, getPlayerCharactersManaNodeAwakeLevelsSync, updatePlayerCharacterManaNodeAwakeLevelSync } from "../../../data/domains/character"
+import { getPlayerCharacterManaNodesSync, getPlayerCharacterSync, getPlayerCharactersManaNodesSync, hasPlayerUnlockedCharacterManaNodeSync, insertPlayerCharacterManaNodesSync, getPlayerCharactersManaNodeAwakeLevelsSync, updatePlayerCharacterManaNodeAwakeLevelSync } from "../../../data/domains/character"
 import { getPlayerItemSync, updatePlayerItemSync } from "../../../data/domains/item"
 import { getPlayerSync, updatePlayerSync } from "../../../data/domains/player"
 import { getSession } from "../../../data/domains/session"
 import { getCharacterDataSync, getCharacterManaNodesSync, getManaNodeAwakeCost } from "../../../lib/assets";
 import { clientSerializeDate } from "../../../data/utils";
 import { resolvePlayerIdSync } from "../../../data/activeAccount";
-import { validateSessionAndPlayer, validateCharacterOwnership, computeManaDeduction, computeItemDeductions, buildCharacterListEntry, sendCharacterResponse } from "../../../lib/character-helpers";
+import { validateSessionAndPlayer, validateCharacterOwnership, computeManaDeduction, computeItemDeductions, buildCharacterListEntry, sendCharacterResponse, computeBondTokenAndEvolution } from "../../../lib/character-helpers";
 
 interface LearnManaNodeBody {
     viewer_id: number,
@@ -101,20 +101,15 @@ const routes = async (fastify: FastifyInstance) => {
 
         let characterEvolutionLevel = characterData.evolutionLevel
         let evolutionData: Object = []
-        const bondTokenList: Object[] = []
+        let bondTokenList: Object[] = []
         const isBoardComplete = (indexUnlockedNodesCount + toUnlockNodeIds.length) === Object.keys(characterManaNodes).length
 
-        if (characterData.bondTokenList[currentManaNodeIndex - 1]?.status === 0 && isBoardComplete) {
-            updatePlayerCharacterBondTokenSync(playerId, characterId, { manaBoardIndex: currentManaNodeIndex, status: 1 });
-            for (const entry of characterData.bondTokenList) {
-                bondTokenList.push({ "mana_board_index": entry.manaBoardIndex, "status": entry.manaBoardIndex === currentManaNodeIndex ? 1 : entry.status })
-            }
-            if (characterEvolutionLevel === 0) {
-                characterEvolutionLevel = 1
-                updatePlayerCharacterSync(playerId, characterId, { evolutionLevel: characterEvolutionLevel })
-                evolutionData = { "character_id": characterId, "level": 1, "img_level": 1 }
-            }
-        }
+        const bond = computeBondTokenAndEvolution(
+            playerId, characterId, characterData, currentManaNodeIndex, isBoardComplete
+        )
+        characterEvolutionLevel = bond.characterEvolutionLevel
+        evolutionData = bond.evolutionData
+        bondTokenList = bond.bondTokenList
 
         console.log(`[MANA] learn_mana_node done: boardComplete=${isBoardComplete} bondGiven=${!!bondTokenList.length} evoLevel=${characterEvolutionLevel}`)
 
@@ -235,7 +230,7 @@ const routes = async (fastify: FastifyInstance) => {
         // Bond token + evolution check for board 1
         let characterEvolutionLevel = characterData.evolutionLevel
         let evolutionData: Object = []
-        const bondTokenList: Object[] = []
+        let bondTokenList: Object[] = []
 
         const board1Nodes = getCharacterManaNodesSync(characterId, 1)
         if (board1Nodes) {
@@ -245,17 +240,12 @@ const routes = async (fastify: FastifyInstance) => {
             const board1Learned = learnedNodes.filter(id => board1NodeIds.includes(id))
             const isBoardComplete = board1Learned.length === totalBoardNodes
 
-            if (characterData.bondTokenList?.[0]?.status === 0 && isBoardComplete) {
-                updatePlayerCharacterBondTokenSync(playerId, characterId, { manaBoardIndex: 1, status: 1 })
-                for (const entry of characterData.bondTokenList) {
-                    bondTokenList.push({ "mana_board_index": entry.manaBoardIndex, "status": entry.manaBoardIndex === 1 ? 1 : entry.status })
-                }
-                if (characterEvolutionLevel === 0) {
-                    characterEvolutionLevel = 1
-                    updatePlayerCharacterSync(playerId, characterId, { evolutionLevel: characterEvolutionLevel })
-                    evolutionData = { "character_id": characterId, "level": 1, "img_level": 1 }
-                }
-            }
+            const bond = computeBondTokenAndEvolution(
+                playerId, characterId, characterData, 1, isBoardComplete
+            )
+            characterEvolutionLevel = bond.characterEvolutionLevel
+            evolutionData = bond.evolutionData
+            bondTokenList = bond.bondTokenList
         }
 
         console.log(`[MANA] awake_mana_node done: manaCost=${manaCost} nodes=${toAwakenNodeIds.length} boardComplete=${!!bondTokenList.length}`)

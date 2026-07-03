@@ -7,6 +7,7 @@ import { getPlayerCharacterSync } from "../data/domains/character"
 import { getSession } from "../data/domains/session"
 import { resolvePlayerIdSync } from "../data/activeAccount"
 import { getPlayerItemSync } from "../data/domains/item"
+import { updatePlayerCharacterBondTokenSync, updatePlayerCharacterSync } from "../data/domains/character"
 import { generateDataHeaders } from "../utils"
 import { clientSerializeDate } from "../data/utils"
 
@@ -126,6 +127,49 @@ export function buildCharacterListEntry(
         bond_token_list: [],
         ...extras,
     }
+}
+
+// ─── Bond token + evolution ───
+
+export interface BondTokenResult {
+    characterEvolutionLevel: number
+    evolutionData: Object
+    bondTokenList: Object[]
+}
+
+/**
+ * Checks board completion and handles bond token grant + first evolution.
+ * Used by both /learn_mana_node and /awake_mana_node.
+ *
+ * @param boardIndex — the mana board index being processed (1 for awake, currentManaNodeIndex for learn)
+ */
+export function computeBondTokenAndEvolution(
+    playerId: number,
+    characterId: number,
+    characterData: PlayerCharacter,
+    boardIndex: number,
+    isBoardComplete: boolean
+): BondTokenResult {
+    let characterEvolutionLevel = characterData.evolutionLevel
+    let evolutionData: Object = []
+    const bondTokenList: Object[] = []
+
+    if (characterData.bondTokenList[boardIndex - 1]?.status === 0 && isBoardComplete) {
+        updatePlayerCharacterBondTokenSync(playerId, characterId, { manaBoardIndex: boardIndex, status: 1 })
+        for (const entry of characterData.bondTokenList) {
+            bondTokenList.push({
+                "mana_board_index": entry.manaBoardIndex,
+                "status": entry.manaBoardIndex === boardIndex ? 1 : entry.status,
+            })
+        }
+        if (characterEvolutionLevel === 0) {
+            characterEvolutionLevel = 1
+            updatePlayerCharacterSync(playerId, characterId, { evolutionLevel: characterEvolutionLevel })
+            evolutionData = { "character_id": characterId, "level": 1, "img_level": 1 }
+        }
+    }
+
+    return { characterEvolutionLevel, evolutionData, bondTokenList }
 }
 
 /** Sends a standard-format mana-related response. */
