@@ -108,6 +108,10 @@ function makeHarness(initialRecords = [], receivedRewardIds = []) {
   const harness = makeHarness();
   const result = handleCarnivalEventFinish(harness.params());
 
+  assert(result.clientData);
+  assert(Array.isArray(result.clientData.reward_ids));
+  assert.strictEqual(typeof result.clientData.previous_total_best_score, "number");
+  assert(result.rewardResult);
   assert.strictEqual(result.clientData.score.difficulty_bonus, 25);
   assert.strictEqual(result.clientData.score.time_bonus, 88);
   assert.strictEqual(harness.records.find((record) => record.folderId === 10).previousScore, 113);
