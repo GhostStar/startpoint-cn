@@ -1,6 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { getMergedPlayerDataSync, reviveMergedPlayerDates } from "../../data/utils";
 import { validatePlayerField, VALID_CHARACTER_IDS, VALID_ITEM_IDS, MAX_INT } from "./validation";
+import { wantsJson } from "./http";
 import { getAllPlayersSync, replacePlayerDataSync, getPlayerSync, updatePlayerSync, getPlayerCharactersSync, getPlayerItemsSync, getPlayerEquipmentListSync, insertPlayerCharacterSync, insertDefaultPlayerCharacterSync, updatePlayerItemSync, getPlayerDailyChallengePointListSync, insertPlayerDailyChallengePointListSync, updatePlayerDailyChallengePointSync, deleteAllPlayerMailSync, getDb, getDefaultPlayerPartyGroupsSync, insertPlayerPartyGroupListSync, getPlayerQuestProgressSync, getPlayerDrawnQuestsSync } from "../../data/wdfpData";
 import { PartyCategory } from "../../data/types";
 import dailyChallengePointLookup from "../../../assets/daily_challenge_point_lookup.json";
@@ -213,7 +214,8 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/:id/clear_ex_boost", async (request: FastifyRequest, reply: FastifyReply) => {
         const playerId = Number((request.params as any).id)
         if (isNaN(playerId)) return reply.status(400).send({ error: "Invalid player ID" })
-        const result = getDb().prepare(`UPDATE players_characters SET ex_boost_status_id = NULL, ex_boost_ability_id_list = NULL WHERE player_id = ?`).run(playerId)
+        getDb().prepare(`UPDATE players_characters SET ex_boost_status_id = NULL, ex_boost_ability_id_list = NULL WHERE player_id = ?`).run(playerId)
+        if (wantsJson(request)) return reply.status(200).send({ ok: true })
         return reply.redirect(`/player/${playerId}#actions`)
     })
 
@@ -224,6 +226,7 @@ const routes = async (fastify: FastifyInstance) => {
         getDb().prepare(`DELETE FROM players_parties WHERE player_id = ?`).run(playerId)
         getDb().prepare(`DELETE FROM players_party_groups WHERE player_id = ?`).run(playerId)
         insertPlayerPartyGroupListSync(playerId, getDefaultPlayerPartyGroupsSync(PartyCategory.NORMAL))
+        if (wantsJson(request)) return reply.status(200).send({ ok: true })
         return reply.redirect(`/player/${playerId}#actions`)
     })
 
@@ -240,6 +243,7 @@ const routes = async (fastify: FastifyInstance) => {
         const playerId = Number((request.params as any).id)
         if (isNaN(playerId)) return reply.status(400).send({ error: "Invalid player ID" })
         getDb().prepare(`DELETE FROM players_receive_history WHERE player_id = ?`).run(playerId)
+        if (wantsJson(request)) return reply.status(200).send({ ok: true })
         return reply.redirect(`/player/${playerId}#actions`)
     })
 

@@ -3,13 +3,10 @@ import { getServerTime, getServerDate, setServerTime, getTimeOffset } from "../.
 import { getAllAccountsSync, getAccountPlayersSync, getPlayerSync, getPlayerCharactersSync, deletePlayerSync, deleteAccountSync, updatePlayerSync, insertDefaultPlayerSync, replacePlayerDataSync } from "../../data/wdfpData";
 import { getClientSerializedData, deserializePlayerData } from "../../data/utils";
 import { getActivePlayerId, setActivePlayerId, getSelectedAccountId, setSelectedAccountId, saveTimeOffset, saveAccountDefaultPlayer, getAccountDefaultPlayer } from "../../data/activeAccount";
+import { wantsJson } from "./http";
 
 interface TimeQuery {
     time: string | undefined
-}
-
-function wantsJson(request: FastifyRequest): boolean {
-    return (request.headers.accept ?? "").includes("application/json")
 }
 
 const routes = async (fastify: FastifyInstance) => {
