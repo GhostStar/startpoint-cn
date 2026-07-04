@@ -15,7 +15,7 @@ Fastify + TypeScript，CN 服务入口 `src/cn-server.ts`（端口 8001），国
   - Dashboard 已接通 `GET /api/server/currentTime`；其余 4 页为占位
   - 根 package.json：`npm run build:admin` / `dev:admin`
 - ✅ M2：账号/存档页 + 玩家详情页（已完成，见下）
-- ⬜ M3：种子页、邮件页、服务器时间卡片
+- ✅ M3：邮件页、服务器时间卡片、种子页（已完成，见下）
 - ⬜ M4：切换默认入口 + 删除旧页面（须经作者同意，独立 commit）
 
 ### M2 已完成内容
@@ -29,6 +29,19 @@ Fastify + TypeScript，CN 服务入口 `src/cn-server.ts`（端口 8001），国
 3. 前端 `admin/src/pages/PlayerDetail.tsx` — 资源内联编辑 + 角色/道具/装备/关卡/抽选关卡 Tabs + 工具操作（EX Boost/编队/邮箱/挑战重置/存档导出）
 4. `admin/src/api/client.ts` 补充 `apiPatch` 方法
 5. 校验规则复用 `src/routes/web_api/validation.ts`（通过现有 PATCH /:id/field 端点）
+
+### M3 已完成内容
+
+1. 后端补 JSON 分流（`refactor(web_api)`）：`POST /api/mail/send`、`player` 的 `clear_ex_boost`/`reset_parties`/`clear_receive_history` 按 `Accept` 分流；抽 `src/routes/web_api/http.ts` 共享 `wantsJson`
+2. `admin/src/pages/Mail.tsx` — 邮件群发（附件类型 12 种 + type_id/数量联动 + 标题/正文，群发全体存档）
+3. `admin/src/pages/Dashboard.tsx` — 服务器时间控制卡片（DatePicker 设置 / 重置为系统时间）
+4. `admin/src/pages/Seeds.tsx` — 种子管理（模式切换 + 卡池组 + 验证/播放/测试三池 + tag 标注 + 测试种子设置）
+5. `admin/src/api/client.ts` — 错误响应提取 `{ error }` 字段，提示更友好
+
+### 待补强（非阻塞，见分析）
+
+- PlayerDetail：账号设置字段/时间字段编辑、存档导入（`POST /:id/save` multipart）、清除接收历史按钮、表格搜索
+- M4 前需：`/` 重定向到 `/admin`、删除 `web/pages`+`routes/web`+`web/public/player.js`（须作者同意）
 
 ## 硬性约束
 

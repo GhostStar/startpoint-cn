@@ -162,7 +162,7 @@ export default function PlayerDetail() {
     })
 
     if (isNaN(pid)) return <Card><Text type="danger">无效的玩家 ID</Text></Card>
-    if (isLoading) return <Spin tip="加载中…" style={{ display: "block", marginTop: 100 }} />
+    if (isLoading) return <div style={{ textAlign: "center", marginTop: 100 }}><Spin size="large" /></div>
     if (isError || !data) return <Card><Text type="danger">加载失败</Text></Card>
 
     const { player, characters, items, equipment, questProgress, drawnQuests } = data
