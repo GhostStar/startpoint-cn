@@ -296,7 +296,13 @@ function handleBye(_socket: net.Socket, client: SessionClient, _data: any[]): vo
     }
     const hostClient = findHostClient(client.roomNumber)
     sessionManager.removeClient(client)
-    sessionManager.broadcastToRoom(client.roomNumber, [1, [1, hostClient?.mates ?? []]])
+    // Only refresh the mate list if the room still exists AND a *different* client is the host (i.e. a
+    // guest left but the room lives on). If the room was disbanded (host left / went empty), the
+    // [6, dismissed] broadcast already tore it down — pushing a stale/empty mate list here makes the
+    // remaining client's refreshMates dereference undefined character-display data and crash (F1010).
+    if (getRoom(client.roomNumber) && hostClient && hostClient !== client) {
+        sessionManager.broadcastToRoom(client.roomNumber, [1, [1, hostClient.mates]])
+    }
     try { client.socket.destroy(); } catch (e) {}
     console.log(`[LOBBY] client ${client.viewerId} left room ${client.roomNumber}`)
 }
