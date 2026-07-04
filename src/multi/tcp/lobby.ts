@@ -184,16 +184,20 @@ async function handleEnterComs(client: SessionClient, coms: { name: string }[]):
     console.log(`[LOBBY] EnterComs: room=${client.roomNumber} real=${realMates.length} npc=${npcMates.length} total=${client.mates.length}`)
 
     setTimeout(() => {
-        // Send Mates only to triggering client — others get theirs via handleEnter
-        sessionManager.sendJson(client.socket, [1, [1, client.mates]])
+        try {
+            // Send Mates only to triggering client — others get theirs via handleEnter
+            sessionManager.sendJson(client.socket, [1, [1, client.mates]])
+        } catch (e) { console.error("[LOBBY] EnterComs send-mates error", e) }
     }, NPC_JOIN_DELAY_MS)
 
     setTimeout(() => {
-        for (const npc of npcMates) {
-            npc.state = [1]
-            sessionManager.broadcastToRoom(client.roomNumber, [1, [2, npc.connectionId, [1]]])
-        }
-        if (realMates.length === 1) checkHostAutoReady(client.roomNumber)
+        try {
+            for (const npc of npcMates) {
+                npc.state = [1]
+                sessionManager.broadcastToRoom(client.roomNumber, [1, [2, npc.connectionId, [1]]])
+            }
+            if (realMates.length === 1) checkHostAutoReady(client.roomNumber)
+        } catch (e) { console.error("[LOBBY] EnterComs npc-ready error", e) }
     }, NPC_JOIN_DELAY_MS + NPC_READY_DELAY_MS)
 }
 
@@ -247,7 +251,7 @@ function handleEnter(_socket: net.Socket, client: SessionClient, data: any[]): v
             sessionManager.broadcastToRoom(client.roomNumber, [1, [1, client.mates]], `${client.viewerId}@${client.roomNumber}`)
         }
         if (room && room.npc_count > 0 && countRealPlayers(client.mates) < 3) {
-            setTimeout(() => handleEnterComs(client, [{ name: "开心超人" }, { name: "名字真难取" }]), 500)
+            setTimeout(() => { handleEnterComs(client, [{ name: "开心超人" }, { name: "名字真难取" }]).catch(e => console.error("[LOBBY] EnterComs (timer) error", e)); }, 500)
         }
     } else {
         if (hostClient && client.yourself) {
@@ -359,7 +363,7 @@ function handleNotify(socket: net.Socket, client: SessionClient, data: any[]): v
         case 4: handleHeartbeat(socket, client, notifyData); break
         case 5: case 7: case 8: case 9: break  // Suspend/ChangeAutoplay/ChangeAutoStart/Log — silently ignored
         case 6: handleStartBattle(socket, client, notifyData); break
-        case 10: handleEnterComs(client, notifyData[1] as any[]); break
+        case 10: handleEnterComs(client, notifyData[1] as any[]).catch(e => console.error("[LOBBY] EnterComs error", e)); break
         default:
             console.log(`[LOBBY] unhandled Notify: ${tag}`)
     }
