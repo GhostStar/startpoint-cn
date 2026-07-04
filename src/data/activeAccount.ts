@@ -72,7 +72,7 @@ export function saveTimeOffset(offset: number | null): void {
     const pid = state.activePlayerId;
     if (pid) {
         try {
-            const { getDb } = require("./wdfpData");
+            const { getDb } = require("./db");
             getDb().prepare(`UPDATE players SET time_offset = ? WHERE id = ?`).run(offset, pid);
         } catch {}
     }
@@ -132,7 +132,7 @@ export function resolvePlayerIdSync(accountId: number): number | null {
  */
 export function getPlayerTimeOffsetSync(playerId: number): number | null {
     try {
-        const { getDb } = require("./wdfpData");
+        const { getDb } = require("./db");
         const row = getDb().prepare(
             `SELECT time_offset FROM players WHERE id = ?`
         ).get(playerId) as { time_offset: number | null } | undefined;
