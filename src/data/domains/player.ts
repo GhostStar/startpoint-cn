@@ -3,6 +3,9 @@ import { Player, RawPlayer, MergedPlayerData, PartyCategory, PlayerPartyGroup, A
 import { getServerTime, getServerDate } from "../../utils";
 import { getDefaultPlayerData, deserializeBoolean, serializeBoolean } from "../utils";
 import { getAccountSync } from "./account";
+import { getPlayerQuestProgressSync } from "./quest";
+import { isNewDay, isNewWeek } from "../../lib/time-utils";
+import { takeSnapshot } from "../../lib/mission/snapshot";
 import dailyChallengePointLookup from "../../../assets/daily_challenge_point_lookup.json";
 
 type DailyChallengePointLookup = Record<string, { maxPoint: number, isRecovery: boolean, name: string }>
@@ -320,6 +323,11 @@ function buildPlayer(
         paidMana: raw.paid_mana,
         enableAuto3x: deserializeBoolean(raw.enable_auto_3x),
         totalStaminaUsed: raw.total_stamina_used || 0,
+        totalPowerflips: raw.total_powerflips || 0,
+        totalDashes: raw.total_dashes || 0,
+        totalManaObtained: raw.total_mana_obtained || 0,
+        maxComboAchieved: raw.max_combo_achieved || 0,
+        totalLoginDays: raw.total_login_days || 0,
         tutorialStep: raw.tutorial_step,
         tutorialSkipFlag: raw.tutorial_skip_flag === null ? null : deserializeBoolean(raw.tutorial_skip_flag),
         tutorialGachaCharacterId: raw.tutorial_gacha_character_id,
@@ -334,7 +342,7 @@ export function getPlayerSync(
         transition_state, role, name, last_login_time, comment,
         vmoney, free_vmoney, rank_point, star_crumb,
         bond_token, exp_pool, exp_pooled_time, leader_character_id, party_slot,
-        degree_id, birth, free_mana, paid_mana, enable_auto_3x, tutorial_step, tutorial_skip_flag, tutorial_gacha_character_id
+        degree_id, birth, free_mana, paid_mana, enable_auto_3x, total_stamina_used, total_powerflips, total_dashes, total_mana_obtained, max_combo_achieved, total_login_days, tutorial_step, tutorial_skip_flag, tutorial_gacha_character_id
     FROM players
     WHERE id = ?    
     `).get(playerId) as RawPlayer | undefined
@@ -353,7 +361,7 @@ export function getAllPlayersSync(
         transition_state, role, name, last_login_time, comment,
         vmoney, free_vmoney, rank_point, star_crumb,
         bond_token, exp_pool, exp_pooled_time, leader_character_id, party_slot,
-        degree_id, birth, free_mana, paid_mana, enable_auto_3x, tutorial_step, tutorial_skip_flag, tutorial_gacha_character_id
+        degree_id, birth, free_mana, paid_mana, enable_auto_3x, total_stamina_used, total_powerflips, total_dashes, total_mana_obtained, max_combo_achieved, total_login_days, tutorial_step, tutorial_skip_flag, tutorial_gacha_character_id
     FROM players
     LIMIT ?
     OFFSET ?
@@ -376,48 +384,66 @@ export function insertPlayerSync(
     const playerId = player.id
     const playerIdGiven = playerId !== undefined
 
-    const values = [
-        player.stamina,
-        player.staminaHealTime.toISOString(),
-        player.boostPoint,
-        player.bossBoostPoint,
-        player.transitionState,
-        player.role,
-        player.name,
-        player.lastLoginTime.toISOString(),
-        player.comment,
-        player.vmoney,
-        player.freeVmoney,
-        player.rankPoint,
-        player.starCrumb,
-        player.bondToken,
-        player.expPool,
-        player.expPooledTime.toISOString(),
-        player.leaderCharacterId,
-        player.partySlot,
-        player.degreeId,
-        player.birth,
-        player.freeMana,
-        player.paidMana,
-        serializeBoolean(player.enableAuto3x),
-        accountId,
-        player.tutorialStep === null ? null : player.tutorialStep,
-        player.tutorialSkipFlag === null ? null : serializeBoolean(player.tutorialSkipFlag),
-        player.tutorialGachaCharacterId === undefined ? null : player.tutorialGachaCharacterId,
-        player.totalStaminaUsed ?? 0
-    ]
+    const params: Record<string, any> = {
+        stamina: player.stamina,
+        stamina_heal_time: player.staminaHealTime.toISOString(),
+        boost_point: player.boostPoint,
+        boss_boost_point: player.bossBoostPoint,
+        transition_state: player.transitionState,
+        role: player.role,
+        name: player.name,
+        last_login_time: player.lastLoginTime.toISOString(),
+        comment: player.comment,
+        vmoney: player.vmoney,
+        free_vmoney: player.freeVmoney,
+        rank_point: player.rankPoint,
+        star_crumb: player.starCrumb,
+        bond_token: player.bondToken,
+        exp_pool: player.expPool,
+        exp_pooled_time: player.expPooledTime.toISOString(),
+        leader_character_id: player.leaderCharacterId,
+        party_slot: player.partySlot,
+        degree_id: player.degreeId,
+        birth: player.birth,
+        free_mana: player.freeMana,
+        paid_mana: player.paidMana,
+        enable_auto_3x: serializeBoolean(player.enableAuto3x),
+        total_stamina_used: player.totalStaminaUsed ?? 0,
+        total_powerflips: player.totalPowerflips ?? 0,
+        total_dashes: player.totalDashes ?? 0,
+        total_mana_obtained: player.totalManaObtained ?? 0,
+        max_combo_achieved: player.maxComboAchieved ?? 0,
+        total_login_days: player.totalLoginDays ?? 0,
+        account_id: accountId,
+        tutorial_step: player.tutorialStep ?? null,
+        tutorial_skip_flag: player.tutorialSkipFlag !== null ? serializeBoolean(player.tutorialSkipFlag) : null,
+        tutorial_gacha_character_id: player.tutorialGachaCharacterId ?? null,
+        time_offset: player.timeOffset ?? null,
+    }
 
     if (playerIdGiven)
-        values.push(playerId);
+        params.id = playerId
+
+    const idCol = playerIdGiven ? ', id' : ''
+    const idVal = playerIdGiven ? ', @id' : ''
 
     const insert = getDb().prepare(`
     INSERT INTO players (stamina, stamina_heal_time, boost_point, boss_boost_point,
         transition_state, role, name, last_login_time, comment, vmoney, free_vmoney,
         rank_point, star_crumb, bond_token, exp_pool, exp_pooled_time, leader_character_id,
-        party_slot, degree_id, birth, free_mana, paid_mana, enable_auto_3x, total_stamina_used, account_id, 
-        tutorial_step, tutorial_skip_flag, tutorial_gacha_character_id${playerIdGiven ? ', id' : ''})
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?${playerIdGiven ? ', ?' : ''})
-    `).run(values)
+        party_slot, degree_id, birth, free_mana, paid_mana, enable_auto_3x,
+        total_stamina_used, total_powerflips, total_dashes, total_mana_obtained, max_combo_achieved, total_login_days, account_id,
+        tutorial_step, tutorial_skip_flag, tutorial_gacha_character_id,
+        time_offset${idCol})
+    VALUES (@stamina, @stamina_heal_time, @boost_point, @boss_boost_point,
+        @transition_state, @role, @name, @last_login_time, @comment,
+        @vmoney, @free_vmoney, @rank_point, @star_crumb, @bond_token,
+        @exp_pool, @exp_pooled_time, @leader_character_id, @party_slot,
+        @degree_id, @birth, @free_mana, @paid_mana, @enable_auto_3x,
+        @total_stamina_used, @total_powerflips, @total_dashes, @total_mana_obtained, @max_combo_achieved, @total_login_days, @account_id,
+        @tutorial_step, @tutorial_skip_flag, @tutorial_gacha_character_id,
+        @time_offset${idVal})
+    `).run(params)
 
     // return
     return Number(insert.lastInsertRowid)
@@ -527,7 +553,9 @@ export function insertDefaultPlayerSync(
 ): Player {
     const player: Omit<Player, 'id'> = getDefaultPlayerData()
 
-    const playerId = insertPlayerSync(accountId, player)
+    const db = getDb()
+    const insertAll = db.transaction((): number => {
+        const playerId = insertPlayerSync(accountId, player)
 
     // daily challenge point list — initialize all 282 CDN entries
     insertPlayerDailyChallengePointListSync(playerId, getDailyChallengePointDefaults())
@@ -993,8 +1021,12 @@ export function insertDefaultPlayerSync(
         }
     ])
 
+        return playerId
+    })
+
+    const finalPlayerId = insertAll()
     const finalPlayer = player as Player
-    finalPlayer.id = playerId
+    finalPlayer.id = finalPlayerId
     return finalPlayer
 }
 
@@ -1033,6 +1065,11 @@ export function updatePlayerSync(
         'paidMana': 'paid_mana',
         'enableAuto3x': 'enable_auto_3x',
         'totalStaminaUsed': 'total_stamina_used',
+        'totalPowerflips': 'total_powerflips',
+        'totalDashes': 'total_dashes',
+        'totalManaObtained': 'total_mana_obtained',
+        'maxComboAchieved': 'max_combo_achieved',
+        'totalLoginDays': 'total_login_days',
         'tutorialStep': 'tutorial_step',
         'tutorialSkipFlag': 'tutorial_skip_flag',
         'tutorialGachaCharacterId': 'tutorial_gacha_character_id'
@@ -1145,13 +1182,16 @@ export function dailyResetPlayerDataSync(
 ): boolean {
     const lastLoginTime = player.lastLoginTime
     const playerId = player.id
-    if ((loginDate.getUTCFullYear() > lastLoginTime.getUTCFullYear()) || (loginDate.getUTCMonth() > lastLoginTime.getUTCMonth()) || (loginDate.getUTCDate() > lastLoginTime.getUTCDate())) {
-        // TODO: daily reset logic.
+    const crossedDay = isNewDay(loginDate, lastLoginTime)
+    const crossedWeek = isNewWeek(loginDate, lastLoginTime)
+
+    if (crossedDay) {
         updatePlayerSync({
             id: playerId,
             lastLoginTime: loginDate,
             bossBoostPoint: 3,
-            boostPoint: 3
+            boostPoint: 3,
+            totalLoginDays: (player.totalLoginDays ?? 0) + 1
         })
 
         // Reset daily challenge points — sync with CDN and rebuild if missing
@@ -1189,14 +1229,35 @@ export function dailyResetPlayerDataSync(
             updatePlayerGachaCampaignSync(playerId, campaign.gachaId, campaign.campaignId, 1)
         }
 
-        // weekly reset
-        if (loginDate.getUTCDay() === 0) {
-
+        // Daily mission reset: take snapshot + wipe cache
+        const questProgress = getPlayerQuestProgressSync(playerId)
+        let totalClears = 0, ss = 0, s = 0, a = 0, b = 0
+        for (const [section, quests] of Object.entries(questProgress)) {
+            for (const qp of quests) {
+                if (qp.finished) {
+                    totalClears++
+                    if (qp.clearRank === 6) ss++
+                    else if (qp.clearRank === 5) s++
+                    else if (qp.clearRank === 4) a++
+                    else if (qp.clearRank === 3) b++
+                }
+            }
         }
+        takeSnapshot(playerId, 'daily', {
+            questClears: totalClears,
+            staminaUsed: player.totalStaminaUsed,
+            rankSs: ss, rankS: s, rankA: a, rankB: b,
+        })
+        getDb().prepare(`DELETE FROM players_active_missions_stages WHERE player_id = ? AND mission_id IN (SELECT id FROM players_active_missions WHERE player_id = ? AND progress >= 0)`).run(playerId, playerId)
+        getDb().prepare(`DELETE FROM players_active_missions WHERE player_id = ?`).run(playerId)
 
-        // monthly reset
-        if (loginDate.getUTCDate() === 1) {
-
+        // weekly reset
+        if (crossedWeek) {
+            takeSnapshot(playerId, 'weekly', {
+                questClears: totalClears,
+                staminaUsed: player.totalStaminaUsed,
+                rankSs: ss, rankS: s, rankA: a, rankB: b,
+            })
         }
 
         return true

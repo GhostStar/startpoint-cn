@@ -2,7 +2,14 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { readFileSync } from "fs";
 import path from "path";
 import { staticPagesDir } from ".";
-import { getAllPlayersSync, getPlayerSync, getPlayerCharactersSync, getPlayerItemsSync, getPlayerEquipmentListSync, getAllAccountsSync, getAccountPlayersSync, getPlayerQuestProgressSync, getPlayerDrawnQuestsSync } from "../../data/wdfpData";
+import { getAccountPlayersSync, getAllAccountsSync } from "../../data/domains/account"
+import { getAllDeviceBindingsSync, getSessionByAccountIdSync } from "../../data/domains/session"
+import { getAllPlayersSync, getPlayerSync } from "../../data/domains/player"
+import { getPlayerCharactersSync } from "../../data/domains/character"
+import { getPlayerDrawnQuestsSync, getPlayerQuestProgressSync } from "../../data/domains/quest"
+import { getPlayerEquipmentListSync } from "../../data/domains/equipment"
+import { getPlayerItemsSync } from "../../data/domains/item"
+import { SessionType } from "../../data/types";
 import { getActivePlayerId, getSelectedAccountId, getAccountDefaultPlayer } from "../../data/activeAccount";
 import characterTable from "../../../docs/generated/character_table.json";
 import itemLookup from "../../../assets/item_lookup.json";
@@ -35,41 +42,53 @@ const routes = async (fastify: FastifyInstance) => {
 
         let listContent = ''
 
-        // Account management table
-        const accounts = getAllAccountsSync()
-        let accountRows = ''
-        for (const acc of accounts) {
-            const pids = getAccountPlayersSync(acc.id)
+        // Device binding table (replaces account management)
+        const deviceBindings = getAllDeviceBindingsSync()
+        let deviceRows = ''
+        for (const dev of deviceBindings) {
+            const pids = getAccountPlayersSync(dev.account_id)
             const saveCount = pids.length
-            // Use per-account default player instead of global activePlayerId
-            const defaultPid = getAccountDefaultPlayer(acc.id)
+            const defaultPid = getAccountDefaultPlayer(dev.account_id)
             const activeName = defaultPid ? (htmlEscape(getPlayerSync(defaultPid)?.name || '-')) : '-'
-            accountRows += `<tr>
-                <td>${acc.id}</td>
+            const devName = htmlEscape(dev.name || '')
+            const session = getSessionByAccountIdSync(dev.account_id, SessionType.VIEWER)
+            const viewerIdStr = session ? htmlEscape(session.token) : '-'
+            deviceRows += `<tr>
+                <td class="text-xs text-on-surface-variant">${dev.device_id}</td>
+                <td class="text-xs text-on-surface-variant">${viewerIdStr}</td>
+                <td>
+                    <input value="${devName}" placeholder="名称"
+                           class="edit-field text-xs border border-outline-variant rounded px-1 py-0.5 w-24 bg-background text-on-background"
+                           data-device="${dev.device_id}" data-field="name">
+                </td>
                 <td>${saveCount}</td>
                 <td>${activeName}</td>
                 <td>
-                    <form method="post" action="/api/server/selectAccount?accountId=${acc.id}" style="display:inline">
+                    <form method="post" action="/api/server/selectAccount?accountId=${dev.account_id}" style="display:inline">
                         <button type="submit" class="text-xs bg-primary text-on-primary px-2 py-1 rounded-full">查看存档</button>
                     </form>
-                    <form method="post" action="/api/server/newSave?accountId=${acc.id}" style="display:inline">
+                    <form method="post" action="/api/server/newSave?accountId=${dev.account_id}" style="display:inline">
                         <button type="submit" class="text-xs bg-primary text-on-primary px-2 py-1 rounded-full">新建存档</button>
                     </form>
-                    <form method="post" action="/api/server/deleteAccount?id=${acc.id}" style="display:inline" onsubmit="return confirm('删除账号 ${acc.id} 及所有存档？')">
+                    <form method="post" action="/api/server/deleteAccount?id=${dev.account_id}" style="display:inline" onsubmit="return confirm('删除账号及所有存档？')">
                         <button type="submit" class="text-xs text-error px-2 py-1 rounded-full border border-error">删除</button>
                     </form>
                 </td>
             </tr>`
         }
         listContent += `<section class="flex flex-col p-5 border border-outline-variant rounded-3xl w-full gap-3">
-            <h3 class="text-xl text-on-background font-semibold">账号管理</h3>
+            <h3 class="text-xl text-on-background font-semibold">设备绑定 / 账号管理</h3>
             <table class="w-full text-sm"><thead><tr class="text-left border-b border-outline-variant">
-                <th class="p-1">ID</th><th class="p-1">存档数</th><th class="p-1">生效存档</th><th class="p-1">操作</th>
-            </tr></thead><tbody>${accountRows || '<tr><td colspan="4" class="text-on-surface-variant p-2">暂无账号</td></tr>'}</tbody></table>
+                <th class="p-1">设备 ID</th><th class="p-1">账号ID</th><th class="p-1">名称</th><th class="p-1">存档数</th><th class="p-1">生效存档</th><th class="p-1">操作</th>
+            </tr></thead><tbody>${deviceRows || '<tr><td colspan="6" class="text-on-surface-variant p-2">暂无设备绑定</td></tr>'}</tbody></table>
         </section>`
 
         // Save management table (for selected account)
         if (selectedAccountId !== null) {
+            const devName = htmlEscape(deviceBindings.find(d => d.account_id === selectedAccountId)?.name || '')
+            const session = getSessionByAccountIdSync(selectedAccountId, SessionType.VIEWER)
+            const viewerId = session?.token || String(selectedAccountId)
+            const accountLabel = devName ? `${viewerId}（${devName}）` : viewerId
             const pids = getAccountPlayersSync(selectedAccountId)
             let saveRows = ''
             for (const pid of pids) {
@@ -104,9 +123,9 @@ const routes = async (fastify: FastifyInstance) => {
                 </tr>`
             }
             listContent += `<section class="flex flex-col p-5 border border-outline-variant rounded-3xl w-full gap-3">
-                <h3 class="text-xl text-on-background font-semibold">account ${selectedAccountId} 的存档</h3>
+                <h3 class="text-xl text-on-background font-semibold">账号 ${accountLabel} 的存档</h3>
                 <table class="w-full text-sm"><thead><tr class="text-left border-b border-outline-variant">
-                    <th class="p-1">ID</th><th class="p-1">名字</th><th class="p-1">等级</th><th class="p-1">角色数</th><th class="p-1">存档时间</th><th class="p-1">操作</th>
+                    <th class="p-1">存档ID</th><th class="p-1">名字</th><th class="p-1">等级</th><th class="p-1">角色数</th><th class="p-1">存档时间</th><th class="p-1">操作</th>
                 </tr></thead><tbody>${saveRows || '<tr><td colspan="6" class="text-on-surface-variant p-2">暂无存档</td></tr>'}</tbody></table>
             </section>`
         }

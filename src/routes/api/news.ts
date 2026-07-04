@@ -5,7 +5,7 @@
  *   NewsGetInfoRealRemote.as — expects { id, title, date, html, label, thumbnail, added_time, thumbnail_path }
  */
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getSession } from "../../data/wdfpData";
+import { getSession } from "../../data/domains/session"
 import { generateDataHeaders } from "../../utils";
 import { readFileSync } from "fs";
 import path from "path";

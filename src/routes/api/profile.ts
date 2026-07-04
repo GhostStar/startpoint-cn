@@ -3,7 +3,10 @@
  * Returns player profile info, settings, and party groups.
  */
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getSession, getPlayerSync, getPlayerCharactersSync, getPlayerPartyGroupListSync, updatePlayerSync } from "../../data/wdfpData";
+import { getPlayerCharactersSync } from "../../data/domains/character"
+import { getPlayerPartyGroupListSync } from "../../data/domains/party"
+import { getPlayerSync, updatePlayerSync } from "../../data/domains/player"
+import { getSession } from "../../data/domains/session"
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 // removed getAccountPlayers "../../data/wdfpData";
 import { generateDataHeaders } from "../../utils";
@@ -51,7 +54,7 @@ const routes = async (fastify: FastifyInstance) => {
                     equipment_ids: (p.equipmentIds || []).map((id: number | null) => id),
                     options: { allow_other_players_to_heal_me: p.options?.allowOtherPlayersToHealMe ?? true },
                     party_edited: p.edited ?? false,
-                    party_id: parseInt(slot),
+                    party_id: (parseInt(groupId) - 1) * 10 + parseInt(slot),
                     party_name: p.name || "",
                     unison_character_ids: (p.unisonCharacterIds || []).map((id: number | null) => id),
                 })
@@ -61,6 +64,24 @@ const routes = async (fastify: FastifyInstance) => {
                 party_group_color_id: group.colorId || 15,
                 party_group_id: parseInt(groupId),
                 party_list: partyList,
+            })
+        }
+
+        // Ensure at least one party exists for favorite character display
+        if (partyGroupList.length === 0) {
+            partyGroupList.push({
+                party_group_color_id: 15,
+                party_group_id: 1,
+                party_list: [{
+                    ability_soul_ids: [null, null, null],
+                    character_ids: [player.leaderCharacterId || 1, null, null],
+                    equipment_ids: [null, null, null],
+                    options: { allow_other_players_to_heal_me: true },
+                    party_edited: false,
+                    party_id: 1,
+                    party_name: "Party A",
+                    unison_character_ids: [null, null, null],
+                }]
             })
         }
 

@@ -1,5 +1,9 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getPlayerSync, getSession, playerOwnsCharacterSync, playerOwnsEquipmentSync, updatePlayerPartySync, updatePlayerSync } from "../../data/wdfpData";
+import { getPlayerSync, updatePlayerSync } from "../../data/domains/player"
+import { getSession } from "../../data/domains/session"
+import { playerOwnsCharacterSync } from "../../data/domains/character"
+import { playerOwnsEquipmentSync } from "../../data/domains/equipment"
+import { updatePlayerPartySync } from "../../data/domains/party"
 import { generateDataHeaders } from "../../utils";
 import { PartyCategory } from "../../data/types";
 import { resolvePlayerIdSync } from "../../data/activeAccount";

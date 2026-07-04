@@ -1,6 +1,7 @@
 import { randomInt } from "crypto";
-import { clientSerializeDate } from "../data/utils";
-import { getPlayerCharacterSync, getPlayerSync, givePlayerItemSync, updatePlayerSync } from "../data/wdfpData";
+import { getPlayerCharacterSync } from "../data/domains/character"
+import { getPlayerSync, updatePlayerSync } from "../data/domains/player"
+import { givePlayerItemSync } from "../data/domains/item"
 import { getRareScoreRewardGroup } from "./assets";
 import { givePlayerCharacterSync } from "./character";
 import { givePlayerEquipmentSync } from "./equipment";
@@ -70,6 +71,7 @@ export function givePlayerScoreRewardsSync(
                             const itemId = itemReward.id
                             rewardAmount = itemReward.count * dropMultiplier * (boostPointUsed ? 2 : 1)
                             items[String(itemId)] = givePlayerItemSync(playerId, itemId, rewardAmount);
+                            console.log(`[QUEST-ITEM] id=${itemId} cdnCount=${itemReward.count} ×drop=${dropMultiplier} ×boost=${boostPointUsed ? 2 : 1} → ${rewardAmount}`)
                             break;
                         }
                         case RewardType.MANA: {
@@ -79,7 +81,8 @@ export function givePlayerScoreRewardsSync(
                             mana += rewardAmount
                             updatePlayerSync({
                                 id: playerId,
-                                freeMana: (player?.freeMana || 0) + rewardAmount
+                                freeMana: (player?.freeMana || 0) + rewardAmount,
+                                totalManaObtained: (player?.totalManaObtained || 0) + rewardAmount
                             })
                             break;
                         }
@@ -99,6 +102,7 @@ export function givePlayerScoreRewardsSync(
                             const itemId = resolveElementItemId(itemReward.id, questElement)
                             rewardAmount = itemReward.count * dropMultiplier * (boostPointUsed ? 2 : 1)
                             items[String(itemId)] = givePlayerItemSync(playerId, itemId, rewardAmount);
+                            console.log(`[QUEST-ELEMENT] rarity=${itemReward.id} →id=${itemId} cdnCount=${itemReward.count} ×drop=${dropMultiplier} ×boost=${boostPointUsed ? 2 : 1} → ${rewardAmount}`)
                             break;
                         }
                         case RewardType.AETHER: {
@@ -106,6 +110,7 @@ export function givePlayerScoreRewardsSync(
                             const itemId = resolveAetherItemId(itemReward.id, questElement)
                             rewardAmount = itemReward.count * dropMultiplier * (boostPointUsed ? 2 : 1)
                             items[String(itemId)] = givePlayerItemSync(playerId, itemId, rewardAmount);
+                            console.log(`[QUEST-AETHER] rarity=${itemReward.id} →id=${itemId} cdnCount=${itemReward.count} ×drop=${dropMultiplier} ×boost=${boostPointUsed ? 2 : 1} → ${rewardAmount}`)
                             break;
                         }
                     }
@@ -140,14 +145,10 @@ export function givePlayerScoreRewardsSync(
                                 characterList = [...characterList, ...result.character_list]
                                 equipmentList = [...equipmentList, ...result.equipment_list]
 
-                                // merge items
+                                // merge items: RARE_POOL result.items already contains DB totals
+                                // (includes any earlier ITEM path writes), so just use latest value
                                 for (const [itemId, count] of Object.entries(result.items)) {
-                                    const existingCount = items[itemId]
-                                    if (existingCount === undefined) {
-                                        items[itemId] = count
-                                    } else {
-                                        items[itemId] = existingCount + count
-                                    }
+                                    items[itemId] = count
                                 }
 
                                 // calculate number
@@ -182,6 +183,10 @@ export function givePlayerScoreRewardsSync(
                 }
             }
         }
+    }
+
+    if (Object.keys(items).length > 0) {
+        console.log(`[QUEST-BAG] total items bagged: ${JSON.stringify(items)}`)
     }
 
     return {
@@ -282,7 +287,8 @@ export function givePlayerRewardsSync(
             id: playerId,
             freeVmoney: player.freeVmoney + vmoney,
             freeMana: player.freeMana + mana,
-            expPool: player.expPool + expPool
+            expPool: player.expPool + expPool,
+            totalManaObtained: (player.totalManaObtained || 0) + mana
         })
     }
     

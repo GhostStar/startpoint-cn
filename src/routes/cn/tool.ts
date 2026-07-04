@@ -1,6 +1,8 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { generateDataHeaders } from "../../utils";
-import { insertAccountSync, getAccountSync, insertDefaultPlayerSync, getPlayerSync, insertSessionWithToken, updateAccountSync, deleteSession, getDeviceBindingSync, insertDeviceBindingSync, deleteDeviceBindingSync } from "../../data/wdfpData";
+import { generateDataHeaders, generateViewerId } from "../../utils";
+import { deleteAccountSessionsOfTypeSync, deleteDeviceBindingSync, getAccountSessionsOfTypeSync, getDeviceBindingSync, insertDeviceBindingSync, insertSessionWithToken } from "../../data/domains/session"
+import { getAccountSync, insertAccountSync, updateAccountSync } from "../../data/domains/account"
+import { getPlayerSync, insertDefaultPlayerSync } from "../../data/domains/player"
 import { SessionType } from "../../data/types";
 import { saveAccountDefaultPlayer } from "../../data/activeAccount";
 
@@ -62,6 +64,7 @@ const routes = async (fastify: FastifyInstance) => {
         const loginToken = generateLoginToken();
         let accountId: number;
         let newAccount = true;
+        let viewerId: number | undefined;   // set when reusing existing session
 
         if (!deviceId) {
             return reply.status(400).send({ error: "Missing device_id" })
@@ -77,7 +80,12 @@ const routes = async (fastify: FastifyInstance) => {
                 accountId = binding.account_id
                 newAccount = false
                 updateAccountSync({ id: accountId, lastLoginTime: new Date() })
-                try { deleteSession(String(accountId)) } catch (_) {}
+                // Clean all old sessions for this account, reuse first token
+                const sessions = getAccountSessionsOfTypeSync(accountId, SessionType.VIEWER)
+                if (sessions.length > 0) {
+                    viewerId = parseInt(sessions[0].token)
+                    deleteAccountSessionsOfTypeSync(accountId, SessionType.VIEWER)
+                }
             } else {
                 // Account was deleted — clean up stale binding and create new account
                 deleteDeviceBindingSync(deviceId)
@@ -100,19 +108,22 @@ const routes = async (fastify: FastifyInstance) => {
             insertDeviceBindingSync(deviceId, accountId)
         }
 
+        if (!viewerId) {
+            viewerId = generateViewerId()
+        }
         await insertSessionWithToken({
-            token: String(accountId),
+            token: String(viewerId),
             accountId: accountId,
             type: SessionType.VIEWER,
             expires: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000)
         });
 
-        viewerIdToAccountId.set(accountId, accountId);
+        viewerIdToAccountId.set(viewerId, accountId);
 
         reply.header("content-type", "application/x-msgpack");
         reply.status(200).send({
             data_headers: generateDataHeaders({
-                viewer_id: accountId,
+                viewer_id: viewerId,
                 short_udid: shortUdid,
                 udid: udid,
             }),

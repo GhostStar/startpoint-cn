@@ -1,5 +1,5 @@
 # 多人战斗（Multi Battle Quest）联机系统文档
-> 状态: NPC共斗完善 + 真人联机 Phase 1-3 基础就绪 + 战斗恢复数据层   关键文件: src/data/sessionServer.ts, src/data/multiRoom.ts, src/routes/api/multiBattleQuest.ts   相关端点: /api/index.php/multi_battle_quest/*
+> 状态: NPC共斗完善 + 真人联机 Phase 1-3 基础就绪 + 战斗恢复数据层   关键文件: src/multi/（20模块重构）  旧文件: src/legacy/sessionServer.ts.bak   相关端点: /api/index.php/multi_battle_quest/*
 
 ## 1. API 端点规范
 
@@ -53,7 +53,7 @@
 | 10 | `mates` | **Int** | `room.mates.length` | `2` | ⚠️ 是 Int 计数，不是对象数组 |
 | 11 | `raising_state` | Int | `room.raising_state` | `1` | 1=Ready, 2=Recruiting, 3=Filled, 4=Battle |
 
-**实现位置**: `src/data/multiRoom.ts:196-209` `serializeRoom()`
+**实现位置**: `src/multi/room/serializer.ts` `serializeRoom()`
 
 ---
 
@@ -79,7 +79,7 @@
 
 **数据库操作**: 从 `getViewerIdAndPlayer()` → DB 查 `player.leaderCharacterId` → 存入 `room.host_main_character_id`
 
-**实现位置**: `src/routes/api/multiBattleQuest.ts:224-249` `create_room`, `src/data/multiRoom.ts:112-141` `createRoom()`
+**实现位置**: `src/multi/http/lobby.ts` `create_room`, `src/multi/room/manager.ts` `createRoom()`
 
 ---
 
@@ -104,7 +104,7 @@
 | `establisher_viewer_id` | number | 房间或 0 | `5` | |
 | `establisher_follow` | bool | 硬编码 | `false` | |
 
-**实现位置**: `src/routes/api/multiBattleQuest.ts:252-277` `search_room`
+**实现位置**: `src/multi/http/lobby.ts` `search_room`
 
 ---
 
@@ -139,7 +139,7 @@
 | `share_room_options` | Int | 硬编码 | `0` | |
 | `is_pickup` | Option\<Bool\> | 硬编码 | `null` | null = None |
 
-**实现位置**: `src/routes/api/multiBattleQuest.ts:279-303` `select_room`, `src/data/multiRoom.ts:222-235` `serializeRoomConnection()`
+**实现位置**: `src/multi/http/lobby.ts` `select_room`, `src/multi/room/serializer.ts` `serializeRoomConnection()`
 
 ---
 
@@ -159,7 +159,7 @@
 
 **响应体**: 与 `select_room` 完全相同。
 
-**实现位置**: `src/routes/api/multiBattleQuest.ts:305-331` `prepare`
+**实现位置**: `src/multi/http/room.ts` `prepare`
 
 ---
 
@@ -202,7 +202,7 @@
 | `equipments[i].enhancement_level` | number | 强化等级 |
 | `party.ability_soul_ids[]` | (number \| null)[] | 能力魂 ID（3 个空位） |
 
-**实现位置**: `src/data/multiRoom.ts:55-102` `buildNpcMate()`, `src/routes/api/multiBattleQuest.ts:332-365` `summon`
+**实现位置**: `src/multi/npc/builder.ts` `buildNpcMate()`, `src/multi/http/room.ts` `summon`
 
 ---
 
@@ -221,7 +221,7 @@
 
 **响应体**: 与 single 版类似，`is_multi: "multi"`。
 
-**实现位置**: `src/routes/api/multiBattleQuest.ts:466-526` `start`
+**实现位置**: `src/multi/http/battle.ts` `start`
 
 ---
 
@@ -256,7 +256,7 @@
 | `user_notice_list` | [] | |
 | `user_periodic_reward_point_list` | [] | |
 
-**实现位置**: `src/routes/api/multiBattleQuest.ts:532-780` `finish`
+**实现位置**: `src/multi/http/battle.ts` `finish`
 
 ---
 
@@ -280,7 +280,7 @@
 | `party_info` | null | |
 | `presigned_url` | null | |
 
-**实现位置**: `src/routes/api/multiBattleQuest.ts:785-822` `abort`
+**实现位置**: `src/multi/http/battle.ts` `abort`
 
 ---
 
@@ -305,7 +305,7 @@
 | `user_info.vmoney` | number | 续关后剩余付费星导石 |
 | `mail_arrived` | boolean | `false` |
 
-**实现位置**: `src/routes/api/multiBattleQuest.ts:828-870` `play_continue`
+**实现位置**: `src/multi/http/battle.ts` `play_continue`
 
 ---
 
@@ -396,20 +396,26 @@
 | Message | 1 | `(MeetingServerMessage)` |
 | Messages | 2 | `(broadcaster: String, messages: Array)` |
 
-#### MeetingServerMessage
-| 枚举 | Index | 参数 |
-|------|:-----:|------|
-| Welcome | 0 | `(yourself: Object, mates: Array)` |
-| Mates | 1 | `(mates: Array)` |
-| StateChanged | 2 | `(viewerId: String, state: ReadyState)` |
-| AutoplayModeChanged | 3 | `(viewerId, auto: Bool, manual: Bool)` |
-| AutoStartChanged | 4 | `(viewerId, autoStart: Bool)` |
-| Start | 5 | `(members: Array<Object>)` |
-| Disbanded | 6 | `(reason: String)` |
-| RemainingTime | 7 | `(time: Int)` |
-| Update | 8 | `(reason: String)` |
-| StartRemainingTime | 9 | `(time: Int)` |
-| AckHeartbeat | 10 | `(viewerId: String)` |
+#### MeetingServerMessage（CN 运行时 — 原始 APK __constructs__ 验证）
+
+> ⚠️ 反编译源码不含 `AssetUpdate`（CN 专属），且 index 顺序不同。以下为**原始 CN APK 字节码提取**的正确映射。
+
+| 枚举 | CN Index | 参数 | Wire 全量测试验证 |
+|------|:---:|------|:---:|
+| Welcome | 0 | `(yourself, mates)` | ✅ CN 实测 |
+| Mates | 1 | `(mates)` | ✅ CN 实测 |
+| StateChanged | 2 | `(viewerId, ReadyState)` | ✅ CN 实测 |
+| AutoplayModeChanged | 3 | `(viewerId, Bool, Bool)` | ✅ CN 实测 |
+| AutoStartChanged | 4 | `(viewerId, Bool)` | ✅ CN 实测 |
+| Start | 5 | `(members)` | ⚠️ 未测（会进战斗） |
+| Disbanded | 6 | `(reason)` | ✅ CN 实测 |
+| RemainingTime | 7 | `(seconds)` | ✅ CN 实测 |
+| Update | 8 | `(reason)` | ✅ CN 实测 |
+| **AssetUpdate** ★ | **9** | **`(reason)`** | **✅ CN 实测（进房弹下载提示）** |
+| StartRemainingTime | 10 | `(seconds)` | ✅ CN 实测 |
+| AckHeartbeat | **11** | `(connectionId)` | **✅ CN 实测（30s 不解散）** |
+
+> ★ `AssetUpdate` 是 CN（Leiting）专属枚举，反编译 `wf-2.1.125-cn-decompiled` 中缺失。FFDec 反编译时未输出此枚举，导致后续 index 全偏移 1 位。原始 APK 字节码中 `__constructs__` 确认此顺序为正。
 
 #### Client2Server
 | 枚举 | Index | 参数 |
@@ -733,13 +739,18 @@ const NPC_TEMPLATES = {
 
 | 文件 | 模块 | 职责 |
 |------|------|------|
-| `src/routes/api/multiBattleQuest.ts` | HTTP API | 14 个 REST 端点 |
-| `src/data/multiRoom.ts` | 房间管理 | 房间 CRUD、NPC 生成、序列化 |
-| `src/data/sessionServer.ts` | TCP 会话 (Phase 1) | 握手、心跳、Clean Room（无 NPC） |
-| `src/lib/types.ts` | 类型 | `MultiRoom`, `MultiMate`, `MultiMateParty` 等 |
+| `src/multi/http/` | HTTP API | 15 个 REST 端点（5 文件） |
+| `src/multi/tcp/` | TCP 会话 | 握手 + 大厅协议 + 战斗协议 + 中继（5 文件） |
+| `src/multi/room/` | 房间管理 | 房间 CRUD + serializer（2 文件） |
+| `src/multi/npc/` | NPC 系统 | 模板 + builder + MateProvider（3 文件） |
+| `src/multi/state/` | 状态管理 | 3 个状态机 + SessionManager（3 文件） |
+| `src/multi/index.ts` | 入口 | barrel + cn-server.ts 对接 |
+| `src/multi/types.ts` | 类型 | 所有联机类型定义 |
+| `src/lib/types.ts` | 类型 | `MultiRoom`, `MultiMate`, `MultiMateParty` 等基础类型 |
 | `src/lib/assets.ts` | 资产 | `HARD_MULTI_EVENT` quest 查找 |
 | `src/assets/hard_multi_event_quest.json` | 资产 | 12 个 hard_multi 关卡数据 |
-| `src/cn-server.ts` | 入口 | 启动 sessionServer |
+| `src/cn-server.ts` | 入口 | 注册路由 + 启动 sessionServer |
+| `src/legacy/` | 归档 | 旧代码：`multiBattleQuest.ts.bak`, `sessionServer.ts.bak`, `multiRoom.ts.bak` |
 | `src/routes/api/singleBattleQuest.ts` | 公用 | `activeQuests` 导出供 multi 共用 |
 
 ---
@@ -784,7 +795,8 @@ const NPC_TEMPLATES = {
 | `StartBattle → Start(members)` | ✅ | members 含完整 mate 对象数组 |
 | 战斗结算后返回房间 | ✅ | finish→raising_state=1，room TCP 存活→可再战 |
 | 房间断线恢复 | ✅ | TCP 断线→disband，restore_room 返回 9 |
-| 自动招募 NPC（进入房间时） | ✅ | NPC_AUTO_JOIN_DELAY_MS 后自动 EnterComs |
+| 自动招募 NPC（进入房间时） | ✅ | `npc_count > 0` 时自动 EnterComs，首次计算 NPC 数量并持久化，Rematch 恢复固定数量 |
+| NPC 数量持久化 | ✅ | `npc_count` 字段：首次招募写入 `3-realPlayers`，Rematch 恢复。真人不齐时 `checkAllReadyAndStart` 等待。|
 | 战斗协议完善 | ✅ | SceneReady(tag=0)+Finalize(tag=1)+Measurement(tag=2) |
 
 ### 9.3 环境变量
@@ -793,9 +805,10 @@ const NPC_TEMPLATES = {
 |------|--------|------|
 | `SESSION_PORT` | 8003 | TCP 会话端口 |
 | `SESSION_HOST` | 0.0.0.0 | TCP 绑定地址 |
-| `MULTI_ROOM_EXPIRY_MS` | 600000 | 空闲房间过期（ms），默认 10min |
-| `MULTI_BATTLE_ROOM_EXPIRY_MS` | 600000 | 战斗中房间无活动过期（ms），默认 10min |
+| `MULTI_ROOM_INCOMPLETE_EXPIRY_MS` | 900000 | 未满 3 人过期（ms），默认 15min |
+| `MULTI_ROOM_FULL_EXPIRY_MS` | 1800000 | 满 3 人过期（ms），默认 30min（兜底） |
 | `MULTI_ROOM_CLEAN_INTERVAL_MS` | 60000 | 过期检查间隔（ms） |
+| 存活时机 | — | 解散前 30s 发 RemainingTime(tag 7) 浮窗 |
 | `QUEST_RESULT_DISBAND_DELAY_MS` | 60000 | 结算后返回房间等待窗口（ms），对齐 CDN `room_config.json` |
 | `NPC_JOIN_DELAY_MS` | 2000 | NPC 加入房间延迟（ms） |
 | `NPC_READY_DELAY_MS` | 500 | NPC 准备延迟（ms） |
@@ -902,7 +915,7 @@ state=1 (Ready: 可加入/可招募)
 | 战斗帧同步 | ✅ | Broadcast 帧命令双向 relay，typepacker 格式对齐 |
 | NPC/真人模式解耦 | ✅ | NPC: battleExpectedCount=1, 真人: mates.length |
 | Bye 广播 Mates | ✅ | 玩家离开→移除→广播更新给剩余客户端 |
-| Disband 广播 Disbanded(6) | ✅ | `notifyRoomDisbanded` → 解散通知全员 |
+| Disband 广播 Disbanded(6) | ✅ | `notifyRoomDisbanded` → `multibattle_room_dismissed`（CN 客户端本地化 key） |
 | 房主返回同步 | ✅ | 房主 Enter→合并已有客端 mates→广播更新 |
 | Finish 同步 | ✅ | 各玩家独立 finish HTTP，房主管理 room state |
 | Abort 同步 | ✅ | G10+G11 覆盖，房主 abort→Disbanded，客端→Mates 广播 |
@@ -927,34 +940,59 @@ Client B → Broadcast(frameCmd) → Server → relayToBattleRoom → BattleServ
 | C5602 Disband NPE | ✅ 已修复 | `notifyRoomDisbanded` 仅用于 TCP 断线通知 |
 | 消息 TCP 合并 | ⚠️ | 100ms/200ms 延迟规避 |
 | 战斗恢复 UI（RestoreState.Battle） | 待测 | DB 层已就绪，客户端恢复弹窗流程待验证 |
-| 空房间"6秒后挑战合作任务"浮字 | ⚠️ 客户端本地 UI | ReadyCounter 倒计时，非服务端 TCP 消息 |
-| state=3 (Filled) | 待恢复 | `handleEnterComs` 中 `updateRoomState(3)` 被 F1 修复误删 |
-| 连战后偶发"无法返回房间" | ⚠️ 待复现 | 疑似 TCP 重连未在 60s 内到达 |
+| state=3 (Filled) | ✅ 已移除 | `updateRoomState(3)` 去掉——旧代码不设 Filled，导致客机 `get_rooms` 显示"满房" |
+| 空房间浮字 + 快速解散 | ⚠️ 服务端已排查完毕，待客户端日志确认 | 见 9.8.2 专题研究 |
 
-### 9.8.1 结算画面 60s 双定时器
+### 9.8.2 空房间浮字 + 快速解散专题研究
 
-结算画面存在两个独立的 60s 定时器：
+**现象**：
+- NPC 模式创房后，房间仅房主 1 人、未准备，每 5s 出现 "N秒后将挑战合作战斗" 浮字
+- 房间在短时间内被客户端主动 `Bye` → 服务端 `disbandRoom`
+- Heartbeat `connectionId` 修复后浮字从 6s 变 1s，不再 30s 超时但仍快速解散
 
-**客户端 `disbandRoomTimer`**（`QuestResultScene.as` L956-969）：
+**已尝试修复（均未解决）**：
 
-| 属性 | 说明 |
+| 修复 | 效果 |
 |------|------|
-| 启动时机 | P1 一开始（`prepareScene()`） |
-| 启动条件 | 多人模式 + 非孤立 + 房主/访客；NPC 单人模式**不启动** |
-| 触发方式 | 到达 60s 后**每帧**尝试 `finishQuestResultIfPossible()`，仅在用户到达 P3 按钮界面且动画完成后才真正执行 |
-| 客户端行为 | 房主→发 `disbandRoom` HTTP；客机→直接返回上层 |
-| P1/P2 超时 | 不自动跳转，等待用户手动操作 |
+| AckHeartbeat `viewerId→connectionId` | 浮字 6s→1s |
+| 删除 60s return window 定时器 | 仍解散 |
+| `removeClient` state=4 guard | 仍解散 |
+| `createRoom` `mates` 初始化为 [] | 仍解散 |
+| Welcome/Mates 合并为一条消息 | 待测试 |
+| `room.mates` 同步为实际人数 | 修复 get_rooms 显示 |
 
-**服务端 `QUEST_RESULT_DISBAND_DELAY_MS`**（`sessionServer.ts` `removeClient` L115-125）：
+**客户端 Bye 可能来源**：
 
-| 属性 | 说明 |
+| 路径 | 排除？ |
+|------|:---:|
+| 用户手动退出 | ❓ 待确认 |
+| 场景切换（进战斗） | ❌ 未进战斗 |
+| Heartbeat 30s 超时 | ✅ 已修复 |
+| 服务器 Disbanded(6) | ✅ 不发送 |
+
+**浮字来源排查**：
+
+| 排查项 | 结论 |
 |------|------|
-| 启动时机 | battle TCP 断开时（finish 后） |
-| 启动条件 | `isBattle && raising_state === 1` |
-| 触发方式 | 60s 后 `disbandRoom` + `notifyRoomDisbanded` |
-| 取消条件 | 客户端 `prepare/select_room` → TCP handshake → `clearTimeout` |
+| 服务端发送 `StartRemainingTime(9,N)` | ❌ `sendJson` 全量 tag 日志确认仅发送 Welcome(0)+AckHeartbeat(10) |
+| 客户端生成此消息 | ❌ 源码确认 3 个场景仅接收 `case 9`，不构造 `MeetingServerMessage.StartRemainingTime` |
+| `mates.length` 误导满员 | ❌ Welcome/Mates 返回 1 人，`canAutoStartBattle()` 要求 ≥3 |
+| `autoStart:false` | ❌ Welcome 中明确传 false，Enter 后覆盖为客户端值 |
+| `state:[0]` (Preparation) | ❌ 所有 mate 未准备 |
+| 占位槽导致 room.mates 显示为 0 | ❌ 客户端无占位概念，且 `get_rooms` 中 `mates` 字段不影响房主自身流程 |
 
-两者独立运作，互不冲突。偶发"无法返回房间"是服务端定时器先于客户端 TCP 重连触发。
+**核心矛盾**：浮字文本确认为 `multibattle_room_start_remaining_notify`（"N秒后将挑战合作战斗"），该文本**仅在客户端收到服务端 TCP 消息 `StartRemainingTime(9,N)` 时显示**。但服务端不发送此消息，客户端源码也不生成此消息。唯一变化点是 Heartbeat 修复影响了浮字倒计时值（6s→1s），暗示与客户端 ReadyCounter 计时器状态有关。
+
+**当前状态**：服务端所有可排查点已排查完毕。需客户端日志（`ERR:`/`RD:`/`GL:` tag）确认浮字触发时刻的代码路径。不影响功能——浮字纯 visual，不改变房间状态。
+
+### 9.8.1 结算画面 60s 定时器
+
+| 属性 | 客户端 `disbandRoomTimer` | 服务端 |
+|------|------|------|
+| 启动时机 | P1 一开始 | **不设置**（官方服务端 finish 后不自动解散） |
+| 启动条件 | 多人+非孤立 | — |
+| 单人模式 | 不启动 | — |
+| 房间存活 | 仅靠 `cleanExpiredRooms` (10min idle) 兜底 |
 
 ### 9.9 下一步 — Phase 4 匹配系统 ⏳ 暂缓
 

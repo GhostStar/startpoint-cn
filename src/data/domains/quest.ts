@@ -17,7 +17,9 @@ function buildPlayerQuestProgress(
         unlocked: deserializeBoolean(raw.unlocked),
         highScore: raw.high_score,
         clearRank: raw.clear_rank,
-        bestElapsedTimeMs: raw.best_elapsed_time_ms
+        bestElapsedTimeMs: raw.best_elapsed_time_ms,
+        leaderCharacterId: raw.leader_character_id,
+        multiClearCount: raw.multi_clear_count
     }
 }
 
@@ -32,7 +34,7 @@ export function getPlayerQuestProgressSync(
 ): Record<string, PlayerQuestProgress[]> {
 
     const rawProgress = getDb().prepare(`
-    SELECT section, quest_id, finished, unlocked, high_score, clear_rank, best_elapsed_time_ms
+    SELECT section, quest_id, finished, unlocked, high_score, clear_rank, best_elapsed_time_ms, leader_character_id, multi_clear_count
     FROM players_quest_progress
     WHERE player_id = ?
     `).all(playerId) as RawPlayerQuestProgress[]
@@ -67,7 +69,7 @@ export function getPlayerSingleQuestProgressSync(
 ): PlayerQuestProgress | null {
 
     const rawProgress = getDb().prepare(`
-    SELECT section, quest_id, finished, unlocked, high_score, clear_rank, best_elapsed_time_ms
+    SELECT section, quest_id, finished, unlocked, high_score, clear_rank, best_elapsed_time_ms, leader_character_id, multi_clear_count
     FROM players_quest_progress
     WHERE player_id = ? AND section = ? AND quest_id = ?
     `).get(playerId, Number(section), Number(questId)) as RawPlayerQuestProgress
@@ -90,8 +92,8 @@ export function insertPlayerQuestProgressSync(
     data: PlayerQuestProgress
 ) {
     getDb().prepare(`
-    INSERT INTO players_quest_progress (section, quest_id, finished, unlocked, high_score, clear_rank, best_elapsed_time_ms, player_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO players_quest_progress (section, quest_id, finished, unlocked, high_score, clear_rank, best_elapsed_time_ms, leader_character_id, player_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
         Number(section),
         data.questId,
@@ -100,6 +102,7 @@ export function insertPlayerQuestProgressSync(
         data.highScore ?? null,
         data.clearRank ?? null,
         data.bestElapsedTimeMs ?? null,
+        data.leaderCharacterId ?? null,
         playerId
     )
 }
@@ -140,7 +143,8 @@ export function updatePlayerQuestProgressSync(
         'unlocked': 'unlocked',
         'highScore': 'high_score',
         'clearRank': 'clear_rank',
-        'bestElapsedTimeMs': 'best_elapsed_time_ms'
+        'bestElapsedTimeMs': 'best_elapsed_time_ms',
+        'leaderCharacterId': 'leader_character_id'
     }
 
     const sets: string[] = []

@@ -2,7 +2,8 @@
 // Private server: accepts any valid request, no real payment validation.
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getPlayerSync, getSession, updatePlayerSync } from "../../data/wdfpData";
+import { getPlayerSync, updatePlayerSync } from "../../data/domains/player"
+import { getSession } from "../../data/domains/session"
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { generateDataHeaders, getServerTime } from "../../utils";
 import { getConfigSync } from "../../lib/assets";

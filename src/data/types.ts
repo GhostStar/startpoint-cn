@@ -135,6 +135,7 @@ export interface PlayerCharacter {
 
 export interface RawPlayerCharacterManaNode {
     value: number,
+    awake_level: number,
     character_id: number
 }
 
@@ -225,6 +226,8 @@ export interface RawPlayerQuestProgress {
     high_score?: number
     clear_rank?: number
     best_elapsed_time_ms?: number
+    leader_character_id?: number
+    multi_clear_count?: number
 }
 
 export interface PlayerQuestProgress {
@@ -233,6 +236,8 @@ export interface PlayerQuestProgress {
     highScore?: number
     clearRank?: number
     bestElapsedTimeMs?: number
+    leaderCharacterId?: number
+    multiClearCount?: number
     unlocked?: boolean
 }
 
@@ -480,6 +485,11 @@ export interface RawPlayer {
     paid_mana: number
     enable_auto_3x: number
     total_stamina_used: number
+    total_powerflips: number
+    total_dashes: number
+    total_mana_obtained: number
+    max_combo_achieved: number
+    total_login_days: number
     tutorial_step: number | null
     tutorial_skip_flag: number | null
     tutorial_gacha_character_id: number | null
@@ -512,6 +522,11 @@ export interface Player {
     paidMana: number
     enableAuto3x: boolean
     totalStaminaUsed: number
+    totalPowerflips: number
+    totalDashes: number
+    totalManaObtained: number
+    maxComboAchieved: number
+    totalLoginDays: number
     tutorialStep: number | null
     tutorialSkipFlag: boolean | null
     tutorialGachaCharacterId: number | null
@@ -585,6 +600,7 @@ export interface UserCharacter {
     stack: number
     bond_token_list: UserCharacterBondTokenStatus[]
     mana_board_index: number
+    mana_board_awake?: Record<number, number>
     ex_boost?: UserCharacterExBoost
     illustration_settings?: number[]
 }
@@ -719,6 +735,8 @@ export interface MergedPlayerData {
     clearedRegularMissionList: Record<string, number>,
     characterList: Record<string, PlayerCharacter>,
     characterManaNodeList: Record<string, number[]>,
+    characterManaNodeAwakeLevels?: Record<string, Record<number, number>>,
+    manaBoardAwakeMap?: Map<string, Record<number, number>>,
     partyGroupList: Record<string, PlayerPartyGroup>,
     itemList: Record<string, number>,
     equipmentList: Record<string, PlayerEquipment>,

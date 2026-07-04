@@ -3,7 +3,7 @@
  * Comics stored in web/public/comic/{kind}/ directory.
  */
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getSession } from "../../data/wdfpData";
+import { getSession } from "../../data/domains/session"
 import { generateDataHeaders } from "../../utils";
 import { readdirSync, readFileSync, existsSync } from "fs";
 import path from "path";

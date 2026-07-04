@@ -24,11 +24,14 @@ import expodApiPlugin from "./routes/api/expod";
 import storyQuestApiPlugin from "./routes/api/storyQuest";
 import optionApiPlugin from "./routes/api/option";
 import singleBattleQuestApiPlugin from "./routes/api/singleBattleQuest";
-import multiBattleQuestApiPlugin from "./routes/api/multiBattleQuest";
+import { multiBattleRoutes } from "./multi";
 import attentionApiPlugin from "./routes/api/attention";
 import characterApiPlugin from "./routes/api/character";
+import characterManaPlugin from "./routes/api/character/mana";
+import characterBondPlugin from "./routes/api/character/bond";
 import partyGroupApiPlugin from "./routes/api/partyGroup";
 import equipmentApiPlugin from "./routes/api/equipment";
+import sellApiPlugin from "./routes/api/sell";
 import exBoostApiPlugin from "./routes/api/exBoost";
 import boxGachaApiPlugin from "./routes/api/boxGacha";
 import shopApiPlugin from "./routes/api/shop";
@@ -49,16 +52,36 @@ import historyApiPlugin from "./routes/api/history";
 import comicApiPlugin from "./routes/api/comic";
 import questUnlockApiPlugin from "./routes/api/questUnlock";
 import itemApiPlugin from "./routes/api/item";
-import { startSessionServer } from "./data/sessionServer";
+import { startSessionServer } from "./multi";
 
 const fastify = Fastify({
     logger: {
         level: "info"
-    }
+    },
+    bodyLimit: 262144  // 256KB — covers /single_battle_quest/finish large battle stats
 });
 
 // Restore saved time offset from active player on startup
 restoreTimeOffset();
+
+// Simple in-memory rate limiter for /crash endpoint only.
+// /debug is excluded — game client sends heavy beacon traffic during normal startup.
+const rateLimitMap = new Map<string, { count: number; reset: number }>();
+const RATE_LIMIT_MAX = 30;
+const RATE_LIMIT_WINDOW = 60000;
+fastify.addHook("onRequest", async (request, reply) => {
+    if (request.url === "/crash") {
+        const ip = (request.headers["x-forwarded-for"] as string)?.split(",")[0]?.trim()
+            || request.ip;
+        const now = Date.now();
+        const entry = rateLimitMap.get(ip) || { count: 0, reset: now + RATE_LIMIT_WINDOW };
+        if (now > entry.reset) { entry.count = 0; entry.reset = now + RATE_LIMIT_WINDOW; }
+        if (++entry.count > RATE_LIMIT_MAX) {
+            return reply.status(429).send("Too Many Requests");
+        }
+        rateLimitMap.set(ip, entry);
+    }
+});
 
 /**
  * Walk a MsgPack buffer in a single pass. Replaces uint32 tags (0xCE) with
@@ -452,11 +475,14 @@ fastify.register(expodApiPlugin, { prefix: `${apiPrefix}/expod` });
 fastify.register(storyQuestApiPlugin, { prefix: `${apiPrefix}/story_quest` });
 fastify.register(optionApiPlugin, { prefix: `${apiPrefix}/option` });
 fastify.register(singleBattleQuestApiPlugin, { prefix: `${apiPrefix}/single_battle_quest` });
-fastify.register(multiBattleQuestApiPlugin, { prefix: `${apiPrefix}/multi_battle_quest` });
+fastify.register(multiBattleRoutes, { prefix: `${apiPrefix}/multi_battle_quest` });
 fastify.register(attentionApiPlugin, { prefix: `${apiPrefix}/attention` });
 fastify.register(characterApiPlugin, { prefix: `${apiPrefix}/character` });
+fastify.register(characterManaPlugin, { prefix: `${apiPrefix}/character` });
+fastify.register(characterBondPlugin, { prefix: `${apiPrefix}/character` });
 fastify.register(partyGroupApiPlugin, { prefix: `${apiPrefix}/party_group` });
 fastify.register(equipmentApiPlugin, { prefix: `${apiPrefix}/equipment` });
+fastify.register(sellApiPlugin, { prefix: `${apiPrefix}/equipment` });
 fastify.register(exBoostApiPlugin, { prefix: `${apiPrefix}/ex_boost` });
 fastify.register(boxGachaApiPlugin, { prefix: `${apiPrefix}/box_gacha` });
 fastify.register(shopApiPlugin, { prefix: `${apiPrefix}/shop` });
@@ -528,7 +554,7 @@ fastify.setNotFoundHandler((request, reply) => {
     reply.status(404).send({ error: "Not Found" });
 });
 
-const host = process.env.CN_LISTEN_HOST ?? "0.0.0.0";
+const host = process.env.CN_LISTEN_HOST ?? "127.0.0.1";
 const port = parseInt(process.env.CN_LISTEN_PORT ?? "8001");
 
 fastify.listen({ port, host }, (err, address) => {

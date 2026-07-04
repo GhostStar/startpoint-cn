@@ -1,7 +1,138 @@
 # 近期修改与发现
-> 状态: 变更时间线   关键文件: -   相关端点: -
 
-## 一、账号系统 (2026-06-08)
+## 待办事项
+
+### TODO-1：装备 UP 机制
+
+**状态：待实现**（2026-07-02）
+
+91 个装备 banner 中约 72 个有 UP（通用 pickup + 6 元素 pickup + 书/solota/common），当前全部 `isRateUp=false, odds=1`。
+
+CDN 装备 UP 数据存储在缺失的 `gacha_odds/equipment_*_pickup_*.json` 文件中，类似角色 revival_fes 问题。全球 starpoint 有参考数据（每 banner 每种稀有度 1 件 UP），但 CN 装备 ID 不同，需要手动确认。
+
+---
+
+## 一、卡池数据修正 (2026-07-01)
+
+### 1.1 问题
+
+常驻/限定角色完全抽不出来：89 ★5 + 67 ★4 常驻角色缺失，多个限定角色在对应 UP banner 中也无法获取。
+
+### 1.2 根因
+
+`assets/gacha.json` 由旧版 `character_table.json`（~120 常驻角色）生成后从未更新。之后 `character_table.json` 扩展至 271 常驻角色，但 gacha.json 未重新生成。
+
+### 1.3 修复
+
+TS 重写生成工具，替代 Python 脚本，更新 changelog：
+
+**新增文件：**
+- `tools/rebuild_gacha.ts` — 从 CDN 数据 + character_table.json 重建 gacha.json，含三级校验（模板完整性、banner 完全校验、新旧对比）
+
+**修改文件：**
+- `assets/gacha.json` — 从 ~120 常驻扩展至 271，修正全部 banner pool 数据
+
+**删除文件：**
+- `scripts/generate_gacha.py` — 由 TS 工具替代
+
+### 1.4 校验规则
+
+| 级别 | 内容 |
+|------|------|
+| L1 | 模板完整性：271 常驻全部入库，tier 分桶正确 |
+| L2 | Banner 完全校验：每个 banner 的 tier 数量、人员、UP 标记、odds、rarity sum≈1000 |
+| L3 | 新旧对比：报告缺失修复 + 角色丢失检测 + 池大小变化统计 |
+| L4 | 缺失角色报告：列出不在任何 gacha 池中的角色（含赠送/教程/特殊角色） |
+| L5 | 三源对比：Global starpoint / 旧版 CN / 新版 CN 的常驻池大小对比 |
+
+### 1.5 revival_fes 复刻流星祭修复
+
+`revival_fes_1_character_5` 池键（gid=213, 1704）的 UP 角色存储在 CDN 外部池文件中，本地 `extractUpChars` 无法提取。从 12 个非 revival fes banner 的 UP 角色中汇总 19 个历史 fes ★5 限定角色，硬编码注入。
+
+### 1.6 常驻池时间维度
+
+**新增文件：**
+- `tools/add_available_from.ts` — 为 character_table.json 的常驻角色添加 `available_from` 字段
+
+**修改文件：**
+- `data/character_table.json` — 271 常驻新增 `available_from` 字段
+- `tools/rebuild_gacha.ts` — `buildPoolTemplate` 加 `asOfDate` + `floorDate` 参数
+
+**逻辑：**
+1. 91 个 JP 开服角色（verify from CDN gacha_odds by commit 44931d4）→ `available_from = "2019-12-01"`
+2. 其他常驻角色 → 首次 UP banner 的 endDate + 1 天
+3. `floorDate = "2021-10-26"`（CN 国服开服日）：JP 日期早于此的全部提升到此日期
+4. 生成时过滤：`available_from ≤ max(banner.startDate, floorDate)`
+
+**效果：**
+- 日服 2019-12 banner → 常驻池 ≈ 15（JP 开服量）
+- 国服 2021-10 banner → 常驻池 ≈ 228（JP 累积至此时）
+- 国服 2024-08 banner → 常驻池 = 271（全量）
+
+### 1.7 gacha.json 生成逻辑文档
+
+**数据源：**
+| 数据源 | 用途 |
+|--------|------|
+| `data/character_table.json` | 常驻池模板（含 `available_from` 时间维） |
+| `assets/cdndata/gacha.json` | 584 banner 元数据 + UP 角色列 [21-28] |
+| `assets/cdndata/gacha_feature_content.json` | UP 角色提取 |
+| `assets/cdndata/character.json` | 角色元素数据 [3] + UP 校验 |
+
+**生成流程：**
+```
+buildPoolTemplate(charTable, element?, asOfDate?, floorDate?)
+  ├─ 筛选 source=常驻卡池
+  ├─ 时间过滤: available_from ≤ max(asOfDate, floorDate)
+  ├─ 元素过滤 (optional)
+  └─ rarity → tier 分桶
+
+extractUpChars(gachaId)
+  ├─ 从 feature_content 扫描 6 位 code
+  └─ 从 gacha.json 列 [21-28] 扫描 5-6 位 code
+
+buildBanner(gachaId)
+  ├─ 解析元数据 (type, costs, dates, movie)
+  ├─ 装备池 → 硬编码 EQ_POOL
+  └─ 角色池:
+      ├─ 选模板 (全常驻 or 元素筛选)
+      ├─ 注入 UP 角色 (isRateUp, odds 计算)
+      ├─ 概率: fes 用 FES_UP_ODDS，其他用 UP_TARGETS 公式
+      └─ rarity 归一化 (sum ≈ 1000)
+```
+
+---
+
+## 二、星粒商店数据修正 (2026-07-01)
+
+### 1.1 问题
+
+星粒商店购买装备后客户端不显示（提示成功但背包内无装备）。排查过程：
+
+1. 排除服务端响应格式、MsgPack 编码、客户端 `earlySuccessHandler` 格式校验问题
+2. 通过 MsgPack hex dump 对比正常商店和星粒商店的响应二进制，确认字节级编码完全正确
+3. 最终发现根因：服务端 `star_grain_shop.json` 数据与客户端 CDN 数据不匹配
+
+### 1.2 根因
+
+`assets/star_grain_shop.json` 中的 reward ID 整体错位——39 条数据中有 33 条 reward ID 与 CDN 源数据不符（85% 错误率），35 条缺失。例如：
+- 商品 `100011` 服务端返回装备 `5090003`，客户端 CDN 期望 `5010020`
+
+客户端根据 `ProductIdKind` 校验响应中的 `equipment_list`，ID 不匹配时静默丢弃，导致装备未入库。
+
+### 1.3 修复
+
+从 `wf-assets-cn/orderedmap/shop/star_grain_shop.json` CDN 源数据重建 `assets/star_grain_shop.json`：
+
+**新增文件：**
+- `tools/rebuild_star_grain_shop.ts` — 从 CDN 源数据重建脚本，保留手动展开的套装/素材箱 rewards
+
+**修改文件：**
+- `assets/star_grain_shop.json` — 从 39 条扩展至 74 条，21 条 reward/cost 修正
+
+---
+
+## 二、账号系统 (2026-06-08)
 
 ### 1.1 账号切换功能
 
@@ -1059,25 +1190,53 @@ const offset = defaultDate.getTime() - Date.now()
 Dashboard 时间控件可覆盖此默认值，保存后重启自动恢复。
 
 
-## 十六、Signup 竞态条件修复 (2026-06-27)
+## 十六、Signup 空账号问题修复 (2026-06-27)
 
-### 问题：客户端重试导致重复创建空账号
+### 症状
 
-某些客户端因网络延迟导致 signup 超时，触发客户端 `RETRY_LIMIT=5` 重试机制（`RequestQueue.as:77`），每次访问在服务端生成 6 个空账号。
+部分客户端每次访问在服务端生成 6 个空账号（account 有记录但 player 为空）。
 
-**根因：** `tool.ts` signup 中 `await insertAccount()` 包装在 `new Promise(...)` 里，`await` 时 Node.js 事件循环让出，并发 signup 请求在 `device_bindings` 插入前通过绑定检查 → 重复创建账号。
+### 根因：`insertPlayerSync` INSERT 列顺序与 VALUES 数组不匹配
+
+`total_stamina_used`/`total_powerflips`/`total_dashes` 字段在 INSERT SQL 中位于 `account_id` **之前**，但 VALUES 数组中位于 `accountId` **之后**，导致 4 列数据错位：
+
+```
+INSERT 列:    enable_auto_3x, total_*, total_*, total_*, account_id, tutorial_*
+VALUES 数组:  enableAuto3x,  accountId, tutorial*, ...,     total_*, ...
+                                         ↑ 4列错位 ↑
+```
+
+`accountId`(数字) 被写入 `total_stamina_used` 列，`tutorialGachaCharacterId`(null) 被写入 `total_dashes` 列（NOT NULL 约束）→ `SqliteError: 31 values for 30 columns`。
+
+客户端 `RETRY_LIMIT=5` 重试将单次失败放大为恰好 6 次 signup，每次 account 创建成功但 player 插入失败 → 6 个空账号。
 
 ### 修复
 
-`src/routes/cn/tool.ts` — 将关键区改为全同步：
-- `await getAccount(...)` → `getAccountSync(...)`
-- `await insertAccount(...)` → `insertAccountSync(...)`
+**`src/data/domains/player.ts`**：
+- `insertPlayerSync`：改为命名绑定（`@stamina`/`@account_id` 等），消除 VALUES 与列名双维护的顺序错位风险
+- `insertDefaultPlayerSync`：加 `db.transaction()` 包裹，避免中途失败产生半残存档
 
-`src/data/domains/account.ts` — `insertAccountSync` 改为 `export`
+**`src/routes/cn/tool.ts`**（防御性）：
+- `await insertAccount/getAccount` → `insertAccountSync/getAccountSync`，消除关键区事件循环让出点
 
-`src/data/wdfpData.ts` — 桶文件导出 `getAccountSync`、`insertAccountSync`
+**`src/data/utils.ts`**：
+- `getDefaultPlayerData` 补 `timeOffset: null`，与 schema 的 `time_offset` 列对齐
 
-**效果：** `getDeviceBindingSync` → `getAccountSync` → `insertAccountSync` → `insertDeviceBindingSync` 全程无 `await` 让出点，Node.js 单线程保证原子执行。并发请求见绑定已存在 → 复用账号，不再重复创建。
+
+## 净化系统 (2026-06-30)
+
+### PartySlotValidator
+
+**新增文件：**
+- `src/lib/validate/party-slot.ts` — PartySlotValidator：/load 时校验 partySlot 范围
+
+**修改文件：**
+- `src/lib/validate/index.ts` — 注册 PartySlotValidator 到永久净化链
+
+**功能：**
+- party_id 正常范围 1~120（12 组 × 10 槽），超出视为固定编队标识
+- /load 时自动将异常 partySlot 重置为 1，防止 F1009 空指针崩溃
+- 与 MaxLevelValidator 同级运行，不影响加载性能
 
 
 ## TODO（更新）

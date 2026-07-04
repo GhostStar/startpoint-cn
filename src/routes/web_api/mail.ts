@@ -1,5 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify"
-import { getAllAccountsSync, getAccountPlayersSync, getAccountSync, getPlayerSync, insertMailSync } from "../../data/wdfpData"
+import { getAllAccountsSync, getAccountPlayersSync, getAccountSync } from "../../data/domains/account"
+import { insertMailSync } from "../../data/domains/mail"
+import { getPlayerSync } from "../../data/domains/player"
 import { wantsJson } from "./http"
 import characterData from "../../../assets/character.json"
 import itemIds from "../../../assets/item_ids.json"

@@ -51,7 +51,7 @@
 | F1019 getQuestSync 统一 BattleQuest | 缺失字段默认 0，嘉年华关卡不再 400 |
 | F1020 C3212 外传故事 clear_rank 缺失 | `storyQuest.ts` + `singleBattleQuest.ts` 三层修复：响应 `?? 5`、DB INSERT `?? 5`、DB 函数 `\|\|`→`??` |
 | F1021 carnival score + party display | DB 表 + CDN 打分数据 + `single_battle_quest/finish` carnival_event 字段 |
-| F1022 party_slot 3000 → F1009 | 外传「体验队伍」标识，战斗结束后未被清回；修复为 1 恢复进游戏 |
+| F1022 party_slot 3000 → F1009 | ✅ `lib/validate/party-slot.ts` — PartySlotValidator：/load 时 partySlot < 1 或 > 120 自动重置为 1；12 组 × 10 槽正常范围 1~120 |
 | F1023 getQuestSync 统一 BattleQuest 副作用 | 纯剧情关被客户端误判为战斗关，需 `clearRank: 5` 补充 |
 | F1024 quest/unlock H404 | `questUnlock.ts` 新增 stub 端点 |
 | F1025 事件商店购买限制 | `shop.ts` + `players_shop_purchases` 表：stock_quantity 真实库存 + /buy 校验上限 + 购买记录 |
@@ -98,6 +98,7 @@
 | F1066 PLAY beacon 接入 | parsePlayBeacon 在 /debug handler 中运行，confirmed_play 积累 play=1 ground truth |
 | F1067 gacha 抽卡去重 | drawGachaSync 返回 number[]（flat array，按原始随机顺序），不再 group 同一角色 |
 | F1068 种子池扩容 | fes 400K, normal 400K, guarantee 各 100K。总计 1,000,000 种子 |
+| F1069 RARE_POOL item_list 双倍累加 | `lib/quest.ts`：ITEM 和 RARE_POOL 路径的 `givePlayerItemSync` 返回值均为 DB 总计，merge 时误将两个总计相加导致 item_list 膨胀。修复为直接用最新 DB 总计覆盖 |
 | F1069 三模式 | natural(默认, 10%播放率) / play(100%播放) / test(全unknown)。模式不持久化 |
 | F1070 pendingPlay 池 | 无 patch APK 测试缓存：/crash(r已知)+markSent(r=null)。换 patch 后重测得 play 状态 |
 | F1071 净化池 5 列 | ★3 / ★4 / ★4保底 / ★5 / ★5保底——按 movie 来源 (_guarantee 后缀) 分列 |

@@ -1,9 +1,13 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { generateDataHeaders, getServerTime, getServerDate } from "../../utils";
-import { getPlayerSync, dailyResetPlayerDataSync, collectPlayerDataPooledExpSync, updatePlayerSync, getPlayerActiveQuestSync } from "../../data/wdfpData";
+import { collectPlayerDataPooledExpSync, dailyResetPlayerDataSync, getPlayerSync, updatePlayerSync } from "../../data/domains/player"
+import { deletePlayerActiveQuestSync, getPlayerActiveQuestSync } from "../../data/domains/quest_active"
+import { getSession } from "../../data/domains/session"
 import { getClientSerializedData } from "../../data/utils";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
-import { getDisplayHost } from "../../data/multiRoom";
+import { getDisplayHost } from "../../multi/room/serializer";
+import { getRoom } from "../../multi/room/manager";
+import { runPermanentValidators } from "../../lib/validate";
 
 interface CnLoadBody {
     device_id: number;
@@ -71,7 +75,26 @@ function wrapOptionFields(d: any, resVer?: string) {
     d.special_exchange_campaign_list = [];
     d.win_lottery_active_mission_list = [];
     d.stars_gacha_campaign_list = [];
-    d.favorite_party_group_list = [];
+    // Build favorite_party_group_list from user_party_group_list
+    // Required for HomeScene kind=1 (profile_favorite) to work without F1010
+    // fromPartyInfo expects party_name/party_edited (not name/edited like fromPartyInfoLite)
+    d.favorite_party_group_list = Object.entries(d.user_party_group_list || {}).map(([groupId, group]: [string, any]) => ({
+        party_group_id: Number(groupId),
+        party_group_color_id: group.color_id,
+        party_list: Object.entries(group.list || {}).map(([partyId, party]: [string, any]) => ({
+            party_id: Number(partyId),
+            party_name: party.name,
+            character_ids: party.character_ids,
+            unison_character_ids: party.unison_character_ids,
+            equipment_ids: party.equipment_ids,
+            ability_soul_ids: party.ability_soul_ids,
+            options: party.options,
+            party_edited: party.edited,
+            current_battle_power: party.current_battle_power,
+            before_battle_power: party.before_battle_power,
+        }))
+    }));
+
     d.ranking_event_reward = [];
     d.party_list = [];
 
@@ -86,8 +109,10 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/load", async (request: FastifyRequest, reply: FastifyReply) => {
         try {
         const body = request.body as CnLoadBody;
-        const accountId = body.viewer_id || body.keychain || 1;
+        const viewerId = body.viewer_id || body.keychain || 1;
 
+        const session = await getSession(String(viewerId));
+        const accountId = session ? session.accountId : (body.viewer_id || body.keychain || 1);
         const playerId = resolvePlayerIdSync(accountId);
         if (!playerId) {
             return reply.status(400).send({ error: "Bad Request", message: "No player found" });
@@ -101,6 +126,9 @@ const routes = async (fastify: FastifyInstance) => {
         const now = getServerDate();
         dailyResetPlayerDataSync(player, now);
         collectPlayerDataPooledExpSync(player, now);
+
+        // Run save validators (permanent fixes: max_level, etc.)
+        runPermanentValidators(playerId);
 
         // 若自定义时间与 lastLogin 不同步，强制对齐（防止客户端弹"日期变了"）
         if (now.toDateString() !== player.lastLoginTime.toDateString()) {
@@ -119,13 +147,22 @@ const routes = async (fastify: FastifyInstance) => {
         // Inject unfinished quest lists for battle recovery
         const activeQuest = getPlayerActiveQuestSync(playerId);
         if (activeQuest) {
-            const entry = { play_id: activeQuest.playId, continue_count: activeQuest.continueCount };
-            if (activeQuest.isMulti) {
+            // Verify room still exists (survives server restart)
+            const roomExists = activeQuest.roomNumber ? getRoom(activeQuest.roomNumber) : true;
+            if (!roomExists) {
+                console.log(`[CN-LOAD] active quest room ${activeQuest.roomNumber} not found, clearing`);
+                deletePlayerActiveQuestSync(playerId);
                 clientData.unfinished_quest_list = [];
-                clientData.unfinished_multi_quest_list = [entry];
-            } else {
-                clientData.unfinished_quest_list = [entry];
                 clientData.unfinished_multi_quest_list = [];
+            } else {
+                const entry = { play_id: activeQuest.playId, continue_count: activeQuest.continueCount };
+                if (activeQuest.isMulti) {
+                    clientData.unfinished_quest_list = [];
+                    clientData.unfinished_multi_quest_list = [entry];
+                } else {
+                    clientData.unfinished_quest_list = [entry];
+                    clientData.unfinished_multi_quest_list = [];
+                }
             }
         } else {
             clientData.unfinished_quest_list = [];

@@ -1,13 +1,19 @@
 # 已知问题
 > 状态: 持续更新   关键文件: -   相关端点: -
 
-## Signup 重复创建空账号 ✅ 已修复
+## Signup 空账号 ✅ 已修复 (2026-06-27)
 
-**症状**: 部分客户端每次访问在后台生成 6 个空账号，重新登录后再生成 6 个。
+**症状**: 部分客户端每次访问生成 6 个空账号（account 有记录、player 为空），重新登录再生成 6 个。
 
-**根因**: `tool/signup` 中 `await insertAccount()` 产生事件循环让出点，并发/重试请求在 `device_bindings` 插入前通过绑定检查 → 竞态创建多个账号。客户端 `RETRY_LIMIT=5` 将单次访问放大为恰好 6 个。
+**根因**: `insertPlayerSync` 中 INSERT 列顺序与 VALUES 数组不匹配，`total_stamina_used`/`total_powerflips`/`total_dashes` 与 `account_id`/`tutorial_*` 之间 4 列错位。客户端 `RETRY_LIMIT=5` 放大为 6 次失败 signup。
 
-**修复**: 关键区（绑定检查 → 创建账号 → 插入绑定）改为全同步调用，消除所有 `await` 让出点。详见 `docs/status/changelog.md` 第十六节。
+**修复**:
+- `insertPlayerSync` 改为命名绑定（`@column`），列名与值在同一处，消除顺序错位风险
+- `insertDefaultPlayerSync` 加事务包裹（原子性）
+- `getDefaultPlayerData` 补 `timeOffset: null`
+- `tool.ts` signup 关键区改为同步调用（防御性）
+
+详见 `docs/status/changelog.md` 第十六节。
 
 ## C8601 / C2262 / 日期弹框 ✅ 已修复
 
@@ -144,6 +150,7 @@ CLOCK:checkClockState stateIdx=X avail=Y — 时钟状态检查
 | 日期弹框循环 | `stubMsgpackReply` 用 `getServerTime()` |
 | codeMap 转换存废 | 已改 identity 函数 |
 | 月卡 404 | stub 已加 |
+| 首页立绘 F1010/8703/8704 | `favorite_party_group_list` 从空数组/空值改为从 `user_party_group_list` 构建真实数据，字段名对齐 `fromPartyInfo`（`name→party_name`, `edited→party_edited`） |
 
 ## 新增功能
 
@@ -463,7 +470,7 @@ canManaBoard2Open(151165) = false (时间未到)
 
 ---
 
-**最后更新：2026-06-24**（详细变更见 [CHANGELOG.md](./CHANGELOG.md)）
+**最后更新：2026-07-01**（详细变更见 [CHANGELOG.md](./CHANGELOG.md)）
 
 ## 参考文档
 

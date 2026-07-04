@@ -1,6 +1,9 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { getServerTime, getServerDate, setServerTime, getTimeOffset } from "../../utils";
-import { getAllAccountsSync, getAccountPlayersSync, getPlayerSync, getPlayerCharactersSync, deletePlayerSync, deleteAccountSync, updatePlayerSync, insertDefaultPlayerSync, replacePlayerDataSync } from "../../data/wdfpData";
+import { deleteAccountSync, getAccountPlayersSync, getAllAccountsSync } from "../../data/domains/account"
+import { deletePlayerSync, getPlayerSync, insertDefaultPlayerSync, replacePlayerDataSync, updatePlayerSync } from "../../data/domains/player"
+import { getAllDeviceBindingsSync, updateDeviceBindingNameSync } from "../../data/domains/session"
+import { getPlayerCharactersSync } from "../../data/domains/character"
 import { getClientSerializedData, deserializePlayerData, reviveMergedPlayerDates } from "../../data/utils";
 import { getActivePlayerId, setActivePlayerId, getSelectedAccountId, setSelectedAccountId, saveTimeOffset, saveAccountDefaultPlayer, getAccountDefaultPlayer } from "../../data/activeAccount";
 import { saveDefaultSaveTemplate, loadDefaultSaveTemplate, clearDefaultSaveTemplate, getDefaultSaveMeta } from "../../data/defaultSave";
@@ -199,7 +202,7 @@ const routes = async (fastify: FastifyInstance) => {
             deletePlayerSync(pid)
             deleteAccountSync(accountId)
             try {
-                const db = require("../../data/wdfpData").getDb()
+                const db = require("../../data/db").getDb()
                 db.prepare(`DELETE FROM device_bindings WHERE account_id = ?`).run(accountId)
             } catch (_) {}
             try {
@@ -226,7 +229,8 @@ const routes = async (fastify: FastifyInstance) => {
         for (const pid of playerIds) {
             deletePlayerSync(pid)
         }
-        const db = require("../../data/wdfpData").getDb()
+        // Remove device bindings pointing to this account
+        const db = require("../../data/db").getDb()
         db.prepare(`DELETE FROM device_bindings WHERE account_id = ?`).run(accountId)
         deleteAccountSync(accountId)
         try {
@@ -275,6 +279,16 @@ const routes = async (fastify: FastifyInstance) => {
         saveAccountDefaultPlayer(accountId, newPlayer.id)
         if (wantsJson(request)) return reply.send({ ok: true, newPlayerId: newPlayer.id })
         return reply.redirect('/player')
+    })
+
+    // Device binding rename
+    fastify.post("/device/rename", async (request: FastifyRequest, reply: FastifyReply) => {
+        const body = request.body as { device_id: number; name: string }
+        const deviceId = body.device_id
+        if (!deviceId) return reply.status(400).send({ error: "Missing device_id" })
+
+        updateDeviceBindingNameSync(deviceId, body.name || null)
+        return reply.status(200).send({ ok: true })
     })
 }
 

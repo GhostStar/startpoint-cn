@@ -1,5 +1,9 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getPlayerGachaCampaignSync, getPlayerGachaInfoListSync, getPlayerGachaInfoSync, getPlayerItemSync, getPlayerSync, getSession, insertPlayerGachaCampaignSync, insertPlayerGachaInfoSync, insertReceiveHistorySync, MailType, updatePlayerGachaCampaignSync, updatePlayerGachaInfoSync, updatePlayerItemSync, updatePlayerSync } from "../../data/wdfpData";
+import { MailType, insertReceiveHistorySync } from "../../data/domains/mail"
+import { getPlayerGachaCampaignSync, getPlayerGachaInfoListSync, getPlayerGachaInfoSync, insertPlayerGachaCampaignSync, insertPlayerGachaInfoSync, updatePlayerGachaCampaignSync, updatePlayerGachaInfoSync } from "../../data/domains/gacha"
+import { getPlayerItemSync, updatePlayerItemSync } from "../../data/domains/item"
+import { getPlayerSync, updatePlayerSync } from "../../data/domains/player"
+import { getSession } from "../../data/domains/session"
 import { generateDataHeaders } from "../../utils";
 import { drawGachaSync, rewardPlayerGachaDrawResultSync } from "../../lib/gacha";
 import { getGachaCampaignIdSync, getGachaSync } from "../../lib/assets";

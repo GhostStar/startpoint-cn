@@ -104,6 +104,30 @@ export function updatePlayerItemSync(
 }
 
 /**
+ * Sets a player's item to an exact amount, inserting the row first if the player does not yet
+ * own the item.
+ *
+ * updatePlayerItemSync on its own is a bare UPDATE that silently affects zero rows when the
+ * player does not already own the item, so callers that mean "add or set this item" (e.g. the
+ * web admin's POST /:id/item) would return success while writing nothing for a not-yet-owned item.
+ *
+ * @param playerId The ID of the player.
+ * @param itemId The item's ID.
+ * @param amount The exact amount the item should have.
+ */
+export function setPlayerItemSync(
+    playerId: number,
+    itemId: string | number,
+    amount: number
+) {
+    if (getPlayerItemSync(playerId, itemId) === null) {
+        insertPlayerItemSync(playerId, itemId, amount)
+    } else {
+        updatePlayerItemSync(playerId, itemId, amount)
+    }
+}
+
+/**
  * Gives a player giveAmount of an item.
  * 
  * @param playerId The ID of the player.

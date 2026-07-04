@@ -50,8 +50,6 @@ const SESSION_HOST = process.env.SESSION_HOST || "0.0.0.0";
 
 const NPC_JOIN_DELAY_MS = parseInt(process.env.NPC_JOIN_DELAY_MS || "2000");
 const NPC_READY_DELAY_MS = parseInt(process.env.NPC_READY_DELAY_MS || "500");
-const QUEST_RESULT_DISBAND_DELAY_MS = parseInt(process.env.QUEST_RESULT_DISBAND_DELAY_MS || "60000");
-const roomDisbandTimers = new Map<string, NodeJS.Timeout>();
 
 export function hasRoomClients(roomNumber: string): boolean {
     const set = roomClients.get(roomNumber)
@@ -111,27 +109,17 @@ function removeClient(client: SessionClient) {
             roomClients.delete(client.roomNumber);
             const room = getRoom(client.roomNumber)
             if (client.isBattle) {
-                if (room?.raising_state === 1) {
-                    console.log(`[SESSION] battle disconnect after finish, room ${client.roomNumber} kept for ${QUEST_RESULT_DISBAND_DELAY_MS / 1000}s return window`)
-                    // Clear any existing timer for this room before setting new one
-                    const existingTimer = roomDisbandTimers.get(client.roomNumber)
-                    if (existingTimer) clearTimeout(existingTimer)
-                    const timer = setTimeout(() => {
-                        roomDisbandTimers.delete(client.roomNumber)
-                        if (getRoom(client.roomNumber)) {
-                            notifyRoomDisbanded(client.roomNumber);
-                            disbandRoom(client.roomNumber)
-                            console.log(`[SESSION] room ${client.roomNumber} disbanded (return window expired)`)
-                        }
-                    }, QUEST_RESULT_DISBAND_DELAY_MS)
-                    roomDisbandTimers.set(client.roomNumber, timer)
-                } else {
-                    console.log(`[SESSION] battle disconnected from room ${client.roomNumber} (room kept, state=${room?.raising_state})`)
-                }
+                console.log(`[SESSION] battle disconnected from room ${client.roomNumber} (room kept, state=${room?.raising_state})`)
             } else {
-                notifyRoomDisbanded(client.roomNumber);
-                disbandRoom(client.roomNumber);
-                console.log(`[SESSION] room ${client.roomNumber} disbanded (all clients disconnected)`);
+                // Non-battle disconnect: keep room if battle is active (state=4)
+                const room = getRoom(client.roomNumber)
+                if (room?.raising_state === 4) {
+                    console.log(`[SESSION] room TCP disconnect during battle, room kept`)
+                } else {
+                    notifyRoomDisbanded(client.roomNumber);
+                    disbandRoom(client.roomNumber);
+                    console.log(`[SESSION] room ${client.roomNumber} disbanded (all clients disconnected)`);
+                }
             }
         } else {
             console.log(`[SESSION] client removed: viewer=${client.viewerId} room=${client.roomNumber} remaining=${remaining}`);
@@ -295,15 +283,13 @@ function handleNotify(client: SessionClient, msg: any[]) {
                         }
                         client.mates = [...hostClient.mates]
                         sendJson(client.socket, [1, [0, yours, [yours]]])
-                        setTimeout(() => sendJson(client.socket, [1, [1, client.mates]]), 100)
                         broadcastToRoom(client.roomNumber, [1, [1, hostClient.mates]], client.viewerId)
-                        console.log(`[SESSION] guest ${client.viewerId} joined room ${client.roomNumber}, mates=${client.mates.length}`)
+                        if (room) room.mates = hostClient.mates.map(m => ({ viewer_id: m.viewerId ?? null, com_id: m.comId ?? 0 }))
                         checkHostAutoReady(client.roomNumber)
                     } else {
                         // Host not yet online — guest enters alone, waits for host
                         client.mates = [yours]
                         sendJson(client.socket, [1, [0, yours, [yours]]])
-                        setTimeout(() => sendJson(client.socket, [1, [1, [yours]]]), 100)
                         console.log(`[SESSION] guest ${client.viewerId} entered room ${client.roomNumber}, waiting for host`)
                     }
                 } else {
@@ -322,7 +308,6 @@ function handleNotify(client: SessionClient, msg: any[]) {
                     }
                     console.log(`[SESSION] host party from client Enter: chars=${ed.party?.characters?.map((c: any) => c?.[0] === 0 ? c[1]?.id : 'none')?.join(',')}`);
                     sendJson(client.socket, [1, [0, yours, [yours]]]);
-                    setTimeout(() => sendJson(client.socket, [1, [1, client.mates]]), 100);
                     // Notify existing guests of updated mates
                     if (client.mates.length > 1) {
                         broadcastToRoom(client.roomNumber, [1, [1, client.mates]], client.viewerId)
@@ -335,7 +320,7 @@ function handleNotify(client: SessionClient, msg: any[]) {
             break;
         }
         case 4: // Heartbeat
-            sendJson(client.socket, [1, [10, String(client.viewerId)]]);
+            sendJson(client.socket, [1, [10, client.connectionId]]);
             break;
         case 2: { // ChangeParty
             const pd = msg[1]
@@ -489,6 +474,7 @@ function handleEnterComs(client: SessionClient, coms: any[]) {
     // Sync host client's mates if relevant
     const hostClient = getHostClient(client.roomNumber)
     if (hostClient) hostClient.mates = client.mates
+    if (room) room.mates = client.mates.map(m => ({ viewer_id: m.viewerId ?? null, com_id: m.comId ?? 0 }))
     console.log(`[SESSION] EnterComs: room=${client.roomNumber} real=${realMates.length} npc=${needNPCs} total=${client.mates.length}`)
 
     // Broadcast Mates + NPC Ready to all room clients
@@ -598,8 +584,6 @@ async function handleHandshake(socket: net.Socket, data: string, remoteAddr: str
     const connectionId = isHost ? `${roomNumber}-host` : `${roomNumber}-${viewerId}`;
     const client: SessionClient = { socket, viewerId: Number(viewerId), roomNumber: String(roomNumber), connectionId, isReady: false, buffer: "", mates: [], enterData: null, playerId: actualPlayerId, isBattle: false };
     const isReconnect = (roomClients.get(String(roomNumber))?.size ?? 0) > 0
-    const existingTimer = roomDisbandTimers.get(String(roomNumber))
-    if (existingTimer) { clearTimeout(existingTimer); roomDisbandTimers.delete(String(roomNumber)); console.log(`[SESSION] room ${roomNumber} return window cancelled, new client connecting`) }
     addClient(client);
     console.log(`[SESSION] client added: viewer=${viewerId} room=${roomNumber} total=${roomClients.get(roomNumber)?.size} ${isReconnect ? '[RECONNECT]' : '[NEW]'}`);
     console.log(`[SESSION] handshake OK viewer=${viewerId} room=${roomNumber} name=${playerName} ${isHost ? '[HOST]' : '[GUEST]'}`)

@@ -38,16 +38,58 @@
 
 ## 快速启动
 
+### 前置
+
 ```bash
 cd starpoint-cn
 npm install
-cp .env.example .env          # 按需修改 CN_LISTEN_HOST / CDN_BASE_URL
-npm run build && npm run dev:cn   # 监听 CN_LISTEN_PORT(默认 8001)
+cp .env.example .env
 ```
 
-一键(生产式,build + 重启 + 日志):`bash scripts/start-cn.sh`(另有 `scripts/start-cn-tmux.sh`)。
+### 本地局域网（开发/测试）
 
-`.env` 加载说明:
+`.env.example` 的局域网区块默认激活，`cp .env.example .env` 后可直接启动：
+
+```bash
+# 生产模式（build + 启动）
+bash scripts/start-cn.sh
+
+# 开发模式（热重载，无需 build）
+npm run debug:cn
+```
+
+如果客户端在**另一台设备**上，需编辑 `.env`：
+- `CN_LISTEN_HOST`=`你的 LAN IP`（如 `192.168.x.x`）
+- `CDN_BASE_URL`=`http://你的LAN_IP:8001/patch/cn`
+
+### 公网云服务器
+
+1. 按 [`docs/deployment.md`](./docs/deployment.md) 配置 nginx 反向代理 + 防火墙
+2. 编辑 `.env`，激活公网区块：
+
+```bash
+CN_LISTEN_HOST="127.0.0.1"                        # 仅监听本地
+CDN_BASE_URL="https://<你的域名>/patch/cn"        # 公网域名 + HTTPS
+SESSION_PUBLIC_HOST="<你的域名>"                  # 联机 TCP 公网地址
+```
+
+3. 启动：
+
+```bash
+bash scripts/start-cn.sh
+```
+
+### 两种部署方式 `.env` 对比
+
+| 配置项 | 局域网 | 公网 |
+|--------|--------|------|
+| `CN_LISTEN_HOST` | `0.0.0.0` / LAN IP | `127.0.0.1` |
+| `CDN_BASE_URL` | `http://<LAN_IP>:8001/patch/cn` | `https://<域名>/patch/cn` |
+| `SESSION_HOST` | `0.0.0.0` | `127.0.0.1` |
+| `SESSION_PUBLIC_HOST` | 不设 | 公网域名 |
+| 前置层 | 无 | nginx + SSL + 防火墙 |
+
+### `.env` 加载说明
 
 - `npm run dev:cn` 与 `bash scripts/start-cn.sh` 经 `node --env-file=.env` **会**加载 `.env`。
 - `npm run debug:cn`(ts-node-dev)无 `--env-file`、代码也未引入 dotenv,因此**不会**自动读 `.env`;调试时需自行 export 环境变量,否则走代码默认值。

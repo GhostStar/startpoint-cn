@@ -1,11 +1,11 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
+import { playerOwnsCharacterSync } from "../../data/domains/character";
+import { playerOwnsEquipmentSync } from "../../data/domains/equipment";
 import {
     getPlayerSync,
-    getSession,
     updatePlayerSync,
-    playerOwnsCharacterSync,
-    playerOwnsEquipmentSync,
-} from "../../data/wdfpData";
+} from "../../data/domains/player";
+import { getSession } from "../../data/domains/session";
 import { givePlayerItemSync } from "../../data/domains/item";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { generateDataHeaders } from "../../utils";

@@ -1,9 +1,14 @@
 // Handles item usage (stamina recovery items, etc.)
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getPlayerItemSync, getPlayerSync, getSession, updatePlayerItemSync, updatePlayerSync } from "../../data/wdfpData";
+import { getPlayerItemSync, updatePlayerItemSync } from "../../data/domains/item"
+import { getPlayerSync, updatePlayerSync } from "../../data/domains/player"
+import { getSession } from "../../data/domains/session"
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { getConfigSync } from "../../lib/assets";
-import { generateDataHeaders, getServerTime } from "../../utils";
+import { generateDataHeaders, getServerTime, realToVirtual } from "../../utils";
+import { sellItemSync } from "../../lib/item-sell";
+import { AccountId, PlayerId } from "../../lib/types";
+import { computeRealTimeStamina } from "../../lib/stamina";
 import itemData from "../../../assets/item_data.json";
 
 interface ItemEffectInfo {
@@ -37,7 +42,6 @@ const routes = async (fastify: FastifyInstance) => {
         if (!player) return reply.status(500).send({ "error": "Internal Server Error", "message": "Player not found." })
 
         const config = getConfigSync()
-        const recoverySeconds = config.stamina_recovery_seconds
         const maxOverflow = config.max_stamina_overflow
 
         let totalStaminaRecovery = 0
@@ -108,11 +112,7 @@ const routes = async (fastify: FastifyInstance) => {
             return reply.status(400).send({ "error": "Bad Request", "message": "Zero recovery." })
         }
 
-        // Compute real-time stamina
-        const staminaHealTimeSec = player.staminaHealTime.getTime() / 1000
-        const nowSec = Math.floor(Date.now() / 1000)
-        const elapsed = (nowSec - staminaHealTimeSec) / recoverySeconds
-        const currentStamina = Math.min(Math.max(0, player.stamina + Math.floor(elapsed)), maxOverflow)
+        const currentStamina = computeRealTimeStamina(player)
 
         if (currentStamina >= maxOverflow) {
             console.log(`[ITEM-USE] player ${playerId} already at max stamina (${currentStamina} >= ${maxOverflow})`)
@@ -145,9 +145,51 @@ const routes = async (fastify: FastifyInstance) => {
             "data": {
                 "user_info": {
                     "stamina": afterStamina,
-                    "stamina_heal_time": getServerTime()
+                    "stamina_heal_time": realToVirtual(new Date())
                 },
                 "item_list": itemListMap
+            }
+        })
+    })
+
+    // ── sell (sell items/ability souls for mana) ────────────────────────
+    fastify.post("/sell", async (request: FastifyRequest, reply: FastifyReply) => {
+        const body = request.body as {
+            viewer_id: number
+            api_count: number
+            item_id: number
+            sell_number: number
+        }
+
+        const viewerId = body.viewer_id
+        const itemId = body.item_id
+        const sellNumber = body.sell_number
+        if (!viewerId || isNaN(viewerId) || !itemId || isNaN(itemId) || !sellNumber || isNaN(sellNumber)) {
+            return reply.status(400).send({ "error": "Bad Request", "message": "Invalid request body." })
+        }
+
+        const session = await getSession(viewerId.toString())
+        if (!session) return reply.status(400).send({ "error": "Bad Request", "message": "Invalid viewer id." })
+
+        const accountId = session.accountId as AccountId
+        const playerId = resolvePlayerIdSync(accountId)! as PlayerId
+        if (!playerId) return reply.status(500).send({ "error": "Internal Server Error", "message": "No player bound to account." })
+
+        const result = sellItemSync(playerId, itemId, sellNumber)
+        if (!result.ok) {
+            const code = 'errorCode' in result ? result.errorCode : undefined
+            return reply.status(400).send({ "error": "Bad Request", "code": code, "message": result.error })
+        }
+
+        console.log(`[ITEM_SELL] account=${accountId} player=${playerId}: item ${itemId} ×${sellNumber} sold, mana +${result.manaGained} (${result.freeMana - result.manaGained} -> ${result.freeMana})`)
+
+        reply.header("content-type", "application/x-msgpack")
+        return reply.status(200).send({
+            "data_headers": generateDataHeaders({ viewer_id: viewerId }),
+            "data": {
+                "item_list": { [itemId]: result.newCount },
+                "user_info": { "free_mana": result.freeMana },
+                "mail_arrived": false
             }
         })
     })

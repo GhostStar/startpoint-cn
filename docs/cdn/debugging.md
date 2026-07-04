@@ -788,7 +788,7 @@ var _loc2_ = _loc1_.getMasterTable(AttentionConfigTable).get_data().get(1);
 | **C8100** | 未找到素材（recovery 对话框） | 缺文件 → 弹 recovery 框 | `AssetSufficiencyCheckLoadingTask.gotoAssetRecovery()` |
 | **C8102** | 素材未发现（硬错误） | `enableAssetSufficiencyCheck=false` 时直接 throw | `FileReader.notifyFileNotFoundError()` |
 | **C8601** | 指定的 Key 不存在 | 角色表 orderedmap 条目缺失 / RareScoreRewardTable 缺组 / k_id vs code | `MasterBinaryMap.getIndex()`、CDN orderedmap 表 |
-| **F1009** | 空指针 null pointer | `party_slot` 无效值 | `get_mainCharacters()` → home scene |
+| **F1009** | 空指针 null pointer | `party_slot` 无效值 | `get_mainCharacters()` → home scene；✅ 2026-06-30 PartySlotValidator 自动修复 |
 | **F2032** | 未连网（IO Error） | 空 URL 或网络不通 | `URLRequest` 失败 |
 | **H400** | HTTP 400 Bad Request | CN 请求格式与全球服教程插件不兼容 / 端点校验失败 | 日志 `[BATTLE] start failed` |
 | **H404** | HTTP 404 / 端点不存在 | 未实现 API 路由 / Recovery 独立文件 `base_url+hash` 路径不存在 | `cn-server.ts` 注册 |

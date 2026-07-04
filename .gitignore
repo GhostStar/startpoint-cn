@@ -5,7 +5,6 @@ mitm_redirect
 scripts/in
 .cdn
 .misc
-web/public/tailwind.css
 scripts/__pycache__
 dist
 build
@@ -23,3 +22,5 @@ web/public/comic/
 # mitmproxy traffic captures (may contain real tokens/PII — local only)
 docs/cn-traffic/
 
+scripts/out_new/
+tsconfig.tsbuildinfo

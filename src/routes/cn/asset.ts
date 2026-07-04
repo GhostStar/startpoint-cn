@@ -105,7 +105,7 @@ const TOTAL_SIZE = (() => {
 const routes = async (fastify: FastifyInstance) => {
     fastify.post("/version_info", async (request: FastifyRequest, reply: FastifyReply) => {
         const baseUrl = getCdnBase(request);
-        reply.header("content-type", "application/x-msgpack");
+        reply.type("application/json");
         reply.status(200).send({
             data_headers: generateDataHeaders(),
             data: getVersionInfo(baseUrl)
@@ -126,7 +126,7 @@ const routes = async (fastify: FastifyInstance) => {
             : "1.4.0";
         const targetVer = resVer ?? highestDiff;
 
-        reply.header("content-type", "application/x-msgpack");
+        reply.type("application/json");
         reply.status(200).send({
             data_headers: generateDataHeaders({ asset_update: true }),
             data: {

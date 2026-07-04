@@ -28,6 +28,8 @@ import gachas from "../../assets/gacha.json";
 import mainQuests from "../../assets/main_quest.json";
 import practiceQuests from "../../assets/practice_quest.json";
 import manaNodes from "../../assets/mana_node.json";
+import manaNodeAwake from "../../assets/mana_node_awake.json";
+import manaBoard from "../../assets/mana_board.json";
 import rareScoreRewards from "../../assets/rare_score_reward.json";
 import scoreRewards from "../../assets/score_reward.json";
 import gachaCampaigns from "../../assets/gacha_campaign.json";
@@ -41,7 +43,10 @@ import treasureShopItems from "../../assets/treasure_shop.json";
 import equipmentEnhancementShopItems from "../../assets/equipment_enhancement_shop.json";
 import rushEventQuestFolders from "../../assets/rush_event_quest_folder.json"
 import configData from "../../assets/config.json"
-import { AssetCharacter, BattleQuest, BossCoinShopItems, BoxGacha, ClearRewards, ConfigValues, EventItemShopIdMapItem, EventShopItems, ExAbilities, ExBoostItem, ExBoostItems, ExStatus, Gacha, Gachas, ManaNode, ManaNodes, QuestCategory, RareScoreReward, RareScoreRewardGroups, RawAssetCharacters, RawBoxGachas, RawBoxRewards, RawQuests, Reward, RushEventFolders, ScoreReward, ScoreRewardGroups, ShopItem, ShopItems, ShopType, StoryQuest } from "./types";
+import equipmentDissolveData from "../../assets/equipment_dissolve.json"
+import itemSaleData from "../../assets/item_sale.json"
+import equipmentCraftData from "../../assets/equipment_craft.json"
+import { AssetCharacter, BattleQuest, BossCoinShopItems, BoxGacha, ClearRewards, ConfigValues, EquipmentCraftEntry, EquipmentDissolveEntry, EventItemShopIdMapItem, EventShopItems, ExAbilities, ExBoostItem, ExBoostItems, ExStatus, Gacha, Gachas, ItemSaleEntry, ManaNode, ManaNodes, QuestCategory, RareScoreReward, RareScoreRewardGroups, RawAssetCharacters, RawBoxGachas, RawBoxRewards, RawQuests, Reward, RushEventFolders, ScoreReward, ScoreRewardGroups, ShopItem, ShopItems, ShopType, StoryQuest } from "./types";
 
 /**
  * Gets a clear reward from its ID.
@@ -355,6 +360,101 @@ export function getCharacterManaNodeSync(
 }
 
 /**
+ * Gets the slot (1-4) for a character's mana node from its field6 value.
+ * Returns 0 if the node is not found.
+ * field6=1/2/3 → ability slot 1/2/3; field6="" → skill slot 4.
+ */
+function getManaNodeSlot(
+    characterId: string | number,
+    manaNodeId: string | number
+): number {
+    const charData = (manaNodes as ManaNodes)[String(characterId)]
+    if (!charData) return 0
+    for (const level of Object.keys(charData)) {
+        const node = charData[level]?.[String(manaNodeId)]
+        if (node) {
+            const f6 = node.field6
+            if (f6 === '1') return 1
+            if (f6 === '2') return 2
+            if (f6 === '3') return 3
+            return 4  // empty → action skill slot
+        }
+    }
+    return 0
+}
+
+/**
+ * Gets the pedestal_size (0 or 2) for a character's mana node.
+ * Returns -1 if not found.
+ */
+function getManaNodePedestalSize(
+    characterId: string | number,
+    manaNodeId: string | number
+): number {
+    const charBoard = (manaBoard as Record<string, any>)[String(characterId)]
+    if (!charBoard) return -1
+    for (const level of Object.keys(charBoard)) {
+        const nodes = charBoard[level]
+        for (const nodeIndex of Object.keys(nodes)) {
+            const row = nodes[nodeIndex][0]
+            if (String(row[0]) === String(manaNodeId)) {
+                return parseInt(row[4]) || 0
+            }
+        }
+    }
+    return -1
+}
+
+export interface ManaNodeAwakeCost {
+    manaAmount: number
+    items: Record<string, number>
+}
+
+/**
+ * Gets the awake cost for awakening a mana node.
+ * CDN lookup: mana_node_awake[rarity][slot][pedestal_size]
+ */
+export function getManaNodeAwakeCost(
+    characterId: string | number,
+    manaNodeId: string | number,
+    rarity: number
+): ManaNodeAwakeCost | null {
+    const slot = getManaNodeSlot(characterId, manaNodeId)
+    if (slot === 0) return null
+
+    const pedestalSize = getManaNodePedestalSize(characterId, manaNodeId)
+    if (pedestalSize < 0) return null
+
+    const rarityData = (manaNodeAwake as Record<string, any>)[String(rarity)]
+    if (!rarityData) return null
+
+    const slotData = rarityData[String(slot)]
+    if (!slotData) return null
+
+    const targetRows = slotData[String(pedestalSize)]
+    if (!targetRows || !targetRows[0]) return null
+
+    const row = targetRows[0]
+    // row[0]: "item_id_1,item_id_2,..." (IDs)
+    // row[1]: "count_1,count_2,..." (counts)
+    // row[2]: mana amount
+    const idStrings = String(row[0]).split(',')
+    const countStrings = String(row[1]).split(',')
+    const manaAmount = parseInt(String(row[2])) || 0
+
+    const items: Record<string, number> = {}
+    for (let i = 0; i < idStrings.length; i++) {
+        const id = parseInt(idStrings[i]) || 0
+        const count = parseInt(countStrings[i]) || 0
+        if (id > 0 && count > 0) {
+            items[String(id)] = (items[String(id)] || 0) + count
+        }
+    }
+
+    return { manaAmount, items }
+}
+
+/**
  * Gets the ExAbilities record.
  * 
  * @returns 
@@ -649,4 +749,37 @@ export function getStaminaRecoverySeconds(): number {
         return 300
     }
     return v
+}
+
+// ─── Equipment dissolve data ────────────────────────────────────────────
+
+/**
+ * Gets equipment dissolve properties from CDN data.
+ * Returns null if equipment not found in the dataset.
+ */
+export function getEquipmentDissolveSync(id: number | string): EquipmentDissolveEntry | null {
+    const entry = (equipmentDissolveData as Record<string, EquipmentDissolveEntry>)[String(id)]
+    return entry ?? null
+}
+
+// ─── Item sale data ──────────────────────────────────────────────────────
+
+/**
+ * Gets item sale properties (price, sellable, category) from CDN data.
+ * Returns null if item not found in the dataset.
+ */
+export function getItemSaleSync(id: number | string): ItemSaleEntry | null {
+    const entry = (itemSaleData as Record<string, ItemSaleEntry>)[String(id)]
+    return entry ?? null
+}
+
+// ─── Equipment craft / dissolve cost data ────────────────────────────────
+
+/**
+ * Gets equipment craft-point costs and dissolve rates by rarity (1-5).
+ * Returns null if rarity is invalid.
+ */
+export function getEquipmentCraftSync(rarity: number): EquipmentCraftEntry | null {
+    const entry = (equipmentCraftData as Record<string, EquipmentCraftEntry>)[String(Math.max(1, Math.min(5, rarity)))]
+    return entry ?? null
 }

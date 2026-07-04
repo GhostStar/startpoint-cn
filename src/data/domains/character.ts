@@ -494,3 +494,50 @@ export function insertPlayerCharactersManaNodesSync(
         }
     })()
 }
+
+/**
+ * Gets the awake_level values for all mana nodes owned by a player.
+ * 
+ * @param playerId The ID of the player.
+ * @returns A record mapping character_id → { node_id → awake_level }.
+ */
+export function getPlayerCharactersManaNodeAwakeLevelsSync(
+    playerId: number
+): Record<string, Record<number, number>> {
+    const rawNodes = getDb().prepare(`
+    SELECT value, character_id, awake_level
+    FROM players_characters_mana_nodes
+    WHERE player_id = ?
+    `).all(playerId) as RawPlayerCharacterManaNode[]
+
+    const result: Record<string, Record<number, number>> = {}
+    for (const rawNode of rawNodes) {
+        const charId = rawNode.character_id.toString()
+        if (!result[charId]) result[charId] = {}
+        result[charId][rawNode.value] = rawNode.awake_level ?? 0
+    }
+    return result
+}
+
+/**
+ * Updates the awake_level for a player's character mana node.
+ * Uses INSERT OR REPLACE to handle nodes that may already exist (from learn_mana_node)
+ * or may not exist yet (first-time awaken).
+ * 
+ * @param playerId The ID of the player.
+ * @param characterId The character's ID.
+ * @param manaNodeId The mana node multiplied_id.
+ * @param awakeLevel The new awake_level to set.
+ */
+export function updatePlayerCharacterManaNodeAwakeLevelSync(
+    playerId: number,
+    characterId: number,
+    manaNodeId: number,
+    awakeLevel: number
+) {
+    getDb().prepare(`
+    UPDATE players_characters_mana_nodes
+    SET awake_level = ?
+    WHERE value = ? AND character_id = ? AND player_id = ?
+    `).run(awakeLevel, manaNodeId, characterId, playerId)
+}
