@@ -89,6 +89,9 @@ export function convertCarnivalRewardsToPlayerRewards(rewards: CarnivalTotalScor
                 if (reward.id !== null) converted.push({ type: RewardType.EQUIPMENT, id: reward.id, count } as Reward)
                 break
             }
+            case 2:
+                converted.push({ type: RewardType.BEADS, count } as Reward)
+                break
             case 3:
                 converted.push({ type: RewardType.MANA, count } as Reward)
                 break

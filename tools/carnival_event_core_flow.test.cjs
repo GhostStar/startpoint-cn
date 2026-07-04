@@ -196,6 +196,7 @@ assert.deepStrictEqual(
   convertCarnivalRewardsToPlayerRewards([
     { kind: 0, id: 11, number: 2 },
     { kind: 1, id: 22, number: 1 },
+    { kind: 2, id: null, number: 200 },
     { kind: 3, id: null, number: 300 },
     { kind: 4, id: null, number: 400 },
     { kind: 6, id: 33, number: 1 },
@@ -204,6 +205,7 @@ assert.deepStrictEqual(
   [
     { type: 0, id: 11, count: 2 },
     { type: 1, id: 22, count: 1 },
+    { type: 3, count: 200 },
     { type: 4, count: 300 },
     { type: 5, count: 400 },
     { type: 2, id: 33 },
