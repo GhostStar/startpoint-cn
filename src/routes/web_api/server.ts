@@ -1,8 +1,9 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { getServerTime, getServerDate, setServerTime, getTimeOffset } from "../../utils";
 import { getAllAccountsSync, getAccountPlayersSync, getPlayerSync, getPlayerCharactersSync, deletePlayerSync, deleteAccountSync, updatePlayerSync, insertDefaultPlayerSync, replacePlayerDataSync } from "../../data/wdfpData";
-import { getClientSerializedData, deserializePlayerData } from "../../data/utils";
+import { getClientSerializedData, deserializePlayerData, reviveMergedPlayerDates } from "../../data/utils";
 import { getActivePlayerId, setActivePlayerId, getSelectedAccountId, setSelectedAccountId, saveTimeOffset, saveAccountDefaultPlayer, getAccountDefaultPlayer } from "../../data/activeAccount";
+import { saveDefaultSaveTemplate, loadDefaultSaveTemplate, clearDefaultSaveTemplate, getDefaultSaveMeta } from "../../data/defaultSave";
 import { wantsJson } from "./http";
 
 interface TimeQuery {
@@ -86,6 +87,40 @@ const routes = async (fastify: FastifyInstance) => {
         return reply.send(result)
     })
 
+    // === Default save template (admin-uploaded, applied when a new save is created) ===
+
+    // 查询当前默认存档模板信息
+    fastify.get("/defaultSave", async (_request: FastifyRequest, reply: FastifyReply) => {
+        return reply.send(getDefaultSaveMeta())
+    })
+
+    // 上传默认存档模板（multipart，快照格式同 GET /api/player/save 导出）
+    fastify.post("/defaultSave", async (request: FastifyRequest, reply: FastifyReply) => {
+        try {
+            const file = await (request as any).file()
+            if (!file) return reply.status(400).send({ error: "未选择文件" })
+            const text = (await file.toBuffer()).toString("utf-8")
+            let parsed: any
+            try { parsed = JSON.parse(text) } catch { return reply.status(400).send({ error: "文件不是有效的 JSON" }) }
+            if (!parsed || typeof parsed !== "object" || parsed.schema !== "starpoint-cn-save")
+                return reply.status(400).send({ error: "不是有效的存档快照（请使用本面板导出的存档）" })
+            if (parsed.version !== 1)
+                return reply.status(400).send({ error: `不支持的存档版本：${parsed.version}` })
+            if (!parsed.data || typeof parsed.data !== "object" || !parsed.data.player)
+                return reply.status(400).send({ error: "存档数据缺失 player 字段" })
+            saveDefaultSaveTemplate(parsed)
+            return reply.send({ ok: true, ...getDefaultSaveMeta() })
+        } catch (e: any) {
+            return reply.status(500).send({ error: e?.message ?? "上传失败" })
+        }
+    })
+
+    // 清除默认存档模板
+    fastify.delete("/defaultSave", async (_request: FastifyRequest, reply: FastifyReply) => {
+        const removed = clearDefaultSaveTemplate()
+        return reply.send({ ok: true, removed })
+    })
+
     // === Account & Save management (device-binding based) ===
 
     // Select account to view saves
@@ -130,9 +165,20 @@ const routes = async (fastify: FastifyInstance) => {
             return reply.redirect('/player')
         }
         const player = insertDefaultPlayerSync(accId)
+        // 若管理员配置了默认存档模板，用它替换新建的空存档
+        let appliedTemplate = false
+        try {
+            const template = loadDefaultSaveTemplate()
+            if (template?.data?.player) {
+                const data = reviveMergedPlayerDates(template.data)
+                data.player.id = player.id
+                replacePlayerDataSync(data)
+                appliedTemplate = true
+            }
+        } catch (_) { /* 模板损坏则退回空存档 */ }
         setActivePlayerId(player.id)
         saveAccountDefaultPlayer(accId, player.id)
-        if (wantsJson(request)) return reply.send({ ok: true, playerId: player.id })
+        if (wantsJson(request)) return reply.send({ ok: true, playerId: player.id, appliedTemplate })
         return reply.redirect('/player')
     })
 
