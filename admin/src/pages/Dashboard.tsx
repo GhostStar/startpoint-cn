@@ -1,6 +1,8 @@
 import { useState } from "react"
-import { Card, Statistic, Space, Alert, DatePicker, Button, message, Typography } from "antd"
+import { Card, Statistic, Space, Alert, DatePicker, Button, message, Typography, Row, Col, Divider } from "antd"
+import { TeamOutlined, MailOutlined, ExperimentOutlined, ReloadOutlined } from "@ant-design/icons"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { useNavigate } from "react-router-dom"
 import type { Dayjs } from "dayjs"
 import { apiGet } from "../api/client"
 
@@ -10,9 +12,19 @@ interface ServerTime {
     isCustom: boolean
 }
 
+// GET /api/server/accounts 返回的账号行（与「账号 / 存档」页共用类型与缓存）
+interface AccountRow {
+    id: number
+    saveCount: number
+    defaultPlayerId: number | null
+    defaultPlayerName: string | null
+    playerIds: number[]
+}
+
 // GET /api/server/currentTime 返回 { servertime, date, isCustom }
 export default function Dashboard() {
     const qc = useQueryClient()
+    const navigate = useNavigate()
     const [picked, setPicked] = useState<Dayjs | null>(null)
 
     const { data, isError, isLoading } = useQuery({
@@ -20,6 +32,17 @@ export default function Dashboard() {
         queryFn: () => apiGet<ServerTime>("/api/server/currentTime"),
         refetchInterval: 30_000
     })
+
+    // 概览统计：复用账号列表（与「账号 / 存档」页共用 ["accounts"] 缓存）。
+    // 本模型下每个存档即一条玩家记录，故存档总数 = 玩家总数。
+    const { data: accounts = [], isLoading: accountsLoading, isError: accountsError, isFetching: accountsFetching } = useQuery({
+        queryKey: ["accounts"],
+        queryFn: () => apiGet<AccountRow[]>("/api/server/accounts"),
+    })
+
+    const accountCount = accounts.length
+    const saveCount = accounts.reduce((sum, a) => sum + a.saveCount, 0)
+    const avgSaves = accountCount ? saveCount / accountCount : 0
 
     const timeText = isLoading
         ? "加载中…"
@@ -48,6 +71,47 @@ export default function Dashboard() {
                 message="新版管理后台（开发中）"
                 description="旧版页面仍在 / 正常运行，功能迁移完成前两者并存。"
             />
+            <Card
+                title="概览统计"
+                style={{ maxWidth: 720 }}
+                extra={
+                    <Button
+                        type="text"
+                        icon={<ReloadOutlined />}
+                        loading={accountsFetching}
+                        onClick={() => qc.invalidateQueries({ queryKey: ["accounts"] })}
+                    >
+                        刷新
+                    </Button>
+                }
+            >
+                {accountsError ? (
+                    <Alert
+                        type="error"
+                        showIcon
+                        message="概览数据加载失败"
+                        description="接口 /api/server/accounts 不可用。"
+                    />
+                ) : (
+                    <Row gutter={[16, 16]}>
+                        <Col xs={12} sm={8}>
+                            <Statistic title="账号总数" value={accountCount} loading={accountsLoading} />
+                        </Col>
+                        <Col xs={12} sm={8}>
+                            <Statistic title="存档总数（玩家）" value={saveCount} loading={accountsLoading} />
+                        </Col>
+                        <Col xs={12} sm={8}>
+                            <Statistic title="平均每账号存档" value={avgSaves} precision={1} loading={accountsLoading} />
+                        </Col>
+                    </Row>
+                )}
+                <Divider style={{ margin: "16px 0" }} />
+                <Space wrap>
+                    <Button icon={<TeamOutlined />} onClick={() => navigate("/accounts")}>账号 / 存档</Button>
+                    <Button icon={<MailOutlined />} onClick={() => navigate("/mail")}>邮件群发</Button>
+                    <Button icon={<ExperimentOutlined />} onClick={() => navigate("/seeds")}>种子管理</Button>
+                </Space>
+            </Card>
             <Card title="服务器状态" style={{ maxWidth: 520 }}>
                 <Statistic
                     title="服务器时间"
