@@ -101,7 +101,7 @@ This asset can share data with the existing `carnival_event_quest_scores.json`, 
 
 ### `assets/carnival_event_total_score_reward.json`
 
-Keyed by total score reward id. Each row keeps the current handler's expected fields:
+Keyed by total score reward id. Each row keeps the current handler's expected `rewards` array shape:
 
 ```json
 {
@@ -109,14 +109,16 @@ Keyed by total score reward id. Each row keeps the current handler's expected fi
     "id": 5,
     "event_id": 1,
     "score": 10465000,
-    "reward1_kind": 0,
-    "reward1_id": 13001,
-    "reward1_number": 1
+    "rewards": [
+      { "kind": 0, "id": 13001, "number": 1 },
+      { "kind": 0, "id": 90030, "number": 100 },
+      { "kind": 6, "id": 61070, "number": 1 }
+    ]
   }
 }
 ```
 
-The converter should normalize `rewardN_kind.id` into `rewardN_id`. Reward kind `2` remains Stone and maps to beads at grant time, as already fixed in the core-flow slice.
+The converter should normalize `rewardN_kind`, `rewardN_kind.id`, and `rewardN_number` into this array. Reward kind `2` remains Stone and maps to beads at grant time, as already fixed in the core-flow slice.
 
 ## Period Rules
 
