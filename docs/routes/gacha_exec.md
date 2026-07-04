@@ -38,6 +38,25 @@ Content-Length: 100
 }
 ```
 
+## Implementation Notes
+
+### Ticket Payment Mapping
+
+For CN ticket draws, `payment_type = 3` means the item consumed is selected from
+the gacha exec `type`, not from the banner kind alone.
+
+| `type` | Ticket item | Pull count |
+| --- | --- | ---: |
+| `9` | `999001` character 10-pull ticket | 10 |
+| `10` | `999003` character single ticket | 1 |
+| `12` | `999005` equipment single ticket | 1 |
+| `13` | `999004` equipment 10-pull ticket | 10 |
+
+The equipment single-ticket path is `type = 12`. Older code only treated
+`type = 13` as an equipment ticket, so `payment_type = 3` with `type = 12`
+looked up `999003` instead of `999005` and returned `400 Not enough tickets`
+when a save only had equipment single tickets.
+
 ## Response
 ### Headers
 ```
@@ -379,4 +398,3 @@ param: b9d1972176320927dee87a97bc6b1d19fbe7669b
   }
 }
 ```
-

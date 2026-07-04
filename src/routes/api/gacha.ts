@@ -13,6 +13,7 @@ import { UserGachaCampaign } from "../../data/types";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { givePlayerCharacterSync } from "../../lib/character";
 import { givePlayerEquipmentSync } from "../../lib/equipment";
+import { getGachaTicketCost } from "../../lib/gacha-ticket";
 
 interface ExecBody {
     api_count: number,
@@ -58,7 +59,7 @@ enum GachaExecType {
     MULTI_TICKET,
     SINGLE_TICKET,
     UNKNOWN_4,
-    UNKNOWN_5,
+    SINGLE_WEAPON_TICKET,
     MULTI_WEAPON_TICKET
 }
 
@@ -298,20 +299,19 @@ const routes = async (fastify: FastifyInstance) => {
 
             // tickets
             case GachaPaymentType.TICKET: {
-                const isWeapon = type === GachaExecType.MULTI_WEAPON_TICKET
-                const isMulti = type === GachaExecType.MULTI_TICKET || isWeapon
+                const ticketCost = getGachaTicketCost(type, numberOfExec)
+                if (ticketCost === null) break;
 
-                const itemId = isMulti ? (isWeapon ? 999004 : 999001) : (isWeapon ? 999005 : 999003)
-
+                const itemId = ticketCost.itemId
                 const itemCount = getPlayerItemSync(playerId, itemId)
-                const useTicketCount = Math.max(1, numberOfExec) 
+                const useTicketCount = ticketCost.useTicketCount
                 const newItemCount = (itemCount ?? -1) - useTicketCount
                 if (0 > newItemCount) return reply.status(400).send({
                     "error": "Bad Request",
                     "message": "Not enough tickets."
                 })
 
-                pullCount = useTicketCount * (isMulti ? 10 : 1)
+                pullCount = ticketCost.pullCount
 
                 items[itemId] = newItemCount
                 updatePlayerItemSync(playerId, itemId, newItemCount);
