@@ -22,8 +22,93 @@ function parseInteger(value, fallback) {
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
+function parseOptionalInteger(value) {
+  if (value == null) {
+    return undefined;
+  }
+  const text = String(value).trim();
+  if (!text || text === "(None)") {
+    return undefined;
+  }
+  const parsed = Number.parseInt(text, 10);
+  return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseOptionalBoolean(value, fallback = false) {
+  if (value == null) {
+    return fallback;
+  }
+  const text = String(value).trim().toLowerCase();
+  if (!text || text === "(none)") {
+    return fallback;
+  }
+  if (text === "true") {
+    return true;
+  }
+  if (text === "false") {
+    return false;
+  }
+  return fallback;
+}
+
+function cleanOptionalString(value) {
+  if (value == null) {
+    return undefined;
+  }
+  const text = String(value).trim();
+  return text && text !== "(None)" ? text : undefined;
+}
+
 function round2(value) {
   return Math.round(value * 100) / 100;
+}
+
+function normalizeWeightsToThousand(weights, totalWeight = null) {
+  const total = totalWeight ?? weights.reduce((sum, weight) => sum + weight, 0);
+  if (total <= 0) {
+    return weights.map(() => 0);
+  }
+
+  const exact = weights.map((weight) => (weight / total) * 1000);
+  const normalized = exact.map((weight) => Math.floor(weight));
+  let remainder = 1000 - normalized.reduce((sum, weight) => sum + weight, 0);
+  const order = exact
+    .map((weight, index) => ({ index, fraction: weight - Math.floor(weight) }))
+    .sort((a, b) => b.fraction - a.fraction || a.index - b.index);
+
+  for (let i = 0; i < order.length && remainder > 0; i += 1) {
+    normalized[order[i].index] += 1;
+    remainder -= 1;
+  }
+
+  return normalized;
+}
+
+function buildRankRates(rarityOdds, guaranteeRarity) {
+  if (!rarityOdds) {
+    throw new Error("missing rarity odds table");
+  }
+
+  const raw = new Map(rarityOdds.entries.map((entry) => [entry.rarity, entry.weight]));
+  const totalWeight = rarityOdds.entries.reduce((sum, entry) => sum + entry.weight, 0);
+  const normalWeights = [5, 4, 3].map((rarity) => raw.get(rarity) || 0);
+  const guaranteeWeights = [5, 4].map((rarity) => {
+    let weight = raw.get(rarity) || 0;
+    if (rarity < guaranteeRarity) {
+      weight = 0;
+    }
+    if (rarity === guaranteeRarity) {
+      for (let lower = 1; lower < guaranteeRarity; lower += 1) {
+        weight += raw.get(lower) || 0;
+      }
+    }
+    return weight;
+  });
+
+  return {
+    normal: normalizeWeightsToThousand(normalWeights, totalWeight),
+    multiGuarantee: normalizeWeightsToThousand(guaranteeWeights, totalWeight),
+  };
 }
 
 function poolKeyForRank(rank) {
@@ -35,13 +120,21 @@ function poolKeyForRank(rank) {
 
 function normalizePoolEntries(entries, idField) {
   const totalWeight = entries.reduce((sum, entry) => sum + entry.weight, 0);
-  return entries.map((entry) => ({
-    id: entry[idField],
-    rank: entry.rarity,
-    odds: entry.weight,
-    isRateUp: entry.oddsUp,
-    rarity: totalWeight > 0 ? round2((entry.weight / totalWeight) * 1000) : 0,
-  }));
+  return entries.map((entry) => {
+    const item = {
+      id: entry[idField],
+      rank: entry.rarity,
+      odds: entry.weight,
+      isRateUp: entry.oddsUp,
+      isLimited: entry.isLimited,
+      isExchangeable: entry.isExchangeable,
+      rarity: totalWeight > 0 ? round2((entry.weight / totalWeight) * 1000) : 0,
+    };
+    if (Object.prototype.hasOwnProperty.call(entry, "trialReadingForced")) {
+      item.trialReadingForced = entry.trialReadingForced;
+    }
+    return item;
+  });
 }
 
 function buildPoolForOddsIds(oddsTable, mapping, idField) {
@@ -63,9 +156,16 @@ function buildBannerFromRow(gachaId, row, oddsExport) {
   const prizeKind = row[13];
   const isEquipment = prizeKind === "1";
   const name = String(row[1] || `Gacha ${gachaId}`);
+  const pageKind = parseInteger(row[4], 0);
+  const guaranteeRarity = parseInteger(row[10], 4);
+  const rarityOddsId = String(row[11] || "");
+  const rankRates = buildRankRates(oddsExport.rarity[rarityOddsId], guaranteeRarity);
   const singleCost = parseInteger(row[5], isEquipment ? 75 : 150);
   const multiCost = parseInteger(row[6], isEquipment ? 750 : 1500);
   const discountCost = parseInteger(row[7], isEquipment ? 25 : 50);
+  const tenTimesPerAccountCost = parseOptionalInteger(row[8]);
+  const onceTicketItemId = parseOptionalInteger(row[27]);
+  const tenTicketItemId = parseOptionalInteger(row[28]);
   const startDate = String(row[29] || "2000-01-01 00:00:00");
   const endDate = String(row[30] || "2099-01-01 00:00:00");
 
@@ -73,9 +173,18 @@ function buildBannerFromRow(gachaId, row, oddsExport) {
     return {
       type: 1,
       paymentType: 0,
+      pageKind,
       singleCost,
       multiCost,
       discountCost,
+      ...(tenTimesPerAccountCost ? { tenTimesPerAccountCost } : {}),
+      ...(onceTicketItemId ? { onceTicketItemId } : {}),
+      ...(tenTicketItemId ? { tenTicketItemId } : {}),
+      wildcardTicketAvailable: parseOptionalBoolean(row[26]),
+      rarityOddsId,
+      guaranteeRarity,
+      rankRates,
+      ...(cleanOptionalString(row[25]) ? { equipmentMovieProbabilityId: cleanOptionalString(row[25]) } : {}),
       startDate,
       endDate,
       name,
@@ -90,11 +199,21 @@ function buildBannerFromRow(gachaId, row, oddsExport) {
   return {
     type: 0,
     paymentType: 0,
+    pageKind,
     singleCost,
     multiCost,
     discountCost,
+    ...(tenTimesPerAccountCost ? { tenTimesPerAccountCost } : {}),
+    ...(onceTicketItemId ? { onceTicketItemId } : {}),
+    ...(tenTicketItemId ? { tenTicketItemId } : {}),
+    wildcardTicketAvailable: parseOptionalBoolean(row[20]),
+    rarityOddsId,
+    guaranteeRarity,
+    rankRates,
     movieName: String(row[17] || "normal"),
     guaranteeMovieName: String(row[18] || "normal_guarantee"),
+    toUseOddsUpAsTrialReading: parseOptionalBoolean(row[19]),
+    canBeStartDashExchange: parseOptionalBoolean(row[21]),
     startDate,
     endDate,
     name,
@@ -136,6 +255,9 @@ function valuesDiffer(oldItem, newItem) {
     oldItem.rank !== newItem.rank ||
     oldItem.odds !== newItem.odds ||
     oldItem.isRateUp !== newItem.isRateUp ||
+    oldItem.isLimited !== newItem.isLimited ||
+    oldItem.isExchangeable !== newItem.isExchangeable ||
+    oldItem.trialReadingForced !== newItem.trialReadingForced ||
     oldItem.rarity !== newItem.rarity
   );
 }
@@ -355,9 +477,11 @@ function main(argv = process.argv.slice(2)) {
 module.exports = {
   buildBannerFromRow,
   buildGachaFromOdds,
+  buildRankRates,
   diffGacha,
   diffPool,
   normalizePoolEntries,
+  normalizeWeightsToThousand,
 };
 
 if (require.main === module) {

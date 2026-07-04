@@ -15,16 +15,33 @@ export interface GachaPoolItem {
     rank: number,
     odds: number,
     isRateUp: boolean,
+    isLimited?: boolean,
+    isExchangeable?: boolean,
+    trialReadingForced?: boolean,
     rarity: number
+}
+
+
+export interface GachaRankRates {
+    normal: number[],
+    multiGuarantee: number[]
 }
 
 
 export interface Gacha {
     type: GachaType,
     paymentType: number,
+    pageKind?: number,
     singleCost: number,
     multiCost: number,
     discountCost: number,
+    tenTimesPerAccountCost?: number,
+    onceTicketItemId?: number,
+    tenTicketItemId?: number,
+    wildcardTicketAvailable?: boolean,
+    rarityOddsId?: string,
+    guaranteeRarity?: number,
+    rankRates?: GachaRankRates,
     startDate: string,
     endDate: string,
     pool: Record<string, GachaPoolItem[]>
@@ -33,7 +50,9 @@ export interface Gacha {
 
 export interface CharacterGacha extends Gacha {
     movieName: string,
-    guaranteeMovieName: string
+    guaranteeMovieName: string,
+    toUseOddsUpAsTrialReading?: boolean,
+    canBeStartDashExchange?: boolean
 }
 
 

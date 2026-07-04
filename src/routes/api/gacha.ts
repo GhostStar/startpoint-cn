@@ -14,6 +14,7 @@ import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { givePlayerCharacterSync } from "../../lib/character";
 import { givePlayerEquipmentSync } from "../../lib/equipment";
 import { getGachaTicketCost } from "../../lib/gacha-ticket";
+import { getExchangeableGachaItem, isGachaExecAllowed } from "../../lib/gacha-rules";
 
 interface ExecBody {
     api_count: number,
@@ -97,6 +98,16 @@ const routes = async (fastify: FastifyInstance) => {
             "message": "No data for gacha with provided id."
         })
 
+        const gachaData = getGachaSync(gachaId)
+        if (gachaData === null || gachaData.type !== GachaType.WEAPON) return reply.status(400).send({
+            "error": "Bad Request",
+            "message": "No equipment exchange data for gacha with provided id."
+        })
+        if (getExchangeableGachaItem(gachaData, equipmentId) === null) return reply.status(400).send({
+            "error": "Bad Request",
+            "message": "Equipment is not exchangeable from this gacha."
+        })
+
         const newExchangePoints = (gachaInfo.gachaExchangePoint ?? 0) - exchangeRequiredPoints
         if (0 > newExchangePoints) return reply.status(400).send({
             "error": "Bad Request",
@@ -166,6 +177,16 @@ const routes = async (fastify: FastifyInstance) => {
         if (gachaInfo === null) return reply.status(400).send({
             "error": "Bad Request",
             "message": "No data for gacha with provided id."
+        })
+
+        const gachaData = getGachaSync(gachaId)
+        if (gachaData === null || gachaData.type !== GachaType.CHARACTER) return reply.status(400).send({
+            "error": "Bad Request",
+            "message": "No character exchange data for gacha with provided id."
+        })
+        if (getExchangeableGachaItem(gachaData, characterId) === null) return reply.status(400).send({
+            "error": "Bad Request",
+            "message": "Character is not exchangeable from this gacha."
         })
 
         const newExchangePoints = (gachaInfo.gachaExchangePoint ?? 0) - exchangeRequiredPoints
@@ -264,6 +285,19 @@ const routes = async (fastify: FastifyInstance) => {
             gachaExchangePoint: 0
         }
 
+        if (!isGachaExecAllowed(gachaData, paymentType, type)) {
+            console.log(`[GACHA] Exec not allowed: gachaId=${gachaId} paymentType=${paymentType} type=${type} pageKind=${gachaData.pageKind}`);
+            return reply.status(400).send({
+                "error": "Bad Request",
+                "message": "Gacha execution type is not allowed for this gacha."
+            })
+        }
+
+        if (gachaData.pageKind === 1 && !playerGachaData.isAccountFirst) return reply.status(400).send({
+            "error": "Bad Request",
+            "message": "Already did account-limited summon."
+        })
+
         // determine & validate cost
         let pullCount = 0
         let playerPaidVmoney = player.vmoney
@@ -275,7 +309,9 @@ const routes = async (fastify: FastifyInstance) => {
         switch (paymentType) {
             case GachaPaymentType.FREE_VMONEY: {
                 const isMulti = type === GachaExecType.VMONEY_MULTI
-                const cost = (isMulti ? gachaData.multiCost : gachaData.singleCost)
+                const cost = (gachaData.pageKind === 1 && isMulti)
+                    ? (gachaData.tenTimesPerAccountCost ?? gachaData.multiCost)
+                    : (isMulti ? gachaData.multiCost : gachaData.singleCost)
                 const overflow = cost > playerFreeVmoney ? cost - playerFreeVmoney : 0
                 playerFreeVmoney = overflow > 0 ? 0 : playerFreeVmoney - cost
                 playerPaidVmoney = overflow > 0 ? playerPaidVmoney - overflow : playerPaidVmoney
@@ -299,7 +335,7 @@ const routes = async (fastify: FastifyInstance) => {
 
             // tickets
             case GachaPaymentType.TICKET: {
-                const ticketCost = getGachaTicketCost(type, numberOfExec)
+                const ticketCost = getGachaTicketCost(type, numberOfExec, gachaData)
                 if (ticketCost === null) break;
 
                 const itemId = ticketCost.itemId
