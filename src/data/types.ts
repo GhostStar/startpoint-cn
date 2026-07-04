@@ -776,6 +776,17 @@ export interface PlayerCarnivalEventRecord {
     previousUnisonCharacterIds: (number | null)[] | null
 }
 
+export interface RawPlayerCarnivalEventTotalScoreReward {
+    player_id: number
+    event_id: number
+    reward_id: number
+}
+
+export interface PlayerCarnivalEventTotalScoreReward {
+    eventId: number
+    rewardId: number
+}
+
 // Active quest (unfinished battle recovery)
 export interface RawPlayerActiveQuest {
     player_id: number

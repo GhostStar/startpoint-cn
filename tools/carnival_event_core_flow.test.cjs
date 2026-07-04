@@ -7,6 +7,18 @@ const {
   convertCarnivalRewardsToPlayerRewards,
   handleCarnivalEventFinish,
 } = require("../src/lib/quest/finish/carnival-handler.ts");
+const carnivalEventDomain = require("../src/data/domains/carnivalEvent.ts");
+
+{
+  for (const exportName of [
+    "sumPlayerCarnivalEventBestScoreSync",
+    "resetPlayerCarnivalEventRecordsSync",
+    "getReceivedCarnivalEventTotalScoreRewardIdsSync",
+    "insertReceivedCarnivalEventTotalScoreRewardSync",
+  ]) {
+    assert.strictEqual(typeof carnivalEventDomain[exportName], "function", `${exportName} should be exported`);
+  }
+}
 
 function makeParty(mainIds, unisonIds) {
   return {
