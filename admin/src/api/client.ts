@@ -41,3 +41,11 @@ export function apiDelete<T>(url: string): Promise<T> {
     return fetch(url, { method: "DELETE", headers: { Accept: "application/json" } })
         .then(r => handle<T>(r))
 }
+
+// multipart 上传：不手动设 Content-Type，交给浏览器带 boundary
+export function apiUpload<T>(url: string, file: File, fieldName = "file"): Promise<T> {
+    const fd = new FormData()
+    fd.append(fieldName, file)
+    return fetch(url, { method: "POST", headers: { Accept: "application/json" }, body: fd })
+        .then(r => handle<T>(r))
+}

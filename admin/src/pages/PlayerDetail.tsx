@@ -1,9 +1,10 @@
 import { useState } from "react"
-import { Card, Descriptions, Table, Button, Space, InputNumber, Popconfirm, message, Tag, Tabs, Spin, Typography } from "antd"
-import { SaveOutlined, DeleteOutlined, PlusOutlined, DownloadOutlined, UndoOutlined } from "@ant-design/icons"
+import { Card, Descriptions, Table, Button, Space, InputNumber, Popconfirm, message, Tag, Tabs, Spin, Typography, Switch, DatePicker, Input, Upload } from "antd"
+import { SaveOutlined, DeleteOutlined, PlusOutlined, DownloadOutlined, UploadOutlined, UndoOutlined, SearchOutlined } from "@ant-design/icons"
 import { useParams, useNavigate } from "react-router-dom"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { apiGet, apiPost, apiPatch, apiDelete } from "../api/client"
+import dayjs from "dayjs"
+import { apiGet, apiPost, apiPatch, apiDelete, apiUpload } from "../api/client"
 
 const { Text } = Typography
 
@@ -14,7 +15,7 @@ interface PlayerInfo {
     rankPoint: number; starCrumb: number; bondToken: number
     expPool: number; degreeId: number; leaderCharacterId: number
     birth: number; enableAuto3x: boolean; tutorialStep: number | null
-    lastLoginTime: string; timeOffset: number | null
+    lastLoginTime: string; staminaHealTime: string; expPooledTime: string; timeOffset: number | null
 }
 
 interface CharRow { code: number; joinTime: string; entryCount: number; evolutionLevel: number; overLimitStep: number; exp: number; stack: number; manaBoardIndex: number }
@@ -53,15 +54,22 @@ const resourceFields: { key: string; label: string }[] = [
     { key: "boostPoint", label: "Boost" },
 ]
 
+const gridStyle: React.CSSProperties = { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }
+
 export default function PlayerDetail() {
     const { playerId } = useParams()
     const pid = Number(playerId)
     const navigate = useNavigate()
     const qc = useQueryClient()
-    const [editValues, setEditValues] = useState<Record<string, number>>({})
+    const [editValues, setEditValues] = useState<Record<string, any>>({})
     const [addCharCode, setAddCharCode] = useState<number | undefined>()
     const [addItemId, setAddItemId] = useState<number | undefined>()
     const [addItemCount, setAddItemCount] = useState<number>(1)
+    const [searchChars, setSearchChars] = useState("")
+    const [searchItems, setSearchItems] = useState("")
+    const [searchEquip, setSearchEquip] = useState("")
+    const [searchQuests, setSearchQuests] = useState("")
+    const [searchDrawn, setSearchDrawn] = useState("")
 
     const { data, isLoading, isError } = useQuery({
         queryKey: ["playerDetail", pid],
@@ -86,7 +94,7 @@ export default function PlayerDetail() {
     const refresh = () => qc.invalidateQueries({ queryKey: ["playerDetail", pid] })
 
     const editField = useMutation({
-        mutationFn: ({ field, value }: { field: string; value: number }) =>
+        mutationFn: ({ field, value }: { field: string; value: any }) =>
             apiPatch(`/api/player/${pid}/field`, { field, value }),
         onSuccess: (_, { field }) => {
             message.success(`${field} 已更新`)
@@ -146,6 +154,12 @@ export default function PlayerDetail() {
         onSuccess: () => { message.success("EX Boost 已清除"); refresh() },
     })
 
+    const clearReceiveHistory = useMutation({
+        mutationFn: () => apiPost(`/api/player/${pid}/clear_receive_history`),
+        onSuccess: () => { message.success("接收历史已清除"); refresh() },
+        onError: (e: Error) => message.error(e.message),
+    })
+
     const resetParties = useMutation({
         mutationFn: () => apiPost(`/api/player/${pid}/reset_parties`),
         onSuccess: () => { message.success("编队已重置"); refresh() },
@@ -161,11 +175,92 @@ export default function PlayerDetail() {
         onSuccess: () => { message.success("每日挑战已重置"); refresh() },
     })
 
+    const importSave = useMutation({
+        mutationFn: (file: File) => apiUpload<{ ok: boolean }>(`/api/player/save?id=${pid}`, file),
+        onSuccess: () => { message.success("存档已导入"); refresh() },
+        onError: (e: Error) => message.error(e.message),
+    })
+
     if (isNaN(pid)) return <Card><Text type="danger">无效的玩家 ID</Text></Card>
     if (isLoading) return <div style={{ textAlign: "center", marginTop: 100 }}><Spin size="large" /></div>
     if (isError || !data) return <Card><Text type="danger">加载失败</Text></Card>
 
     const { player, characters, items, equipment, questProgress, drawnQuests } = data
+
+    // 内联可编辑数字字段（复用于资源/账号/时间偏移）
+    const numField = (key: string, label: string, opts: { min?: number; allowNull?: boolean } = {}) => {
+        const has = key in editValues
+        const current = (player as any)[key]
+        const shown = has ? editValues[key] : current
+        const changed = has && editValues[key] !== current
+        return (
+            <div key={key}>
+                <Text type="secondary" style={{ fontSize: 12 }}>{label}</Text>
+                <Space.Compact style={{ width: "100%" }}>
+                    <InputNumber
+                        style={{ width: "100%" }}
+                        size="small"
+                        value={shown}
+                        min={opts.min}
+                        onChange={v => setEditValues(prev => ({ ...prev, [key]: v ?? (opts.allowNull ? null : (opts.min ?? 0)) }))}
+                    />
+                    {changed && (
+                        <Button size="small" type="primary" icon={<SaveOutlined />}
+                            loading={editField.isPending}
+                            onClick={() => editField.mutate({ field: key, value: editValues[key] })}
+                        />
+                    )}
+                </Space.Compact>
+            </div>
+        )
+    }
+
+    // 时间字段（DatePicker，改动即提交 ISO）
+    const dateField = (key: string, label: string) => {
+        const iso = (player as any)[key] as string | null
+        return (
+            <div key={key}>
+                <Text type="secondary" style={{ fontSize: 12 }}>{label}</Text>
+                <DatePicker
+                    showTime
+                    allowClear={false}
+                    size="small"
+                    style={{ width: "100%" }}
+                    value={iso ? dayjs(iso) : null}
+                    onChange={d => d && editField.mutate({ field: key, value: d.toISOString() })}
+                />
+            </div>
+        )
+    }
+
+    const searchBox = (value: string, setValue: (s: string) => void) => (
+        <Input allowClear size="small" prefix={<SearchOutlined />} placeholder="搜索名称或 ID"
+            value={value} onChange={e => setValue(e.target.value)} style={{ width: 240 }} />
+    )
+
+    // 大表格搜索过滤（名称或 ID）
+    const norm = (s: string) => s.trim().toLowerCase()
+    const fChars = characters.filter(r => {
+        const s = norm(searchChars); if (!s) return true
+        const c = lookups?.characters[r.code]
+        return String(r.code).includes(s) || (c?.name ?? "").toLowerCase().includes(s) || (c?.title ?? "").toLowerCase().includes(s)
+    })
+    const fItems = items.filter(r => {
+        const s = norm(searchItems); if (!s) return true
+        return String(r.id).includes(s) || String((lookups?.items as any)?.[r.id] ?? "").toLowerCase().includes(s)
+    })
+    const fEquip = equipment.filter(r => {
+        const s = norm(searchEquip); if (!s) return true
+        return String(r.id).includes(s) || String((lookups?.equipment as any)?.[r.id]?.name ?? "").toLowerCase().includes(s)
+    })
+    const fQuests = questProgress.filter(r => {
+        const s = norm(searchQuests); if (!s) return true
+        return String(r.section).includes(s) || String(r.questId).includes(s) || String((lookups?.quests as any)?.[`${r.section}_${r.questId}`] ?? "").toLowerCase().includes(s)
+    })
+    const fDrawn = drawnQuests.filter(r => {
+        const s = norm(searchDrawn); if (!s) return true
+        return String(r.categoryId).includes(s) || String(r.questId).includes(s) || String((lookups?.quests as any)?.[`${r.categoryId}_${r.questId}`] ?? "").toLowerCase().includes(s)
+    })
 
     const tabItems = [
         {
@@ -173,11 +268,12 @@ export default function PlayerDetail() {
             label: `角色 (${characters.length})`,
             children: (
                 <Space direction="vertical" style={{ width: "100%" }}>
-                    <Space>
+                    <Space wrap>
                         <InputNumber placeholder="角色 Code" value={addCharCode} onChange={v => setAddCharCode(v ?? undefined)} style={{ width: 140 }} />
                         <Button icon={<PlusOutlined />} onClick={() => addCharCode && addChar.mutate(addCharCode)}>添加角色</Button>
+                        {searchBox(searchChars, setSearchChars)}
                     </Space>
-                    <Table rowKey="code" dataSource={characters} size="small" pagination={{ pageSize: 50 }}
+                    <Table rowKey="code" dataSource={fChars} size="small" pagination={{ pageSize: 50 }}
                         columns={[
                             { title: "名字", render: (_, r: CharRow) => lookups?.characters[r.code]?.name ?? "?" },
                             { title: "称号", render: (_, r: CharRow) => lookups?.characters[r.code]?.title ?? "-", responsive: ["lg"] as any },
@@ -202,12 +298,13 @@ export default function PlayerDetail() {
             label: `道具 (${items.length})`,
             children: (
                 <Space direction="vertical" style={{ width: "100%" }}>
-                    <Space>
+                    <Space wrap>
                         <InputNumber placeholder="道具 ID" value={addItemId} onChange={v => setAddItemId(v ?? undefined)} style={{ width: 120 }} />
                         <InputNumber placeholder="数量" value={addItemCount} onChange={v => setAddItemCount(v ?? 1)} min={0} style={{ width: 100 }} />
                         <Button icon={<PlusOutlined />} onClick={() => addItemId != null && addItem.mutate({ id: addItemId, count: addItemCount })}>添加/设置</Button>
+                        {searchBox(searchItems, setSearchItems)}
                     </Space>
-                    <Table rowKey="id" dataSource={items} size="small" pagination={{ pageSize: 50 }}
+                    <Table rowKey="id" dataSource={fItems} size="small" pagination={{ pageSize: 50 }}
                         columns={[
                             { title: "名字", render: (_, r: ItemRow) => (lookups?.items as any)?.[r.id] ?? "-" },
                             { title: "ID", dataIndex: "id", width: 80 },
@@ -229,16 +326,19 @@ export default function PlayerDetail() {
             key: "equipment",
             label: `装备 (${equipment.length})`,
             children: (
-                <Table rowKey="id" dataSource={equipment} size="small" pagination={{ pageSize: 50 }}
-                    columns={[
-                        { title: "名字", render: (_, r: EquipRow) => (lookups?.equipment as any)?.[r.id]?.name ?? "-" },
-                        { title: "ID", dataIndex: "id", width: 80 },
-                        { title: "稀有度", render: (_, r: EquipRow) => { const eq = (lookups?.equipment as any)?.[r.id]; return eq ? `${eq.rarity}★` : "-" }, width: 80 },
-                        { title: "类型", render: (_, r: EquipRow) => (lookups?.equipment as any)?.[r.id]?.category ?? "-", width: 80 },
-                        { title: "等级", dataIndex: "level", width: 80 },
-                        { title: "强化", dataIndex: "enhancementLevel", width: 80 },
-                    ]}
-                />
+                <Space direction="vertical" style={{ width: "100%" }}>
+                    {searchBox(searchEquip, setSearchEquip)}
+                    <Table rowKey="id" dataSource={fEquip} size="small" pagination={{ pageSize: 50 }}
+                        columns={[
+                            { title: "名字", render: (_, r: EquipRow) => (lookups?.equipment as any)?.[r.id]?.name ?? "-" },
+                            { title: "ID", dataIndex: "id", width: 80 },
+                            { title: "稀有度", render: (_, r: EquipRow) => { const eq = (lookups?.equipment as any)?.[r.id]; return eq ? `${eq.rarity}★` : "-" }, width: 80 },
+                            { title: "类型", render: (_, r: EquipRow) => (lookups?.equipment as any)?.[r.id]?.category ?? "-", width: 80 },
+                            { title: "等级", dataIndex: "level", width: 80 },
+                            { title: "强化", dataIndex: "enhancementLevel", width: 80 },
+                        ]}
+                    />
+                </Space>
             ),
         },
         {
@@ -246,10 +346,13 @@ export default function PlayerDetail() {
             label: `关卡 (${questProgress.length})`,
             children: (
                 <Space direction="vertical" style={{ width: "100%" }}>
-                    <Popconfirm title="清除全部关卡进度？" onConfirm={() => clearAllQuestProgress.mutate()} okText="确认" cancelText="取消" okButtonProps={{ danger: true }}>
-                        <Button danger size="small" icon={<DeleteOutlined />}>清除全部</Button>
-                    </Popconfirm>
-                    <Table rowKey={(r: QuestRow) => `${r.section}_${r.questId}`} dataSource={questProgress} size="small" pagination={{ pageSize: 50 }}
+                    <Space wrap>
+                        <Popconfirm title="清除全部关卡进度？" onConfirm={() => clearAllQuestProgress.mutate()} okText="确认" cancelText="取消" okButtonProps={{ danger: true }}>
+                            <Button danger size="small" icon={<DeleteOutlined />}>清除全部</Button>
+                        </Popconfirm>
+                        {searchBox(searchQuests, setSearchQuests)}
+                    </Space>
+                    <Table rowKey={(r: QuestRow) => `${r.section}_${r.questId}`} dataSource={fQuests} size="small" pagination={{ pageSize: 50 }}
                         columns={[
                             { title: "名字", render: (_, r: QuestRow) => (lookups?.quests as any)?.[`${r.section}_${r.questId}`] ?? "-" },
                             { title: "Section", dataIndex: "section", width: 80 },
@@ -276,10 +379,13 @@ export default function PlayerDetail() {
             label: `抽选关卡 (${drawnQuests.length})`,
             children: (
                 <Space direction="vertical" style={{ width: "100%" }}>
-                    <Popconfirm title="清除全部抽选记录？" onConfirm={() => clearAllDrawnQuests.mutate()} okText="确认" cancelText="取消" okButtonProps={{ danger: true }}>
-                        <Button danger size="small" icon={<DeleteOutlined />}>清除全部</Button>
-                    </Popconfirm>
-                    <Table rowKey={(r: DrawnQuestRow) => `${r.categoryId}_${r.questId}`} dataSource={drawnQuests} size="small" pagination={{ pageSize: 50 }}
+                    <Space wrap>
+                        <Popconfirm title="清除全部抽选记录？" onConfirm={() => clearAllDrawnQuests.mutate()} okText="确认" cancelText="取消" okButtonProps={{ danger: true }}>
+                            <Button danger size="small" icon={<DeleteOutlined />}>清除全部</Button>
+                        </Popconfirm>
+                        {searchBox(searchDrawn, setSearchDrawn)}
+                    </Space>
+                    <Table rowKey={(r: DrawnQuestRow) => `${r.categoryId}_${r.questId}`} dataSource={fDrawn} size="small" pagination={{ pageSize: 50 }}
                         columns={[
                             { title: "名字", render: (_, r: DrawnQuestRow) => (lookups?.quests as any)?.[`${r.categoryId}_${r.questId}`] ?? "-" },
                             { title: "Category", dataIndex: "categoryId", width: 80 },
@@ -315,32 +421,33 @@ export default function PlayerDetail() {
                     </Descriptions>
 
                     <Card type="inner" title="资源编辑" size="small">
-                        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: 12 }}>
-                            {resourceFields.map(f => {
-                                const current = (player as any)[f.key] as number
-                                const edited = editValues[f.key]
-                                const changed = edited !== undefined && edited !== current
-                                return (
-                                    <div key={f.key}>
-                                        <Text type="secondary" style={{ fontSize: 12 }}>{f.label}</Text>
-                                        <Space.Compact style={{ width: "100%" }}>
-                                            <InputNumber
-                                                style={{ width: "100%" }}
-                                                value={edited ?? current}
-                                                min={0}
-                                                onChange={v => setEditValues(prev => ({ ...prev, [f.key]: v ?? 0 }))}
-                                                size="small"
-                                            />
-                                            {changed && (
-                                                <Button size="small" type="primary" icon={<SaveOutlined />}
-                                                    loading={editField.isPending}
-                                                    onClick={() => editField.mutate({ field: f.key, value: edited! })}
-                                                />
-                                            )}
-                                        </Space.Compact>
-                                    </div>
-                                )
-                            })}
+                        <div style={gridStyle}>
+                            {resourceFields.map(f => numField(f.key, f.label, { min: 0 }))}
+                        </div>
+                    </Card>
+
+                    <Card type="inner" title="账号设置" size="small">
+                        <div style={gridStyle}>
+                            <div>
+                                <Text type="secondary" style={{ fontSize: 12 }}>3x加速</Text>
+                                <div>
+                                    <Switch checked={player.enableAuto3x} loading={editField.isPending}
+                                        onChange={v => editField.mutate({ field: "enableAuto3x", value: v })} />
+                                </div>
+                            </div>
+                            {numField("degreeId", "等级(称号ID)", { min: 0 })}
+                            {numField("leaderCharacterId", "队长角色ID", { min: 0 })}
+                            {numField("birth", "生日(birth)", { min: 0 })}
+                            {numField("tutorialStep", "教程步骤(空=null)", { min: 0, allowNull: true })}
+                        </div>
+                    </Card>
+
+                    <Card type="inner" title="时间设置" size="small">
+                        <div style={gridStyle}>
+                            {dateField("staminaHealTime", "体力恢复时间")}
+                            {dateField("lastLoginTime", "最后登录时间")}
+                            {dateField("expPooledTime", "经验池结算时间")}
+                            {numField("timeOffset", "时间偏移(ms，空=null)", { allowNull: true })}
                         </div>
                     </Card>
 
@@ -358,7 +465,14 @@ export default function PlayerDetail() {
                             <Popconfirm title="重置每日挑战点？" onConfirm={() => resetChallenge.mutate()} okText="确认" cancelText="取消">
                                 <Button size="small" icon={<UndoOutlined />}>重置每日挑战</Button>
                             </Popconfirm>
+                            <Popconfirm title="清除接收历史（一次性道具的领取记录）？" onConfirm={() => clearReceiveHistory.mutate()} okText="确认" cancelText="取消">
+                                <Button size="small" loading={clearReceiveHistory.isPending}>清除接收历史</Button>
+                            </Popconfirm>
                             <Button size="small" icon={<DownloadOutlined />} href={`/api/player/save?id=${pid}`} target="_blank">导出存档</Button>
+                            <Upload accept=".json,application/json" showUploadList={false} maxCount={1}
+                                beforeUpload={file => { importSave.mutate(file); return false }}>
+                                <Button size="small" icon={<UploadOutlined />} danger loading={importSave.isPending}>导入存档(覆盖)</Button>
+                            </Upload>
                         </Space>
                     </Card>
                 </Space>
