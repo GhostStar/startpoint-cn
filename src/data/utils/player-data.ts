@@ -18,6 +18,7 @@ import { getPlayerTriggeredTutorialsSync } from "../domains/tutorial"
 import { filterToActiveMissions } from "../../lib/mission/index"
 import { computeAwakeSummary } from "../../lib/mission/index"
 import { computeManaBoardAwakeFromNodes } from "../../lib/character-helpers"
+import { getAllPlayerCarnivalEventRecordsSync } from "../domains/carnivalEvent"
 
 /**
  * Generates default player data.
@@ -81,6 +82,7 @@ export function getClientSerializedData(
     if (playerData === null) return null
 
     const doSerializeRushEventData = options.serializeRushEventData ?? false
+    const doSerializeCarnivalEventData = options.serializeCarnivalEventData ?? false
 
     // Compute awake mission summary for /load injection
     const awakeSummary = computeAwakeSummary(playerId)
@@ -128,7 +130,8 @@ export function getClientSerializedData(
         userOption: getPlayerOptionsSync(playerId),
         rushEventList: doSerializeRushEventData ? getPlayerRushEventListSync(playerId) : undefined,
         rushEventClearedFolderList: doSerializeRushEventData ? getPlayerRushEventListClearedFoldersSync(playerId) : undefined,
-        rushEventPlayedPartyList: doSerializeRushEventData ? getPlayerRushEventListPlayedPartiesSync(playerId) : undefined
+        rushEventPlayedPartyList: doSerializeRushEventData ? getPlayerRushEventListPlayedPartiesSync(playerId) : undefined,
+        carnivalEventRecordList: doSerializeCarnivalEventData ? getAllPlayerCarnivalEventRecordsSync(playerId) : undefined,
     }, {
         ...options,
         activeMissionList: awakeSummary.activeMissionList,
@@ -172,4 +175,3 @@ export function getMergedPlayerDataSync(
         rushEventPlayedPartyList: getPlayerRushEventListPlayedPartiesSync(playerId)
     }
 }
-

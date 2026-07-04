@@ -683,6 +683,17 @@ export interface UserMultiSpecialExchangeCampaignList {
     status: number
 }
 
+export interface UserCarnivalEventRecord {
+    folder_id: number
+    best_score?: number
+}
+
+export interface UserCarnivalEventRecordListEntry {
+    records: UserCarnivalEventRecord[]
+}
+
+export type UserCarnivalEventRecordList = Record<string, UserCarnivalEventRecordListEntry>
+
 export type UserRushEventPlayedPartyList = Record<string, Record<RushEventBattleType, Record<string, UserRushEventPlayedParty>>>
 
 export interface ClientPlayerData {
@@ -726,6 +737,7 @@ export interface ClientPlayerData {
     user_rush_event_list?: Record<string, UserRushEvent> // { [eventId]: PlayerRushEvent}
     user_rush_event_cleared_folder_list?: Record<string, PlayerRushEventClearedFolders> // { [eventId]: [folderId] }
     user_rush_event_played_party_list?: UserRushEventPlayedPartyList // { [eventId]: { [RushEventBattleType]: { [round]: UserRushEventPlayedParty } } }
+    carnival_event_record_list?: UserCarnivalEventRecordList
 }
 
 export interface MergedPlayerData {
@@ -754,7 +766,8 @@ export interface MergedPlayerData {
     // rush event data
     rushEventList?: PlayerRushEvent[],
     rushEventClearedFolderList?: Record<string, PlayerRushEventClearedFolders>,
-    rushEventPlayedPartyList?: Record<string, PlayerRushEventPlayedParty[]>
+    rushEventPlayedPartyList?: Record<string, PlayerRushEventPlayedParty[]>,
+    carnivalEventRecordList?: PlayerCarnivalEventRecord[]
 }
 
 export interface RawPlayerCarnivalEventRecord {

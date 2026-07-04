@@ -1,7 +1,7 @@
 import { clientSerializeDate } from "./date"
 import { serializeBondTokenStatuses, serializePartyGroupList, serializeGachaCampaign, serializeRushEvent } from "./serialize-entities"
 import { getDateFromServerTime, getServerTime, getServerDate, realToVirtual } from "../../utils"
-import { ClientPlayerData, DailyChallengePointListEntry, MergedPlayerData, PartyCategory, Player, PlayerBoxGacha, PlayerCharacter, PlayerCharacterBondToken, PlayerDrawnQuest, PlayerEquipment, PlayerGachaCampaign, PlayerGachaInfo, PlayerMultiSpecialExchangeCampaign, PlayerParty, PlayerPartyGroup, PlayerQuestProgress, PlayerRushEvent, PlayerRushEventPlayedParty, PlayerStartDashExchangeCampaign, RushEventBattleType, UserBoxGacha, UserCharacter, UserCharacterBondTokenStatus, UserEquipment, UserGachaCampaign, UserPartyGroup, UserPartyGroupTeam, UserQuestProgress, UserRushEvent, UserRushEventPlayedParty, UserRushEventPlayedPartyList, UserTutorial } from "../types"
+import { ClientPlayerData, DailyChallengePointListEntry, MergedPlayerData, PartyCategory, Player, PlayerBoxGacha, PlayerCarnivalEventRecord, PlayerCharacter, PlayerCharacterBondToken, PlayerDrawnQuest, PlayerEquipment, PlayerGachaCampaign, PlayerGachaInfo, PlayerMultiSpecialExchangeCampaign, PlayerParty, PlayerPartyGroup, PlayerQuestProgress, PlayerRushEvent, PlayerRushEventPlayedParty, PlayerStartDashExchangeCampaign, RushEventBattleType, UserBoxGacha, UserCarnivalEventRecordList, UserCharacter, UserCharacterBondTokenStatus, UserEquipment, UserGachaCampaign, UserPartyGroup, UserPartyGroupTeam, UserQuestProgress, UserRushEvent, UserRushEventPlayedParty, UserRushEventPlayedPartyList, UserTutorial } from "../types"
 import { availableAssetVersion } from "../../routes/api/asset"
 import { deserializePlayerRushEventPlayedParty, deserializeRushEvent, getPlayerRushEventListClearedFoldersSync, getPlayerRushEventListPlayedPartiesSync, getPlayerRushEventListSync, serializePlayerRushEventPlayedParty } from "../domains/rushEvent"
 import { getPlayerActiveMissionsSync, getPlayerClearedRegularMissionListSync } from "../domains/mission"
@@ -23,9 +23,33 @@ import { computeRealTimeStamina } from "../../lib/stamina"
 export interface SerializePlayerDataOptions {
     viewerId?: number
     serializeRushEventData?: boolean // should rush event data be serialized?
+    serializeCarnivalEventData?: boolean
     activeMissionList?: { mission_id: number; progress_value: number; stages: { stage: number; received: boolean }[] }[]
 }
 
+export function serializeCarnivalEventRecordList(
+    records: PlayerCarnivalEventRecord[]
+): UserCarnivalEventRecordList {
+    const out: UserCarnivalEventRecordList = {}
+
+    for (const record of records) {
+        const eventId = String(record.eventId)
+        if (out[eventId] === undefined) {
+            out[eventId] = { records: [] }
+        }
+
+        const serialized: { folder_id: number, best_score?: number } = {
+            folder_id: record.folderId,
+        }
+        if (record.bestScore !== null && record.bestScore !== undefined) {
+            serialized.best_score = record.bestScore
+        }
+
+        out[eventId].records.push(serialized)
+    }
+
+    return out
+}
 
 /**
  * Serializes a player data object in the way that the world flipper client expects it.
@@ -336,10 +360,15 @@ export function serializePlayerData(
         }
     }
 
+    if (options?.serializeCarnivalEventData ?? false) {
+        clientData.carnival_event_record_list = serializeCarnivalEventRecordList(
+            toSerialize.carnivalEventRecordList ?? []
+        )
+    }
+
     if (options?.activeMissionList) {
         (clientData as any).active_mission_list = options.activeMissionList
     }
 
     return clientData
 }
-

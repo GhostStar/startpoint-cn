@@ -40,6 +40,19 @@ export function getPlayerCarnivalEventRecordSync(
     return raw ? buildRecord(raw) : null
 }
 
+export function getAllPlayerCarnivalEventRecordsSync(
+    playerId: number
+): PlayerCarnivalEventRecord[] {
+    const rows = getDb().prepare(`
+    SELECT player_id, event_id, folder_id, best_score, previous_score, previous_character_ids, previous_unison_character_ids
+    FROM players_carnival_event_records
+    WHERE player_id = ?
+    ORDER BY event_id ASC, folder_id ASC
+    `).all(playerId) as RawPlayerCarnivalEventRecord[]
+
+    return rows.map(buildRecord)
+}
+
 export function upsertPlayerCarnivalEventRecordSync(
     playerId: number,
     eventId: number,

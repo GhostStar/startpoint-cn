@@ -1,0 +1,893 @@
+{
+  "1001": {
+    "quest_id": 1001,
+    "event_id": 1,
+    "folder_id": 1,
+    "start_time": "2023-01-22 14:00:00",
+    "end_time": "2023-01-29 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "1002": {
+    "quest_id": 1002,
+    "event_id": 1,
+    "folder_id": 1,
+    "start_time": "2023-01-22 14:00:00",
+    "end_time": "2023-01-29 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "1003": {
+    "quest_id": 1003,
+    "event_id": 1,
+    "folder_id": 1,
+    "start_time": "2023-01-22 14:00:00",
+    "end_time": "2023-01-29 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "1004": {
+    "quest_id": 1004,
+    "event_id": 1,
+    "folder_id": 2,
+    "start_time": "2023-01-22 14:00:00",
+    "end_time": "2023-01-29 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "1005": {
+    "quest_id": 1005,
+    "event_id": 1,
+    "folder_id": 2,
+    "start_time": "2023-01-22 14:00:00",
+    "end_time": "2023-01-29 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "1006": {
+    "quest_id": 1006,
+    "event_id": 1,
+    "folder_id": 2,
+    "start_time": "2023-01-22 14:00:00",
+    "end_time": "2023-01-29 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "1007": {
+    "quest_id": 1007,
+    "event_id": 1,
+    "folder_id": 3,
+    "start_time": "2023-01-22 14:00:00",
+    "end_time": "2023-01-29 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "1008": {
+    "quest_id": 1008,
+    "event_id": 1,
+    "folder_id": 3,
+    "start_time": "2023-01-22 14:00:00",
+    "end_time": "2023-01-29 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "1009": {
+    "quest_id": 1009,
+    "event_id": 1,
+    "folder_id": 3,
+    "start_time": "2023-01-22 14:00:00",
+    "end_time": "2023-01-29 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "2001": {
+    "quest_id": 2001,
+    "event_id": 2,
+    "folder_id": 1,
+    "start_time": "2023-03-28 14:00:00",
+    "end_time": "2023-04-08 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "2002": {
+    "quest_id": 2002,
+    "event_id": 2,
+    "folder_id": 1,
+    "start_time": "2023-03-28 14:00:00",
+    "end_time": "2023-04-08 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "2003": {
+    "quest_id": 2003,
+    "event_id": 2,
+    "folder_id": 1,
+    "start_time": "2023-03-28 14:00:00",
+    "end_time": "2023-04-08 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "2004": {
+    "quest_id": 2004,
+    "event_id": 2,
+    "folder_id": 2,
+    "start_time": "2023-03-28 14:00:00",
+    "end_time": "2023-04-08 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "2005": {
+    "quest_id": 2005,
+    "event_id": 2,
+    "folder_id": 2,
+    "start_time": "2023-03-28 14:00:00",
+    "end_time": "2023-04-08 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "2006": {
+    "quest_id": 2006,
+    "event_id": 2,
+    "folder_id": 2,
+    "start_time": "2023-03-28 14:00:00",
+    "end_time": "2023-04-08 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "2007": {
+    "quest_id": 2007,
+    "event_id": 2,
+    "folder_id": 3,
+    "start_time": "2023-03-28 14:00:00",
+    "end_time": "2023-04-08 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "2008": {
+    "quest_id": 2008,
+    "event_id": 2,
+    "folder_id": 3,
+    "start_time": "2023-03-28 14:00:00",
+    "end_time": "2023-04-08 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "2009": {
+    "quest_id": 2009,
+    "event_id": 2,
+    "folder_id": 3,
+    "start_time": "2023-03-28 14:00:00",
+    "end_time": "2023-04-08 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "3001": {
+    "quest_id": 3001,
+    "event_id": 3,
+    "folder_id": 1,
+    "start_time": "2023-06-15 14:00:00",
+    "end_time": "2023-06-28 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "3002": {
+    "quest_id": 3002,
+    "event_id": 3,
+    "folder_id": 1,
+    "start_time": "2023-06-15 14:00:00",
+    "end_time": "2023-06-28 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "3003": {
+    "quest_id": 3003,
+    "event_id": 3,
+    "folder_id": 1,
+    "start_time": "2023-06-15 14:00:00",
+    "end_time": "2023-06-28 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "3004": {
+    "quest_id": 3004,
+    "event_id": 3,
+    "folder_id": 2,
+    "start_time": "2023-06-15 14:00:00",
+    "end_time": "2023-06-28 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "3005": {
+    "quest_id": 3005,
+    "event_id": 3,
+    "folder_id": 2,
+    "start_time": "2023-06-15 14:00:00",
+    "end_time": "2023-06-28 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "3006": {
+    "quest_id": 3006,
+    "event_id": 3,
+    "folder_id": 2,
+    "start_time": "2023-06-15 14:00:00",
+    "end_time": "2023-06-28 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "3007": {
+    "quest_id": 3007,
+    "event_id": 3,
+    "folder_id": 3,
+    "start_time": "2023-06-15 14:00:00",
+    "end_time": "2023-06-28 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "3008": {
+    "quest_id": 3008,
+    "event_id": 3,
+    "folder_id": 3,
+    "start_time": "2023-06-15 14:00:00",
+    "end_time": "2023-06-28 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "3009": {
+    "quest_id": 3009,
+    "event_id": 3,
+    "folder_id": 3,
+    "start_time": "2023-06-15 14:00:00",
+    "end_time": "2023-06-28 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "4001": {
+    "quest_id": 4001,
+    "event_id": 4,
+    "folder_id": 1,
+    "start_time": "2023-08-29 14:00:00",
+    "end_time": "2023-09-11 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "4002": {
+    "quest_id": 4002,
+    "event_id": 4,
+    "folder_id": 1,
+    "start_time": "2023-08-29 14:00:00",
+    "end_time": "2023-09-11 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "4003": {
+    "quest_id": 4003,
+    "event_id": 4,
+    "folder_id": 1,
+    "start_time": "2023-08-29 14:00:00",
+    "end_time": "2023-09-11 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "4004": {
+    "quest_id": 4004,
+    "event_id": 4,
+    "folder_id": 2,
+    "start_time": "2023-08-29 14:00:00",
+    "end_time": "2023-09-11 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "4005": {
+    "quest_id": 4005,
+    "event_id": 4,
+    "folder_id": 2,
+    "start_time": "2023-08-29 14:00:00",
+    "end_time": "2023-09-11 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "4006": {
+    "quest_id": 4006,
+    "event_id": 4,
+    "folder_id": 2,
+    "start_time": "2023-08-29 14:00:00",
+    "end_time": "2023-09-11 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "4007": {
+    "quest_id": 4007,
+    "event_id": 4,
+    "folder_id": 3,
+    "start_time": "2023-08-29 14:00:00",
+    "end_time": "2023-09-11 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "4008": {
+    "quest_id": 4008,
+    "event_id": 4,
+    "folder_id": 3,
+    "start_time": "2023-08-29 14:00:00",
+    "end_time": "2023-09-11 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "4009": {
+    "quest_id": 4009,
+    "event_id": 4,
+    "folder_id": 3,
+    "start_time": "2023-08-29 14:00:00",
+    "end_time": "2023-09-11 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "5001": {
+    "quest_id": 5001,
+    "event_id": 5,
+    "folder_id": 1,
+    "start_time": "2023-11-26 14:00:00",
+    "end_time": "2023-12-11 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "5002": {
+    "quest_id": 5002,
+    "event_id": 5,
+    "folder_id": 1,
+    "start_time": "2023-11-26 14:00:00",
+    "end_time": "2023-12-11 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "5003": {
+    "quest_id": 5003,
+    "event_id": 5,
+    "folder_id": 1,
+    "start_time": "2023-11-26 14:00:00",
+    "end_time": "2023-12-11 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "5004": {
+    "quest_id": 5004,
+    "event_id": 5,
+    "folder_id": 2,
+    "start_time": "2023-11-26 14:00:00",
+    "end_time": "2023-12-11 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "5005": {
+    "quest_id": 5005,
+    "event_id": 5,
+    "folder_id": 2,
+    "start_time": "2023-11-26 14:00:00",
+    "end_time": "2023-12-11 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "5006": {
+    "quest_id": 5006,
+    "event_id": 5,
+    "folder_id": 2,
+    "start_time": "2023-11-26 14:00:00",
+    "end_time": "2023-12-11 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "5007": {
+    "quest_id": 5007,
+    "event_id": 5,
+    "folder_id": 3,
+    "start_time": "2023-11-26 14:00:00",
+    "end_time": "2023-12-11 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "5008": {
+    "quest_id": 5008,
+    "event_id": 5,
+    "folder_id": 3,
+    "start_time": "2023-11-26 14:00:00",
+    "end_time": "2023-12-11 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "5009": {
+    "quest_id": 5009,
+    "event_id": 5,
+    "folder_id": 3,
+    "start_time": "2023-11-26 14:00:00",
+    "end_time": "2023-12-11 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "6001": {
+    "quest_id": 6001,
+    "event_id": 6,
+    "folder_id": 1,
+    "start_time": "2024-02-01 14:00:00",
+    "end_time": "2024-02-11 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "6002": {
+    "quest_id": 6002,
+    "event_id": 6,
+    "folder_id": 1,
+    "start_time": "2024-02-01 14:00:00",
+    "end_time": "2024-02-11 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "6003": {
+    "quest_id": 6003,
+    "event_id": 6,
+    "folder_id": 1,
+    "start_time": "2024-02-01 14:00:00",
+    "end_time": "2024-02-11 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "6004": {
+    "quest_id": 6004,
+    "event_id": 6,
+    "folder_id": 2,
+    "start_time": "2024-02-01 14:00:00",
+    "end_time": "2024-02-11 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "6005": {
+    "quest_id": 6005,
+    "event_id": 6,
+    "folder_id": 2,
+    "start_time": "2024-02-01 14:00:00",
+    "end_time": "2024-02-11 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "6006": {
+    "quest_id": 6006,
+    "event_id": 6,
+    "folder_id": 2,
+    "start_time": "2024-02-01 14:00:00",
+    "end_time": "2024-02-11 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "6007": {
+    "quest_id": 6007,
+    "event_id": 6,
+    "folder_id": 3,
+    "start_time": "2024-02-01 14:00:00",
+    "end_time": "2024-02-11 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "6008": {
+    "quest_id": 6008,
+    "event_id": 6,
+    "folder_id": 3,
+    "start_time": "2024-02-01 14:00:00",
+    "end_time": "2024-02-11 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "6009": {
+    "quest_id": 6009,
+    "event_id": 6,
+    "folder_id": 3,
+    "start_time": "2024-02-01 14:00:00",
+    "end_time": "2024-02-11 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "7001": {
+    "quest_id": 7001,
+    "event_id": 7,
+    "folder_id": 1,
+    "start_time": "2024-04-01 14:00:00",
+    "end_time": "2024-04-11 13:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "7002": {
+    "quest_id": 7002,
+    "event_id": 7,
+    "folder_id": 1,
+    "start_time": "2024-04-01 14:00:00",
+    "end_time": "2024-04-11 13:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "7003": {
+    "quest_id": 7003,
+    "event_id": 7,
+    "folder_id": 1,
+    "start_time": "2024-04-01 14:00:00",
+    "end_time": "2024-04-11 13:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "7004": {
+    "quest_id": 7004,
+    "event_id": 7,
+    "folder_id": 2,
+    "start_time": "2024-04-01 14:00:00",
+    "end_time": "2024-04-11 13:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "7005": {
+    "quest_id": 7005,
+    "event_id": 7,
+    "folder_id": 2,
+    "start_time": "2024-04-01 14:00:00",
+    "end_time": "2024-04-11 13:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "7006": {
+    "quest_id": 7006,
+    "event_id": 7,
+    "folder_id": 2,
+    "start_time": "2024-04-01 14:00:00",
+    "end_time": "2024-04-11 13:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "7007": {
+    "quest_id": 7007,
+    "event_id": 7,
+    "folder_id": 3,
+    "start_time": "2024-04-01 14:00:00",
+    "end_time": "2024-04-11 13:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "7008": {
+    "quest_id": 7008,
+    "event_id": 7,
+    "folder_id": 3,
+    "start_time": "2024-04-01 14:00:00",
+    "end_time": "2024-04-11 13:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "7009": {
+    "quest_id": 7009,
+    "event_id": 7,
+    "folder_id": 3,
+    "start_time": "2024-04-01 14:00:00",
+    "end_time": "2024-04-11 13:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "8001": {
+    "quest_id": 8001,
+    "event_id": 8,
+    "folder_id": 1,
+    "start_time": "2024-04-11 14:00:00",
+    "end_time": "2024-04-21 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "8002": {
+    "quest_id": 8002,
+    "event_id": 8,
+    "folder_id": 1,
+    "start_time": "2024-04-11 14:00:00",
+    "end_time": "2024-04-21 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "8003": {
+    "quest_id": 8003,
+    "event_id": 8,
+    "folder_id": 1,
+    "start_time": "2024-04-11 14:00:00",
+    "end_time": "2024-04-21 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "8004": {
+    "quest_id": 8004,
+    "event_id": 8,
+    "folder_id": 2,
+    "start_time": "2024-04-11 14:00:00",
+    "end_time": "2024-04-21 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "8005": {
+    "quest_id": 8005,
+    "event_id": 8,
+    "folder_id": 2,
+    "start_time": "2024-04-11 14:00:00",
+    "end_time": "2024-04-21 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "8006": {
+    "quest_id": 8006,
+    "event_id": 8,
+    "folder_id": 2,
+    "start_time": "2024-04-11 14:00:00",
+    "end_time": "2024-04-21 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "8007": {
+    "quest_id": 8007,
+    "event_id": 8,
+    "folder_id": 3,
+    "start_time": "2024-04-11 14:00:00",
+    "end_time": "2024-04-21 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "8008": {
+    "quest_id": 8008,
+    "event_id": 8,
+    "folder_id": 3,
+    "start_time": "2024-04-11 14:00:00",
+    "end_time": "2024-04-21 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "8009": {
+    "quest_id": 8009,
+    "event_id": 8,
+    "folder_id": 3,
+    "start_time": "2024-04-11 14:00:00",
+    "end_time": "2024-04-21 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "9001": {
+    "quest_id": 9001,
+    "event_id": 9,
+    "folder_id": 1,
+    "start_time": "2024-08-03 14:00:00",
+    "end_time": "2024-08-17 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "9002": {
+    "quest_id": 9002,
+    "event_id": 9,
+    "folder_id": 1,
+    "start_time": "2024-08-03 14:00:00",
+    "end_time": "2024-08-17 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "9003": {
+    "quest_id": 9003,
+    "event_id": 9,
+    "folder_id": 1,
+    "start_time": "2024-08-03 14:00:00",
+    "end_time": "2024-08-17 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "9004": {
+    "quest_id": 9004,
+    "event_id": 9,
+    "folder_id": 2,
+    "start_time": "2024-08-03 14:00:00",
+    "end_time": "2024-08-17 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "9005": {
+    "quest_id": 9005,
+    "event_id": 9,
+    "folder_id": 2,
+    "start_time": "2024-08-03 14:00:00",
+    "end_time": "2024-08-17 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "9006": {
+    "quest_id": 9006,
+    "event_id": 9,
+    "folder_id": 2,
+    "start_time": "2024-08-03 14:00:00",
+    "end_time": "2024-08-17 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "9007": {
+    "quest_id": 9007,
+    "event_id": 9,
+    "folder_id": 3,
+    "start_time": "2024-08-03 14:00:00",
+    "end_time": "2024-08-17 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "9008": {
+    "quest_id": 9008,
+    "event_id": 9,
+    "folder_id": 3,
+    "start_time": "2024-08-03 14:00:00",
+    "end_time": "2024-08-17 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "9009": {
+    "quest_id": 9009,
+    "event_id": 9,
+    "folder_id": 3,
+    "start_time": "2024-08-03 14:00:00",
+    "end_time": "2024-08-17 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "100000001": {
+    "quest_id": 100000001,
+    "event_id": 100000,
+    "folder_id": 1,
+    "start_time": "2024-10-08 14:00:00",
+    "end_time": "2024-10-22 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "100000002": {
+    "quest_id": 100000002,
+    "event_id": 100000,
+    "folder_id": 1,
+    "start_time": "2024-10-08 14:00:00",
+    "end_time": "2024-10-22 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "100000003": {
+    "quest_id": 100000003,
+    "event_id": 100000,
+    "folder_id": 1,
+    "start_time": "2024-10-08 14:00:00",
+    "end_time": "2024-10-22 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "100000004": {
+    "quest_id": 100000004,
+    "event_id": 100000,
+    "folder_id": 2,
+    "start_time": "2024-10-08 14:00:00",
+    "end_time": "2024-10-22 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "100000005": {
+    "quest_id": 100000005,
+    "event_id": 100000,
+    "folder_id": 2,
+    "start_time": "2024-10-08 14:00:00",
+    "end_time": "2024-10-22 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "100000006": {
+    "quest_id": 100000006,
+    "event_id": 100000,
+    "folder_id": 2,
+    "start_time": "2024-10-08 14:00:00",
+    "end_time": "2024-10-22 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "100000007": {
+    "quest_id": 100000007,
+    "event_id": 100000,
+    "folder_id": 3,
+    "start_time": "2024-10-08 14:00:00",
+    "end_time": "2024-10-22 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "100000008": {
+    "quest_id": 100000008,
+    "event_id": 100000,
+    "folder_id": 3,
+    "start_time": "2024-10-08 14:00:00",
+    "end_time": "2024-10-22 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "100000009": {
+    "quest_id": 100000009,
+    "event_id": 100000,
+    "folder_id": 3,
+    "start_time": "2024-10-08 14:00:00",
+    "end_time": "2024-10-22 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "100002001": {
+    "quest_id": 100002001,
+    "event_id": 100002,
+    "folder_id": 1,
+    "start_time": "2024-12-31 14:00:00",
+    "end_time": "2025-01-14 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "100002002": {
+    "quest_id": 100002002,
+    "event_id": 100002,
+    "folder_id": 1,
+    "start_time": "2024-12-31 14:00:00",
+    "end_time": "2025-01-14 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "100002003": {
+    "quest_id": 100002003,
+    "event_id": 100002,
+    "folder_id": 1,
+    "start_time": "2024-12-31 14:00:00",
+    "end_time": "2025-01-14 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "100002004": {
+    "quest_id": 100002004,
+    "event_id": 100002,
+    "folder_id": 2,
+    "start_time": "2024-12-31 14:00:00",
+    "end_time": "2025-01-14 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "100002005": {
+    "quest_id": 100002005,
+    "event_id": 100002,
+    "folder_id": 2,
+    "start_time": "2024-12-31 14:00:00",
+    "end_time": "2025-01-14 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "100002006": {
+    "quest_id": 100002006,
+    "event_id": 100002,
+    "folder_id": 2,
+    "start_time": "2024-12-31 14:00:00",
+    "end_time": "2025-01-14 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  },
+  "100002007": {
+    "quest_id": 100002007,
+    "event_id": 100002,
+    "folder_id": 3,
+    "start_time": "2024-12-31 14:00:00",
+    "end_time": "2025-01-14 20:59:59",
+    "difficulty_score": 20,
+    "time_limit_ms": 108000
+  },
+  "100002008": {
+    "quest_id": 100002008,
+    "event_id": 100002,
+    "folder_id": 3,
+    "start_time": "2024-12-31 14:00:00",
+    "end_time": "2025-01-14 20:59:59",
+    "difficulty_score": 55,
+    "time_limit_ms": 72000
+  },
+  "100002009": {
+    "quest_id": 100002009,
+    "event_id": 100002,
+    "folder_id": 3,
+    "start_time": "2024-12-31 14:00:00",
+    "end_time": "2025-01-14 20:59:59",
+    "difficulty_score": 80,
+    "time_limit_ms": 54000
+  }
+}

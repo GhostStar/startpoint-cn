@@ -186,6 +186,11 @@ function parseRequiredNumber(value, fieldName) {
   return parsed;
 }
 
+function parseTimeLimitMs(value) {
+  const parsed = parseRequiredInt(value, "battle_time_limit");
+  return parsed >= 1000 ? parsed : parsed * 1000;
+}
+
 function parseIndex(buffer) {
   if (buffer.length < 8) throw new Error("file is too small for orderedmap");
   const indexLength = buffer.readUInt32LE(0);
@@ -265,8 +270,10 @@ function readCarnivalQuestPeriods(sourceUpload) {
         folder_id: parseRequiredInt(cols[1], "folder_id"),
         start_time: cols[7],
         end_time: noneToNull(cols[8]),
-        difficulty_score: parseRequiredNumber(cols[104], "difficulty_score"),
-        time_limit_ms: parseRequiredInt(cols[100], "battle_time_limit") * 1000,
+        // Official quest rows store difficulty_score at cols[95].
+        // cols[100] is already milliseconds for current CN carnival rows.
+        difficulty_score: parseRequiredNumber(cols[95], "difficulty_score"),
+        time_limit_ms: parseTimeLimitMs(cols[100]),
       };
     }
   }

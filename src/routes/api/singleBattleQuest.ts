@@ -12,12 +12,13 @@ import { getQuestFromCategorySync, getRushEventFolderClearRewards } from "../../
 import { getCharactersEvolutionImgLevels, givePlayerCharactersExpSync } from "../../lib/character";
 import { givePlayerRewardsSync, givePlayerRewardSync, givePlayerScoreRewardsSync } from "../../lib/quest";
 import { BattleQuest, EquipmentItemReward, PlayerRewardResult, QuestCategory } from "../../lib/types";
-import { generateDataHeaders, getServerTime, realToVirtual } from "../../utils";
+import { generateDataHeaders, getServerDate, getServerTime, realToVirtual } from "../../utils";
 import { rushEventFolderMaxRounds } from "./rushEvent";
 import { RushEventBattleType, UserRushEventPlayedParty } from "../../data/types";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { computeRealTimeStamina, getRankDegree, getMaxStamina } from "../../lib/stamina";
 import { getStaminaCost } from "../../lib/stamina-cost";
+import { CARNIVAL_QUEST_OUT_OF_PERIOD_CODE, getCarnivalEventPeriod, getCarnivalQuestPeriod, isCarnivalQuestStartInPeriod } from "../../lib/carnival-event";
 import { CarnivalTotalScoreReward, handleCarnivalEventFinish } from "../../lib/quest/finish/carnival-handler";
 import { handleRushEventFinish } from "../../lib/quest/finish/rush-handler";
 import { handleRaidEventFinish } from "../../lib/quest/finish/raid-handler";
@@ -34,6 +35,8 @@ import path from "path";
 import questEntryCosts from "../../../assets/quest_entry_costs.json";
 import scoreAttackBorderRewards from "../../../assets/score_attack_border_reward.json";
 import eventChallengePointMap from "../../../assets/event_challenge_point_map.json";
+import carnivalEventPeriods from "../../../assets/carnival_event_periods.json";
+import carnivalEventQuestPeriods from "../../../assets/carnival_event_quest_periods.json";
 
 // Load carnival quest score data
 let carnivalScoreLookup: Record<string, { difficulty_score: number, time_limit_ms: number, folder_id: number, event_id: number }> = {}
@@ -570,6 +573,25 @@ const routes = async (fastify: FastifyInstance) => {
             })
         }
 
+        const carnivalQuestPeriod = category === QuestCategory.CARNIVAL_EVENT
+            ? getCarnivalQuestPeriod(questId, carnivalEventQuestPeriods)
+            : null
+        if (category === QuestCategory.CARNIVAL_EVENT) {
+            const carnivalEventPeriod = carnivalQuestPeriod !== null
+                ? getCarnivalEventPeriod(carnivalQuestPeriod.event_id, carnivalEventPeriods)
+                : null
+            if (!isCarnivalQuestStartInPeriod(carnivalQuestPeriod, carnivalEventPeriod, getServerDate().getTime())) {
+                reply.header("content-type", "application/x-msgpack")
+                return reply.status(200).send({
+                    "data_headers": generateDataHeaders({
+                        viewer_id: viewerId,
+                        result_code: CARNIVAL_QUEST_OUT_OF_PERIOD_CODE,
+                    }),
+                    "data": {}
+                })
+            }
+        }
+
         // Deduct entry cost (ticket/item)
         const questKey = `${category}_${questId}`
         const entryCost = (questEntryCosts as Record<string, {itemId: number, itemCount: number, stamina: number}>)[questKey]
@@ -624,6 +646,7 @@ const routes = async (fastify: FastifyInstance) => {
             isAutoStartMode: isAutoStartMode,
             isMulti: false,
             entryItemId: entryCost?.itemId,
+            eventId: carnivalQuestPeriod?.event_id,
             playId: body.play_id,
             continueCount: 0
         }

@@ -135,7 +135,7 @@ const routes = async (fastify: FastifyInstance) => {
             updatePlayerSync({ id: player.id, lastLoginTime: now });
         }
 
-        const clientData = getClientSerializedData(playerId, { viewerId: accountId }) as any;
+        const clientData = getClientSerializedData(playerId, { viewerId: accountId, serializeCarnivalEventData: true }) as any;
         if (clientData === null) {
             return reply.status(500).send({ error: "Internal Server Error", message: "No player data." });
         }
