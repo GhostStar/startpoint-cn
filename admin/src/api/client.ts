@@ -8,7 +8,10 @@ export class ApiError extends Error {
 async function handle<T>(res: Response): Promise<T> {
     if (!res.ok) {
         const text = await res.text().catch(() => "")
-        throw new ApiError(res.status, text || res.statusText)
+        let msg = text || res.statusText
+        // 后端错误多为 { "error": "..." }，提取出来更友好
+        try { const j = JSON.parse(text); if (j && typeof j.error === "string") msg = j.error } catch { /* not json */ }
+        throw new ApiError(res.status, msg)
     }
     const ct = res.headers.get("content-type") ?? ""
     return ct.includes("application/json") ? res.json() : (res.text() as unknown as T)
