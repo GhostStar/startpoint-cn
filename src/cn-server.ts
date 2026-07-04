@@ -3,6 +3,7 @@ import { ContentTypeParserDoneFunction } from "fastify/types/content-type-parser
 import { pack, unpack } from "msgpackr";
 import fastifyStatic from "@fastify/static";
 import path from "path";
+import { existsSync, readFileSync } from "fs";
 import { getServerTime, getServerTimeForPlayer } from "./utils";
 import { restoreTimeOffset } from "./data/activeAccount";
 
@@ -500,22 +501,14 @@ fastify.register(fastifyStatic, {
     decorateReply: false
 });
 
-// Catch-all to log unknown endpoints
-fastify.setNotFoundHandler((request, reply) => {
-    console.log(`[UNKNOWN] ${request.method} ${request.url}`);
-    reply.status(404).send({ error: "Not Found" });
-});
-
-const host = process.env.CN_LISTEN_HOST ?? "0.0.0.0";
-const port = parseInt(process.env.CN_LISTEN_PORT ?? "8001");
-
-fastify.listen({ port, host }, (err, address) => {
-    if (err) {
-        console.error(err);
-        process.exit(1);
-    }
-    console.log(`CN StarPoint listening on http://${host}:${port}`);
-
-    // Start multi battle TCP session server
-    startSessionServer();
-});
+// New admin SPA (React, built from admin/ into web/dist) — served at /admin.
+// Old pages at / stay untouched until the SPA fully replaces them (see docs/admin-refactor-plan.md).
+const adminDistDir = path.join(__dirname, "..", "web", "dist");
+const adminSpaAvailable = existsSync(path.join(adminDistDir, "index.html"));
+if (adminSpaAvailable) {
+    fastify.register(fastifyStatic, {
+        root: adminDistDir,
+        prefix: "/admin/",
+        decorateReply: false
+    });
+    fastify.get("/admin", (_request, reply) => reply.redirect("/admi
