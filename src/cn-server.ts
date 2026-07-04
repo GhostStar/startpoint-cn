@@ -511,4 +511,33 @@ if (adminSpaAvailable) {
         prefix: "/admin/",
         decorateReply: false
     });
-    fastify.get("/admin", (_request, reply) => reply.redirect("/admi
+    fastify.get("/admin", (_request, reply) => reply.redirect("/admin/"));
+} else {
+    console.log("[admin] web/dist not found — admin SPA disabled (run: npm run build:admin)");
+}
+
+// Catch-all to log unknown endpoints
+fastify.setNotFoundHandler((request, reply) => {
+    // SPA fallback: client-side routes like /admin/accounts resolve to index.html
+    if (adminSpaAvailable && request.method === "GET" && request.url.startsWith("/admin/")) {
+        reply.header("content-type", "text/html; charset=utf-8");
+        reply.send(readFileSync(path.join(adminDistDir, "index.html")));
+        return;
+    }
+    console.log(`[UNKNOWN] ${request.method} ${request.url}`);
+    reply.status(404).send({ error: "Not Found" });
+});
+
+const host = process.env.CN_LISTEN_HOST ?? "0.0.0.0";
+const port = parseInt(process.env.CN_LISTEN_PORT ?? "8001");
+
+fastify.listen({ port, host }, (err, address) => {
+    if (err) {
+        console.error(err);
+        process.exit(1);
+    }
+    console.log(`CN StarPoint listening on http://${host}:${port}`);
+
+    // Start multi battle TCP session server
+    startSessionServer();
+});

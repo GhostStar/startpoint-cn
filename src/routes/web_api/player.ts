@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { getMergedPlayerDataSync, reviveMergedPlayerDates } from "../../data/utils";
 import { validatePlayerField, VALID_CHARACTER_IDS, VALID_ITEM_IDS, MAX_INT } from "./validation";
-import { getAllPlayersSync, replacePlayerDataSync, getPlayerSync, updatePlayerSync, getPlayerCharactersSync, getPlayerItemsSync, getPlayerEquipmentListSync, insertPlayerCharacterSync, insertDefaultPlayerCharacterSync, updatePlayerItemSync, getPlayerDailyChallengePointListSync, insertPlayerDailyChallengePointListSync, updatePlayerDailyChallengePointSync, deleteAllPlayerMailSync, getDb, getDefaultPlayerPartyGroupsSync, insertPlayerPartyGroupListSync } from "../../data/wdfpData";
+import { getAllPlayersSync, replacePlayerDataSync, getPlayerSync, updatePlayerSync, getPlayerCharactersSync, getPlayerItemsSync, getPlayerEquipmentListSync, insertPlayerCharacterSync, insertDefaultPlayerCharacterSync, updatePlayerItemSync, getPlayerDailyChallengePointListSync, insertPlayerDailyChallengePointListSync, updatePlayerDailyChallengePointSync, deleteAllPlayerMailSync, getDb, getDefaultPlayerPartyGroupsSync, insertPlayerPartyGroupListSync, getPlayerQuestProgressSync, getPlayerDrawnQuestsSync } from "../../data/wdfpData";
 import { PartyCategory } from "../../data/types";
 import dailyChallengePointLookup from "../../../assets/daily_challenge_point_lookup.json";
 
@@ -28,6 +28,90 @@ const routes = async (fastify: FastifyInstance) => {
 
         const players = getAllPlayersSync(parsedPage * parsedPerPage, Math.min(defaultPerPage, parsedPerPage))
         return reply.status(200).send(players)
+    })
+
+    fastify.get("/:id/detail", async (request: FastifyRequest, reply: FastifyReply) => {
+        const playerId = Number((request.params as any).id)
+        if (isNaN(playerId)) return reply.status(400).send({ error: "Invalid player ID" })
+
+        const player = getPlayerSync(playerId)
+        if (!player) return reply.status(404).send({ error: "Player not found" })
+
+        const characters = getPlayerCharactersSync(playerId)
+        const charList = Object.entries(characters)
+            .map(([code, char]) => ({
+                code: Number(code),
+                joinTime: char.joinTime.toISOString(),
+                entryCount: char.entryCount,
+                evolutionLevel: char.evolutionLevel,
+                overLimitStep: char.overLimitStep,
+                exp: char.exp,
+                stack: char.stack,
+                manaBoardIndex: char.manaBoardIndex,
+            }))
+            .sort((a, b) => new Date(b.joinTime).getTime() - new Date(a.joinTime).getTime())
+
+        const items = getPlayerItemsSync(playerId)
+        const itemList = Object.entries(items).map(([id, count]) => ({ id: Number(id), count }))
+
+        const equipment = getPlayerEquipmentListSync(playerId)
+        const equipList = Object.entries(equipment).map(([id, eq]) => ({
+            id: Number(id),
+            level: eq.level,
+            enhancementLevel: eq.enhancementLevel,
+        }))
+
+        const questProgress = getPlayerQuestProgressSync(playerId)
+        const questList: { section: number; questId: number; finished: boolean; highScore: number | null; clearRank: number | null; bestElapsedTimeMs: number | null }[] = []
+        for (const [section, quests] of Object.entries(questProgress)) {
+            for (const qp of quests) {
+                questList.push({
+                    section: Number(section),
+                    questId: qp.questId,
+                    finished: qp.finished,
+                    highScore: qp.highScore ?? null,
+                    clearRank: qp.clearRank ?? null,
+                    bestElapsedTimeMs: qp.bestElapsedTimeMs ?? null,
+                })
+            }
+        }
+
+        const drawnQuests = getPlayerDrawnQuestsSync(playerId)
+
+        return reply.send({
+            player: {
+                id: player.id,
+                name: player.name,
+                comment: player.comment,
+                stamina: player.stamina,
+                boostPoint: player.boostPoint,
+                bossBoostPoint: player.bossBoostPoint,
+                vmoney: player.vmoney,
+                freeVmoney: player.freeVmoney,
+                freeMana: player.freeMana,
+                paidMana: player.paidMana,
+                rankPoint: player.rankPoint,
+                starCrumb: player.starCrumb,
+                bondToken: player.bondToken,
+                expPool: player.expPool,
+                degreeId: player.degreeId,
+                leaderCharacterId: player.leaderCharacterId,
+                birth: player.birth,
+                enableAuto3x: player.enableAuto3x,
+                tutorialStep: player.tutorialStep,
+                lastLoginTime: player.lastLoginTime.toISOString(),
+                timeOffset: player.timeOffset ?? null,
+            },
+            characters: charList,
+            items: itemList,
+            equipment: equipList,
+            questProgress: questList,
+            drawnQuests: drawnQuests.map(dq => ({
+                categoryId: dq.categoryId,
+                questId: dq.questId,
+                oddsId: dq.oddsId,
+            })),
+        })
     })
 
     fastify.get("/save", async (request: FastifyRequest, reply: FastifyReply) => {

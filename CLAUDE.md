@@ -14,19 +14,21 @@ Fastify + TypeScript，CN 服务入口 `src/cn-server.ts`（端口 8001），国
   - 构建产物 → `web/dist`（gitignored），cn-server 挂载在 `/admin`（含 SPA fallback，`web/dist` 不存在时自动禁用）
   - Dashboard 已接通 `GET /api/server/currentTime`；其余 4 页为占位
   - 根 package.json：`npm run build:admin` / `dev:admin`
-- ⬜ M2：账号/存档页 + 玩家详情页（下一步，见下）
+- ✅ M2：账号/存档页 + 玩家详情页（已完成，见下）
 - ⬜ M3：种子页、邮件页、服务器时间卡片
 - ⬜ M4：切换默认入口 + 删除旧页面（须经作者同意，独立 commit）
 
-### M2 待办细节
+### M2 已完成内容
 
-1. `web_api` 补 JSON 端点（旧 SSR 数据来自 `src/routes/web/player.ts` 的 sync 查询）：
+1. `web_api` 新增 JSON 端点：
    - `GET /api/server/accounts` — 账号列表 + 每账号存档数/默认存档
    - `GET /api/player/:id/detail` — 资源/角色/道具/装备/关卡进度/抽选关卡（JSON）
-   - `GET /api/lookup/characters|items|equipment|quests` — 名称映射（前端缓存）
-   - `POST /api/server/*` 系列现在处理完 `reply.redirect('/player')`，需支持 JSON 响应（按 `Accept: application/json` 分流，保留 redirect 给旧页面）
-2. 前端 `admin/src/pages/Accounts.tsx`、`PlayerDetail.tsx` 实现（AntD Table/Descriptions/Popconfirm）
-3. 写入校验规则复用 `src/routes/web_api/validation.ts`，不要绕过
+   - `GET /api/lookup/characters|items|equipment|quests` — 名称映射（`src/routes/web_api/lookup.ts`）
+   - `POST /api/server/*` 系列按 `Accept: application/json` 分流，JSON 客户端返回 JSON，旧页面保留 redirect
+2. 前端 `admin/src/pages/Accounts.tsx` — 账号表格 + 存档管理（切换/新建/克隆/改名/删除）+ 全部玩家列表
+3. 前端 `admin/src/pages/PlayerDetail.tsx` — 资源内联编辑 + 角色/道具/装备/关卡/抽选关卡 Tabs + 工具操作（EX Boost/编队/邮箱/挑战重置/存档导出）
+4. `admin/src/api/client.ts` 补充 `apiPatch` 方法
+5. 校验规则复用 `src/routes/web_api/validation.ts`（通过现有 PATCH /:id/field 端点）
 
 ## 硬性约束
 
