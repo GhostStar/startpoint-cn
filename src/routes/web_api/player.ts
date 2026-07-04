@@ -101,6 +101,8 @@ const routes = async (fastify: FastifyInstance) => {
                 enableAuto3x: player.enableAuto3x,
                 tutorialStep: player.tutorialStep,
                 lastLoginTime: player.lastLoginTime.toISOString(),
+                staminaHealTime: player.staminaHealTime.toISOString(),
+                expPooledTime: player.expPooledTime.toISOString(),
                 timeOffset: player.timeOffset ?? null,
             },
             characters: charList,
@@ -137,8 +139,12 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/save", async (request: FastifyRequest, reply: FastifyReply) => {
         const { id } = request.query as SaveQuery
         const playerId = Number(id)
-        const fail = (msg: string) => reply.redirect(`/player/${id}?error=${encodeURIComponent(msg)}`)
-        if (isNaN(playerId)) return reply.redirect("/player");
+        const json = wantsJson(request)
+        // JSON 客户端返回结构化错误/成功；旧 SSR 页面保留 redirect
+        const fail = (msg: string, code = 400) => json
+            ? reply.status(code).send({ error: msg })
+            : reply.redirect(`/player/${id}?error=${encodeURIComponent(msg)}`)
+        if (isNaN(playerId)) return json ? reply.status(400).send({ error: "无效的玩家 ID" }) : reply.redirect("/player");
 
         try {
             const file = await (request as any).file()
@@ -167,8 +173,9 @@ const routes = async (fastify: FastifyInstance) => {
             data.player.id = playerId
             replacePlayerDataSync(data)
         } catch (error: any) {
-            return fail(`恢复失败：${error?.message ?? error}`)
+            return fail(`恢复失败：${error?.message ?? error}`, 500)
         }
+        if (json) return reply.status(200).send({ ok: true, playerId })
         return reply.redirect(`/player/${id}`);
     })
 
