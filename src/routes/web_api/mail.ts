@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify"
-import { getAllAccountsSync, getAccountPlayersSync, insertMailSync } from "../../data/wdfpData"
+import { getAllAccountsSync, getAccountPlayersSync, getAccountSync, getPlayerSync, insertMailSync } from "../../data/wdfpData"
 import { wantsJson } from "./http"
 import characterData from "../../../assets/character.json"
 import itemIds from "../../../assets/item_ids.json"
@@ -18,7 +18,23 @@ interface SendMailBody {
     number: string
     subject?: string
     description?: string
+    // 可选定向发送：playerId（指定存档）优先于 accountId（指定账号）；均不传则群发全体
+    accountId?: string
+    playerId?: string
 }
+
+// 群发历史（内存，最近 MAX_HISTORY 条；服务重启后清空）
+interface MailSendRecord {
+    time: string
+    type: number
+    typeId: number | null
+    number: number
+    subject: string | null
+    target: string
+    sent: number
+}
+const MAX_HISTORY = 20
+const sendHistory: MailSendRecord[] = []
 
 const routes = async (fastify: FastifyInstance) => {
     fastify.post("/send", async (request: FastifyRequest, reply: FastifyReply) => {
@@ -78,35 +94,80 @@ const routes = async (fastify: FastifyInstance) => {
             return fail("正文过长（最多 512 字符）")
         }
 
-        const accounts = getAllAccountsSync()
+        // 发送对象解析：playerId（指定存档）> accountId（指定账号）> 全体存档
+        // 旧 SSR 表单不带这两个参数，因此保持群发全体行为不变
+        let targetPlayerIds: number[]
+        let targetLabel: string
+        const rawPlayerId = body.playerId?.trim()
+        const rawAccountId = body.accountId?.trim()
+        if (rawPlayerId) {
+            const pid = parseInt(rawPlayerId)
+            if (isNaN(pid) || pid < 1) {
+                return fail("存档 ID 无效")
+            }
+            const player = getPlayerSync(pid)
+            if (!player) {
+                return fail(`存档 ${pid} 不存在`)
+            }
+            targetPlayerIds = [pid]
+            targetLabel = `存档 #${pid}（${player.name}）`
+        } else if (rawAccountId) {
+            const aid = parseInt(rawAccountId)
+            if (isNaN(aid) || aid < 1) {
+                return fail("账号 ID 无效")
+            }
+            if (!getAccountSync(aid)) {
+                return fail(`账号 ${aid} 不存在`)
+            }
+            targetPlayerIds = getAccountPlayersSync(aid)
+            targetLabel = `账号 #${aid}`
+        } else {
+            targetPlayerIds = getAllAccountsSync().flatMap(account => getAccountPlayersSync(account.id))
+            targetLabel = "全体"
+        }
+
         const now = new Date().toISOString().replace("T", " ").substring(0, 19)
         let sentCount = 0
 
-        for (const account of accounts) {
-            const playerIds = getAccountPlayersSync(account.id)
-            for (const playerId of playerIds) {
-                try {
-                    insertMailSync(playerId, {
-                        reason_id: 0,
-                        subject,
-                        description: desc,
-                        type: mailType,
-                        type_id: typeId,
-                        number: count,
-                        receive_time: "0000-00-00 00:00:00",
-                        create_time: now,
-                        reward_period_limited: 0,
-                        reward_limit_time: null,
-                    })
-                    sentCount++
-                } catch {
-                    // skip invalid players
-                }
+        for (const playerId of targetPlayerIds) {
+            try {
+                insertMailSync(playerId, {
+                    reason_id: 0,
+                    subject,
+                    description: desc,
+                    type: mailType,
+                    type_id: typeId,
+                    number: count,
+                    receive_time: "0000-00-00 00:00:00",
+                    create_time: now,
+                    reward_period_limited: 0,
+                    reward_limit_time: null,
+                })
+                sentCount++
+            } catch {
+                // skip invalid players
             }
         }
 
+        // 记录群发历史（最近 MAX_HISTORY 条）
+        sendHistory.unshift({
+            time: now,
+            type: mailType,
+            typeId,
+            number: count,
+            subject,
+            target: targetLabel,
+            sent: sentCount,
+        })
+        if (sendHistory.length > MAX_HISTORY) sendHistory.length = MAX_HISTORY
+
         if (json) return reply.send({ ok: true, sent: sentCount })
         return reply.redirect("/mail?ok=" + encodeURIComponent(`已向 ${sentCount} 个角色发送邮件`))
+    })
+
+    // 群发历史（内存），供 SPA 展示最近几次群发
+    fastify.get("/history", async (_request: FastifyRequest, reply: FastifyReply) => {
+        return reply.send(sendHistory)
     })
 }
 
