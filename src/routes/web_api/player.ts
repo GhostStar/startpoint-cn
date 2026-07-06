@@ -4,7 +4,7 @@ import { validatePlayerField, VALID_CHARACTER_IDS, VALID_ITEM_IDS, MAX_INT } fro
 import { dailyResetPlayerDataSync, getAllPlayersSync, getDefaultPlayerPartyGroupsSync, getPlayerDailyChallengePointListSync, getPlayerSync, insertPlayerDailyChallengePointListSync, replacePlayerDataSync, updatePlayerDailyChallengePointSync, updatePlayerSync } from "../../data/domains/player"
 import { deleteAllPlayerMailSync } from "../../data/domains/mail"
 import { getDb } from "../../data/db"
-import { getPlayerCharactersSync, insertDefaultPlayerCharacterSync, insertPlayerCharacterSync } from "../../data/domains/character"
+import { getPlayerCharactersSync, insertDefaultPlayerCharacterSync } from "../../data/domains/character"
 import { getPlayerEquipmentListSync } from "../../data/domains/equipment"
 import { getPlayerItemsSync, setPlayerItemSync } from "../../data/domains/item"
 import { getPlayerQuestProgressSync } from "../../data/domains/quest"
@@ -26,6 +26,13 @@ interface GetPlayersQuery {
 
 const defaultPerPage = 25
 const completedTutorialIds = [12, 52, 55, 51, 101, 57, 6, 8, 22, 18, 19, 17, 9, 13, 14, 58, 5, 4]
+const excludedFullCharacterIds = new Set([
+    ...Array.from({ length: 20 }, (_, index) => 700000 + index),
+    999999
+])
+const safeFullCharacterIds = [...VALID_CHARACTER_IDS]
+    .filter(id => !excludedFullCharacterIds.has(id))
+    .sort((a, b) => a - b)
 
 const routes = async (fastify: FastifyInstance) => {
     fastify.get("/", async (request: FastifyRequest, reply: FastifyReply) => {
@@ -210,6 +217,29 @@ const routes = async (fastify: FastifyInstance) => {
         } catch (e: any) {
             return reply.status(500).send({ error: e.message })
         }
+    })
+
+    // Fill all safe characters, excluding special/resource-incomplete IDs that break the client list.
+    fastify.post("/:id/fill_characters", async (request: FastifyRequest, reply: FastifyReply) => {
+        const playerId = Number((request.params as any).id)
+        if (isNaN(playerId)) return reply.status(400).send({ error: "Invalid player ID" })
+        const player = getPlayerSync(playerId)
+        if (!player) return reply.status(404).send({ error: "Player not found" })
+
+        const owned = new Set(Object.keys(getPlayerCharactersSync(playerId)).map(Number))
+
+        try {
+            getDb().transaction(() => {
+                for (const characterId of safeFullCharacterIds) {
+                    if (owned.has(characterId)) continue
+                    insertDefaultPlayerCharacterSync(playerId, characterId)
+                }
+            })()
+        } catch (e: any) {
+            return reply.status(500).send({ error: e.message })
+        }
+
+        return reply.redirect(`/player/${playerId}#characters`)
     })
 
     // Delete character

@@ -99,8 +99,13 @@
             </section>
 
             <!-- Characters -->
-            <section class="p-5 border border-outline-variant rounded-3xl bg-surface-container">
-                <h3 class="text-lg font-semibold mb-3">角色 ({{characterCount}}个)</h3>
+            <section class="p-5 border border-outline-variant rounded-3xl bg-surface-container" id="characters">
+                <div class="flex flex-wrap justify-between items-center gap-2 mb-3">
+                    <h3 class="text-lg font-semibold">角色 ({{characterCount}}个)</h3>
+                    <form method="post" action="/api/player/{{playerId}}/fill_characters" style="display:inline" onsubmit="return confirm('补齐所有可用角色？会排除会导致客户端错误的特殊角色。')">
+                        <button type="submit" class="text-sm border border-accent text-accent px-3 py-1 rounded-full hover:bg-accent hover:text-on-accent transition-colors">全角色</button>
+                    </form>
+                </div>
                 <div class="overflow-x-auto max-h-96 overflow-y-auto">
                 <table class="w-full text-sm">
                     <thead><tr class="text-left border-b border-outline-variant sticky top-0 bg-surface-container">
