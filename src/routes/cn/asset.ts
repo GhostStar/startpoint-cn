@@ -124,7 +124,9 @@ const routes = async (fastify: FastifyInstance) => {
         const highestDiff = diffArchives.length > 0
             ? diffArchives[diffArchives.length - 1].version
             : "1.4.0";
-        const targetVer = resVer ?? highestDiff;
+        const targetVer = !resVer || compareVersion(highestDiff, resVer) > 0
+            ? highestDiff
+            : resVer;
 
         reply.type("application/json");
         reply.status(200).send({
