@@ -85,6 +85,23 @@ function buildDiffList(baseUrl: string, cdnDir: string): { original_version: str
         .map(([version, data]) => ({ original_version: data.original_version, version, archive: data.archive }));
 }
 
+function buildDiffChain(
+    diffArchives: { original_version: string; version: string; archive: { location: string; size: number; sha256: string }[] }[],
+    fromVersion: string,
+    toVersion: string
+): { original_version: string; version: string; archive: { location: string; size: number; sha256: string }[] }[] {
+    const byOriginalVersion = new Map(diffArchives.map(diff => [diff.original_version, diff]));
+    const chain: { original_version: string; version: string; archive: { location: string; size: number; sha256: string }[] }[] = [];
+    let version = fromVersion;
+    while (compareVersion(version, toVersion) < 0) {
+        const next = byOriginalVersion.get(version);
+        if (!next) break;
+        chain.push(next);
+        version = next.version;
+    }
+    return chain;
+}
+
 const envCdnDir = process.env.CDN_DIR || ".cdn";
 const cdnDir = path.isAbsolute(envCdnDir) ? path.join(envCdnDir, "cn") : path.join(__dirname, "..", "..", "..", envCdnDir, "cn");
 
@@ -131,6 +148,11 @@ const routes = async (fastify: FastifyInstance) => {
         const targetVer = !resVer || compareVersion(highestDiff, resVer) > 0
             ? highestDiff
             : resVer;
+        const hasExistingAssets = !!resVer;
+        const needsDiffUpdate = !!resVer && compareVersion(targetVer, resVer) > 0;
+        const responseDiffArchives = needsDiffUpdate
+            ? buildDiffChain(diffArchives, resVer, targetVer)
+            : (hasExistingAssets ? [] : diffArchives);
 
         reply.type("application/json");
         reply.status(200).send({
@@ -140,14 +162,14 @@ const routes = async (fastify: FastifyInstance) => {
                     client_asset_version: resVer ?? "",
                     target_asset_version: targetVer,
                     eventual_target_asset_version: targetVer,
-                    is_initial: true,
+                    is_initial: !hasExistingAssets,
                     latest_maj_first_version: "1.4.0"
                 },
                 full: {
-                    version: "1.4.0",
-                    archive: fullArchives
+                    version: hasExistingAssets ? resVer : "1.4.0",
+                    archive: hasExistingAssets ? [] : fullArchives
                 },
-                diff: diffArchives,
+                diff: responseDiffArchives,
                 asset_version_hash: ""
             }
         });
