@@ -88,6 +88,12 @@ function buildDiffList(baseUrl: string, cdnDir: string): { original_version: str
 const envCdnDir = process.env.CDN_DIR || ".cdn";
 const cdnDir = path.isAbsolute(envCdnDir) ? path.join(envCdnDir, "cn") : path.join(__dirname, "..", "..", "..", envCdnDir, "cn");
 
+export function getLatestAssetVersion(): string {
+    const diffArchives = buildDiffList("", cdnDir);
+    if (diffArchives.length > 0) return diffArchives[diffArchives.length - 1].version;
+    return process.env.CN_RES_VERSION || "1.4.0";
+}
+
 // 启动时扫描一次，动态计算总大小
 const TOTAL_SIZE = (() => {
     let total = 0;
@@ -121,9 +127,7 @@ const routes = async (fastify: FastifyInstance) => {
             ...buildArchiveList(baseUrl, cdnDir, "archive-android-full"),
         ];
         const diffArchives = buildDiffList(baseUrl, cdnDir);
-        const highestDiff = diffArchives.length > 0
-            ? diffArchives[diffArchives.length - 1].version
-            : "1.4.0";
+        const highestDiff = getLatestAssetVersion();
         const targetVer = !resVer || compareVersion(highestDiff, resVer) > 0
             ? highestDiff
             : resVer;

@@ -8,6 +8,7 @@ import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { getDisplayHost } from "../../multi/room/serializer";
 import { getRoom } from "../../multi/room/manager";
 import { runPermanentValidators } from "../../lib/validate";
+import { getLatestAssetVersion } from "./asset";
 
 interface CnLoadBody {
     device_id: number;
@@ -23,9 +24,8 @@ interface CnLoadBody {
     viewer_id?: number;
 }
 
-function wrapOptionFields(d: any, resVer?: string) {
-    // Align with CN CDN version from client res_ver header, fallback to .env CN_RES_VERSION
-    d.available_asset_version = resVer || process.env.CN_RES_VERSION || "1.4.54";
+function wrapOptionFields(d: any) {
+    d.available_asset_version = getLatestAssetVersion();
 
     if (d.user_info) {
         if (typeof d.user_info.last_login_time === 'number') {
@@ -142,7 +142,7 @@ const routes = async (fastify: FastifyInstance) => {
 
         const resVer = request.headers['res_ver'] as string | undefined;
         console.log(`[CN-LOAD] res_ver=${resVer || '(not sent)'} account=${accountId} player=${playerId} party_slot=${clientData?.user_info?.party_slot}`);
-        wrapOptionFields(clientData, resVer);
+        wrapOptionFields(clientData);
 
         // Inject unfinished quest lists for battle recovery
         const activeQuest = getPlayerActiveQuestSync(playerId);
