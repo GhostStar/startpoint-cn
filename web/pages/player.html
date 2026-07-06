@@ -68,6 +68,9 @@
                     <button class="js-action text-sm border border-primary text-primary px-3 py-1 rounded-full hover:bg-primary hover:text-on-primary transition-colors" data-action="resetChallenge">
                         恢复挑战次数
                     </button>
+                    <form method="post" action="/api/player/{{playerId}}/fix_tutorial" style="display:inline" onsubmit="return confirm('修复教程状态为已完成？不会清空邮件。')">
+                        <button type="submit" class="text-sm border border-accent text-accent px-3 py-1 rounded-full hover:bg-accent hover:text-on-accent transition-colors">修复教程</button>
+                    </form>
                     <form method="post" action="/api/player/{{playerId}}/clear_ex_boost" style="display:inline" onsubmit="return confirm('清空所有角色的 EX 能力值？')">
                         <button type="submit" class="text-sm border border-outline-variant px-3 py-1 rounded-full hover:bg-surface-container-low">清空 EX 能力</button>
                     </form>

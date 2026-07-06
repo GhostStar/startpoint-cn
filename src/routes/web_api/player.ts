@@ -9,6 +9,7 @@ import { getPlayerEquipmentListSync } from "../../data/domains/equipment"
 import { getPlayerItemsSync, setPlayerItemSync } from "../../data/domains/item"
 import { getPlayerQuestProgressSync } from "../../data/domains/quest"
 import { insertPlayerPartyGroupListSync } from "../../data/domains/party"
+import { getPlayerTriggeredTutorialsSync, insertPlayerTriggeredTutorialSync } from "../../data/domains/tutorial"
 import { PartyCategory } from "../../data/types";
 import { takeSnapshot } from "../../lib/mission/snapshot";
 import { getServerDate } from "../../utils";
@@ -24,6 +25,7 @@ interface GetPlayersQuery {
 }
 
 const defaultPerPage = 25
+const completedTutorialIds = [12, 52, 55, 51, 101, 57, 6, 8, 22, 18, 19, 17, 9, 13, 14, 58, 5, 4]
 
 const routes = async (fastify: FastifyInstance) => {
     fastify.get("/", async (request: FastifyRequest, reply: FastifyReply) => {
@@ -157,6 +159,29 @@ const routes = async (fastify: FastifyInstance) => {
         const playerId = Number((request.params as any).id)
         if (isNaN(playerId)) return reply.status(400).send({ error: "Invalid player ID" })
         deleteAllPlayerMailSync(playerId)
+        return reply.redirect(`/player/${playerId}#actions`)
+    })
+
+    // Mark tutorial as completed without replacing the save data.
+    fastify.post("/:id/fix_tutorial", async (request: FastifyRequest, reply: FastifyReply) => {
+        const playerId = Number((request.params as any).id)
+        if (isNaN(playerId)) return reply.status(400).send({ error: "Invalid player ID" })
+        const player = getPlayerSync(playerId)
+        if (!player) return reply.status(404).send({ error: "Player not found" })
+
+        const existing = new Set(getPlayerTriggeredTutorialsSync(playerId))
+        for (const tutorialId of completedTutorialIds) {
+            if (!existing.has(tutorialId)) {
+                insertPlayerTriggeredTutorialSync(playerId, tutorialId)
+            }
+        }
+
+        updatePlayerSync({
+            id: playerId,
+            tutorialStep: 17,
+            tutorialSkipFlag: false
+        })
+
         return reply.redirect(`/player/${playerId}#actions`)
     })
 

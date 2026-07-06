@@ -553,7 +553,8 @@ const routes = async (fastify: FastifyInstance) => {
         const questKey = `${category}_${questId}`
         const entryCost = (questEntryCosts as Record<string, {itemId: number, itemCount: number, stamina: number}>)[questKey]
         const staminaInfo = getStaminaCost(questKey)
-        console.log(`[BATTLE] start entry: questId=${questId} questKey=${questKey} entryCost=${JSON.stringify(entryCost)} discountRate=${staminaInfo.rate} baseStamina=${staminaInfo.baseCost}→${staminaInfo.cost}`)
+        const disableStaminaCost = process.env.DISABLE_STAMINA_COST === "1"
+        console.log(`[BATTLE] start entry: questId=${questId} questKey=${questKey} entryCost=${JSON.stringify(entryCost)} discountRate=${staminaInfo.rate} baseStamina=${staminaInfo.baseCost}→${staminaInfo.cost} disableStaminaCost=${disableStaminaCost}`)
         if (entryCost && entryCost.itemId > 0) {
             const playerItemCount = getPlayerItemSync(playerId, entryCost.itemId) ?? 0
             console.log(`[BATTLE] start deduct: itemId=${entryCost.itemId} playerHas=${playerItemCount} need=${entryCost.itemCount}`)
@@ -567,7 +568,7 @@ const routes = async (fastify: FastifyInstance) => {
         }
 
         // Deduct stamina cost
-        const staminaCost = staminaInfo.cost
+        const staminaCost = disableStaminaCost ? 0 : staminaInfo.cost
         let afterStamina = 0
         if (staminaCost > 0) {
             const currentStamina = computeRealTimeStamina(player)
