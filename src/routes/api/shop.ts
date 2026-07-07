@@ -17,6 +17,7 @@ import { clientSerializeEquipment } from "../../lib/equipment";
 import CDN_GENERAL_SHOP_WHITELIST from "../../../assets/cdn_general_shop_whitelist.json";
 
 const GENERAL_SHOP_CDN_KEYS: Set<number> = new Set(CDN_GENERAL_SHOP_WHITELIST);
+const UNLIMITED_BOSS_COIN_SHOP = process.env.UNLIMITED_BOSS_COIN_SHOP === "1"
 
 interface EnhancementGroup {
     groupId: number
@@ -162,7 +163,7 @@ const routes = async (fastify: FastifyInstance) => {
         })
 
         // validate stock limit
-        if (shopItemData.stock !== undefined && shopItemData.stock > 0) {
+        if (!(shopType === ShopType.BOSS_COIN && UNLIMITED_BOSS_COIN_SHOP) && shopItemData.stock !== undefined && shopItemData.stock > 0) {
             const purchased = getPlayerShopPurchaseCountSync(playerId, shopItemId)
             if (purchased + purchaseAmount > shopItemData.stock) {
                 return reply.status(400).send({
@@ -476,7 +477,9 @@ const routes = async (fastify: FastifyInstance) => {
 
                 const purchased = purchasedMap[Number(itemId)] ?? 0
                 const stock = item.stock
-                const stockQuantity = stock !== undefined ? Math.max(0, stock - purchased) : -1
+                const stockQuantity = shopTypeNum === ShopType.BOSS_COIN && UNLIMITED_BOSS_COIN_SHOP
+                    ? -1
+                    : stock !== undefined ? Math.max(0, stock - purchased) : -1
                 salesList.push({
                     "shop_item_id": Number(itemId),
                     "stock_quantity": stockQuantity,
