@@ -94,6 +94,37 @@ bash scripts/start-cn.sh
 - `npm run dev:cn` 与 `bash scripts/start-cn.sh` 经 `node --env-file=.env` **会**加载 `.env`。
 - `npm run debug:cn`(ts-node-dev)无 `--env-file`、代码也未引入 dotenv,因此**不会**自动读 `.env`;调试时需自行 export 环境变量,否则走代码默认值。
 
+## 在线补丁制作
+
+仓库内置了 Node.js 版 WF Patch Studio,可在线查看/编辑 CN CDN orderedmap 表并生成官方格式 diff zip。
+
+```bash
+bash scripts/start-patch-studio.sh
+```
+
+默认地址:
+
+```text
+http://127.0.0.1:8788
+```
+
+远程服务器需要暴露给内网或反向代理时:
+
+```bash
+WF_WEB_HOST=0.0.0.0 WF_WEB_PORT=8788 bash scripts/start-patch-studio.sh
+```
+
+工具默认读取/写入:
+
+- 数据根目录:仓库根目录
+- 可写 overlay:`.cdn/cn/production/upload`
+- full 包回退源:`.cdn/cn/archive-common-full`
+- diff 输出:`.cdn/cn/archive-common-diff`
+
+保存表格后会记录待发布文件,点击发布会生成 `pinball-<from>-<to>-1-mod<tag>.zip`。CN `/get_path` 会扫描 `archive-*-diff` 目录并把 zip 加入客户端更新列表。
+
+详细说明见 [`node-web-editor/README.md`](./node-web-editor/README.md)。
+
 ## 关键配置(.env)
 
 - `CN_LISTEN_HOST` / `CN_LISTEN_PORT` — HTTP 绑定地址 + 联机 TCP 房间显示 IP;客户端在别的设备时设为你的 LAN IP(默认端口 8001)。

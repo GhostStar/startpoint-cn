@@ -25,3 +25,5 @@ docs/cn-traffic/
 scripts/out_new/
 tsconfig.tsbuildinfo
 .worktrees/
+node-web-editor/work/*
+!node-web-editor/work/.gitkeep

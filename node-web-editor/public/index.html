@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WF Patch Studio</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <div>
+      <h1>WF Patch Studio</h1>
+      <p id="status">loading...</p>
+    </div>
+    <div class="headerActions">
+      <button id="refreshAllBtn">刷新</button>
+      <button id="previewPublishBtn">预览发布</button>
+      <button id="publishBtn" class="primary">生成补丁</button>
+    </div>
+  </header>
+
+  <main>
+    <aside class="panel">
+      <label>
+        数据表
+        <select id="tableSelect"></select>
+      </label>
+      <div class="tableMeta" id="tableMeta">未加载</div>
+      <div class="rowSearch">
+        <input id="rowFilterInput" placeholder="过滤 key">
+        <button id="loadTableBtn">加载</button>
+      </div>
+      <div id="keyList" class="keyList"></div>
+    </aside>
+
+    <section class="workspace">
+      <div class="editorHead">
+        <div>
+          <h2 id="rowTitle">未选择行</h2>
+          <p id="rowMeta">选择表和 key 后开始编辑</p>
+        </div>
+        <div class="rowActions">
+          <button id="reloadRowBtn">重载行</button>
+          <button id="saveRowBtn" class="primary">保存行</button>
+        </div>
+      </div>
+
+      <div class="cellEditor">
+        <label>
+          CSV 行号
+          <input id="cellLineInput" type="number" min="1" value="1">
+        </label>
+        <label>
+          CSV 列号
+          <input id="cellColumnInput" type="number" min="0" value="0">
+        </label>
+        <label class="cellValue">
+          新值
+          <input id="cellValueInput" placeholder="只改一个 CSV 单元格">
+        </label>
+        <button id="saveCellBtn">保存单元格</button>
+      </div>
+
+      <div class="panel previewPanel">
+        <div class="panelHead">
+          <h3>CSV 预览</h3>
+          <label class="inlineCheck">
+            <input id="showEmptyCells" type="checkbox">
+            显示空列
+          </label>
+        </div>
+        <div id="csvPreview" class="csvPreview"></div>
+      </div>
+
+      <div class="bottomGrid">
+        <div class="panel editorPanel">
+          <h3>行文本编辑</h3>
+          <textarea id="rowEditor" spellcheck="false" placeholder="这里显示 orderedmap 行文本。raw-row 外层表暂只支持查看 base64，避免误写坏嵌套结构。"></textarea>
+        </div>
+        <div class="panel">
+          <h3>发布队列</h3>
+          <div id="pendingList" class="pendingList"></div>
+          <button id="clearPendingBtn">清空 pending</button>
+        </div>
+        <div class="panel">
+          <h3>日志</h3>
+          <pre id="log"></pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
