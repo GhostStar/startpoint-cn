@@ -17,11 +17,13 @@ if pkill -f "cn-server.js" 2>/dev/null; then
 fi
 
 # Build
-if [ -f admin/package.json ] && { [ "${BUILD_ADMIN:-0}" = "1" ] || [ ! -f web/dist/index.html ]; }; then
+if [ -f admin/package.json ] && [ "${BUILD_ADMIN:-0}" = "1" ]; then
     echo "[build] npm run build:admin..."
     npm run build:admin 2>&1 | grep -v "Browserslist\|caniuse" || true
 elif [ -f web/dist/index.html ]; then
     echo "[build] admin dist exists; skip build:admin (set BUILD_ADMIN=1 to rebuild)"
+elif [ -f admin/package.json ]; then
+    echo "[build] admin dist missing; skip build:admin (set BUILD_ADMIN=1 to build)"
 fi
 
 echo "[build] npm run build..."
