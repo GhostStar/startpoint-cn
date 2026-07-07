@@ -1,0 +1,68 @@
+{
+  "1": {
+    "event_id": 1,
+    "start_time": "2023-01-22 14:00:00",
+    "playable_end_time": "2023-01-29 20:59:59",
+    "exchangeable_end_time": "2023-02-06 04:59:59"
+  },
+  "2": {
+    "event_id": 2,
+    "start_time": "2023-03-28 14:00:00",
+    "playable_end_time": "2023-04-08 20:59:59",
+    "exchangeable_end_time": "2023-04-16 04:59:59"
+  },
+  "3": {
+    "event_id": 3,
+    "start_time": "2023-06-15 14:00:00",
+    "playable_end_time": "2023-06-28 20:59:59",
+    "exchangeable_end_time": "2023-07-06 04:59:59"
+  },
+  "4": {
+    "event_id": 4,
+    "start_time": "2023-08-29 14:00:00",
+    "playable_end_time": "2023-09-11 20:59:59",
+    "exchangeable_end_time": "2023-09-20 04:59:59"
+  },
+  "5": {
+    "event_id": 5,
+    "start_time": "2023-11-26 14:00:00",
+    "playable_end_time": "2023-12-11 20:59:59",
+    "exchangeable_end_time": "2023-12-19 04:59:59"
+  },
+  "6": {
+    "event_id": 6,
+    "start_time": "2024-02-01 14:00:00",
+    "playable_end_time": "2024-02-11 20:59:59",
+    "exchangeable_end_time": "2024-02-18 04:59:59"
+  },
+  "7": {
+    "event_id": 7,
+    "start_time": "2024-04-01 14:00:00",
+    "playable_end_time": "2024-04-11 13:59:59",
+    "exchangeable_end_time": "2024-04-18 04:59:59"
+  },
+  "8": {
+    "event_id": 8,
+    "start_time": "2024-04-11 14:00:00",
+    "playable_end_time": "2024-04-21 20:59:59",
+    "exchangeable_end_time": "2024-04-29 04:59:59"
+  },
+  "9": {
+    "event_id": 9,
+    "start_time": "2024-08-03 14:00:00",
+    "playable_end_time": "2024-08-17 20:59:59",
+    "exchangeable_end_time": "2024-08-25 04:59:59"
+  },
+  "100000": {
+    "event_id": 100000,
+    "start_time": "2024-10-08 14:00:00",
+    "playable_end_time": "2024-10-22 20:59:59",
+    "exchangeable_end_time": "2024-10-30 04:59:59"
+  },
+  "100002": {
+    "event_id": 100002,
+    "start_time": "2024-12-31 14:00:00",
+    "playable_end_time": "2025-01-14 20:59:59",
+    "exchangeable_end_time": "2025-01-22 04:59:59"
+  }
+}

@@ -6,8 +6,10 @@ import { getSession } from "../../data/domains/session"
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { getDefaultPlayerPartyGroupsSync } from "../../data/domains/player";
 import { serializePartyGroupList } from "../../data/utils";
-import { generateDataHeaders } from "../../utils";
+import { generateDataHeaders, getServerDate } from "../../utils";
 import { PartyCategory } from "../../data/types";
+import carnivalEventPeriods from "../../../assets/carnival_event_periods.json";
+import { CARNIVAL_EVENT_OUT_OF_PERIOD_CODE, getCarnivalEventPeriod, isCarnivalEventIndexInPeriod } from "../../lib/carnival-event";
 
 interface IndexBody {
     event_id: number,
@@ -75,10 +77,22 @@ const routes = async (fastify: FastifyInstance) => {
             "message": "No player bound to account."
         });
 
+        const eventId = body.event_id
+        const eventPeriod = getCarnivalEventPeriod(eventId, carnivalEventPeriods)
+        if (!isCarnivalEventIndexInPeriod(eventPeriod, getServerDate().getTime())) {
+            reply.header("content-type", "application/x-msgpack");
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({
+                    viewer_id: viewerId,
+                    result_code: CARNIVAL_EVENT_OUT_OF_PERIOD_CODE,
+                }),
+                "data": {}
+            });
+        }
+
         const partyGroups = buildCarnivalPartyGroupList(playerId);
 
         // Build records from DB
-        const eventId = body.event_id
         const dbRecords = getPlayerCarnivalEventRecordsSync(playerId, eventId)
         const records = dbRecords.map(r => ({
             folder_id: r.folderId,

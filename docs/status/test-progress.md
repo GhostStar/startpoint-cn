@@ -7,7 +7,7 @@
 
 | # | 活动名称 | quest JSON | 关数 | 进入 | 结算 | 备注 |
 |---|------|------|:---:|:---:|:---:|------|
-| 1 | 嘉年华 | `carnival_event_quest` | 171 | ✅ | ✅ | 配队独立存储 EVENT；分数统计+通关队伍显示正常 |
+| 1 | 嘉年华 | `carnival_event_quest` | 171 | ✅ | ✅ | 土偶核心流程已对齐：EVENT 配队、期间码 5303/4050、load 初始化记录、分数统计、总分奖励 |
 | 2 | 战阵之宴（Rush） | `rush_event_quest` | 110 | ✅ | ⬜ | ⏸️ 涉及联机，延后测试 |
 | 3 | Raid 活动 | `raid_event_quest` | 50 | ✅ | ⬜ | ⏸️ 联机多人，battle/start stub |
 | 4 | 练习战 | `practice_quest` | 21 | 🔧 | 🔧 | 云水试炼进入+结算通过；余下 4 试炼待测（共 5 试炼，复用同一网络请求） |
@@ -51,6 +51,7 @@
 | F1019 getQuestSync 统一 BattleQuest | 缺失字段默认 0，嘉年华关卡不再 400 |
 | F1020 C3212 外传故事 clear_rank 缺失 | `storyQuest.ts` + `singleBattleQuest.ts` 三层修复：响应 `?? 5`、DB INSERT `?? 5`、DB 函数 `\|\|`→`??` |
 | F1021 carnival score + party display | DB 表 + CDN 打分数据 + `single_battle_quest/finish` carnival_event 字段 |
+| F1080 carnival official flow | 官方 master 资产生成、期间检查 5303/4050、`carnival_event_record_list` 初始化、总分奖励 832 条 |
 | F1022 party_slot 3000 → F1009 | ✅ `lib/validate/party-slot.ts` — PartySlotValidator：/load 时 partySlot < 1 或 > 120 自动重置为 1；12 组 × 10 槽正常范围 1~120 |
 | F1023 getQuestSync 统一 BattleQuest 副作用 | 纯剧情关被客户端误判为战斗关，需 `clearRank: 5` 补充 |
 | F1024 quest/unlock H404 | `questUnlock.ts` 新增 stub 端点 |
@@ -162,4 +163,3 @@ ClientError 2274: ID: 141010のキャラクターの entry_count が存在しま
 标记为 ⚠️ 已知不修复。根因在客户端 replay 日志数据损坏（旧 session 残留在设备存储中），服务端无法处理。重装 APK 可清除。
 
 临时防御：在所有返回 `character_list` 的服务器端点确保每条记录都含 `entry_count`，但当前未实施（不影响核心流程）。
-

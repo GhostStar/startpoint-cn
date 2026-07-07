@@ -1,6 +1,5 @@
 /**
  * Handles gacha summoning.
- * Right now all characters in a gacha's pool have an equal chance of being summoned.
  */
 
 import { randomInt } from "crypto";
@@ -65,6 +64,35 @@ const rankMovieRates = [
     ]
 ]
 
+function positiveWeight(weight: number): number {
+    return Number.isFinite(weight) && weight > 0 ? weight : 0
+}
+
+function totalPositiveWeight(pool: number[]): number {
+    return pool.reduce((sum, weight) => sum + positiveWeight(weight), 0)
+}
+
+export function selectWeightedIndexByRoll(
+    pool: number[],
+    roll: number
+): number | null {
+    const total = totalPositiveWeight(pool)
+    if (total <= 0 || roll < 1 || roll > total) return null
+
+    let offset = 0
+    for (let index = 0; index < pool.length; index += 1) {
+        offset += positiveWeight(pool[index])
+        if (roll <= offset) return index
+    }
+    return null
+}
+
+function randomWeightedIndex(pool: number[]): number | null {
+    const total = totalPositiveWeight(pool)
+    if (total <= 0) return null
+    return selectWeightedIndexByRoll(pool, randomInt(1, Math.floor(total) + 1))
+}
+
 export interface GachaResult {
     characterId: number,
     movieId: string,
@@ -108,17 +136,21 @@ export function drawGachaSync(
     drawAmount: number
 ): number[] {
     const isCharacterGacha = gacha.type === GachaType.CHARACTER
-    const rankRates = isCharacterGacha ? characterGachaRankRates : equipmentGachaRankRates
+    const fallbackRankRates = isCharacterGacha ? characterGachaRankRates : equipmentGachaRankRates
+    const rankRates = gacha.rankRates ?? fallbackRankRates
 
     const pulls: number[] = []
 
     for (let drawNumber = 0; drawNumber < drawAmount; drawNumber++) {
         const drawRankRates = (drawNumber !== 0) && ((drawNumber % 9) === 0) ? rankRates.multiGuarantee : rankRates.normal
-        
-        const ratePool = gacha.pool[(randomPoolItem(0, 1001, drawRankRates) ?? 0) + 1]
+        const rankIndex = randomWeightedIndex(drawRankRates) ?? 0
+        const ratePool = gacha.pool[String(rankIndex + 1)]
+        if (!ratePool || ratePool.length === 0) {
+            throw new Error(`gacha pool is empty for rank key ${rankIndex + 1}`)
+        }
 
         // pick item from pool
-        const selectedItem = ratePool[randomPoolItem(0, 1001, ratePool.map(item => item.rarity)) ?? 0]
+        const selectedItem = ratePool[randomWeightedIndex(ratePool.map(item => item.odds)) ?? 0]
         pulls.push(selectedItem.id)
     }
 

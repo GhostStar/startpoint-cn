@@ -7,18 +7,19 @@ import { getPlayerSingleQuestProgressSync, insertPlayerQuestProgressSync, update
 import { getSession } from "../../data/domains/session"
 import { incrementPlayerCharacterClearSync } from "../../data/domains/character_clear"
 import { updatePlayerEquipmentSync } from "../../data/domains/equipment"
-import { upsertPlayerCarnivalEventRecordSync } from "../../data/domains/carnivalEvent"
+import { getPlayerCarnivalEventRecordsSync, getReceivedCarnivalEventTotalScoreRewardIdsSync, insertReceivedCarnivalEventTotalScoreRewardSync, resetPlayerCarnivalEventRecordsSync, upsertPlayerCarnivalEventRecordSync } from "../../data/domains/carnivalEvent"
 import { getQuestFromCategorySync, getRushEventFolderClearRewards } from "../../lib/assets";
 import { getCharactersEvolutionImgLevels, givePlayerCharactersExpSync } from "../../lib/character";
 import { givePlayerRewardsSync, givePlayerRewardSync, givePlayerScoreRewardsSync } from "../../lib/quest";
 import { BattleQuest, EquipmentItemReward, PlayerRewardResult, QuestCategory } from "../../lib/types";
-import { generateDataHeaders, getServerTime, realToVirtual } from "../../utils";
+import { generateDataHeaders, getServerDate, getServerTime, realToVirtual } from "../../utils";
 import { rushEventFolderMaxRounds } from "./rushEvent";
 import { RushEventBattleType, UserRushEventPlayedParty } from "../../data/types";
 import { resolvePlayerIdSync } from "../../data/activeAccount";
 import { computeRealTimeStamina, getRankDegree, getMaxStamina } from "../../lib/stamina";
 import { getStaminaCost } from "../../lib/stamina-cost";
-import { handleCarnivalEventFinish } from "../../lib/quest/finish/carnival-handler";
+import { CARNIVAL_QUEST_OUT_OF_PERIOD_CODE, getCarnivalEventPeriod, getCarnivalQuestPeriod, isCarnivalQuestStartInPeriod } from "../../lib/carnival-event";
+import { CarnivalTotalScoreReward, handleCarnivalEventFinish } from "../../lib/quest/finish/carnival-handler";
 import { handleRushEventFinish } from "../../lib/quest/finish/rush-handler";
 import { handleRaidEventFinish } from "../../lib/quest/finish/raid-handler";
 import { calculateClearRank } from "../../lib/quest/finish/quest-calc";
@@ -34,6 +35,8 @@ import path from "path";
 import questEntryCosts from "../../../assets/quest_entry_costs.json";
 import scoreAttackBorderRewards from "../../../assets/score_attack_border_reward.json";
 import eventChallengePointMap from "../../../assets/event_challenge_point_map.json";
+import carnivalEventPeriods from "../../../assets/carnival_event_periods.json";
+import carnivalEventQuestPeriods from "../../../assets/carnival_event_quest_periods.json";
 
 // Load carnival quest score data
 let carnivalScoreLookup: Record<string, { difficulty_score: number, time_limit_ms: number, folder_id: number, event_id: number }> = {}
@@ -43,6 +46,15 @@ try {
         carnivalScoreLookup = JSON.parse(readFileSync(scorePath, "utf-8"))
     }
 } catch {} // Init failed silently; carnival scoring won't work
+
+let carnivalTotalScoreRewards: CarnivalTotalScoreReward[] = []
+try {
+    const totalScoreRewardPath = path.join(process.cwd(), "assets", "carnival_event_total_score_reward.json")
+    if (existsSync(totalScoreRewardPath)) {
+        const parsed = JSON.parse(readFileSync(totalScoreRewardPath, "utf-8")) as Record<string, CarnivalTotalScoreReward>
+        carnivalTotalScoreRewards = Object.values(parsed)
+    }
+} catch {} // Init failed silently; carnival total score rewards won't work
 import { getSerializedPlayerRushEventPlayedPartiesSync } from "../../lib/rush";
 
 interface StartBody {
@@ -408,7 +420,7 @@ const routes = async (fastify: FastifyInstance) => {
         })
 
         // handle carnival event score & records
-        const carnivalEventData = handleCarnivalEventFinish({
+        const carnivalFinishResult = handleCarnivalEventFinish({
             questCategory,
             questAccomplished,
             questId,
@@ -416,23 +428,32 @@ const routes = async (fastify: FastifyInstance) => {
             party: bodyPartyStatistics,
             playerId,
             carnivalLookup: carnivalScoreLookup,
+            getRecordsFn: (pid, eid) => getPlayerCarnivalEventRecordsSync(pid, eid),
+            resetRecordsFn: (pid, eid, folderIds) => resetPlayerCarnivalEventRecordsSync(pid, eid, folderIds),
             upsertFn: (pid, eid, fid, score, chars, unisons) => upsertPlayerCarnivalEventRecordSync(pid, eid, fid, score, chars, unisons),
+            totalScoreRewards: carnivalTotalScoreRewards,
+            getReceivedRewardIdsFn: (pid, eid) => getReceivedCarnivalEventTotalScoreRewardIdsSync(pid, eid),
+            insertReceivedRewardFn: (pid, eid, rewardId) => insertReceivedCarnivalEventTotalScoreRewardSync(pid, eid, rewardId),
+            giveRewardsFn: (pid, rewards) => givePlayerRewardsSync(pid, rewards),
         })
+        const carnivalEventData = carnivalFinishResult.clientData
+        const carnivalRewardResult = carnivalFinishResult.rewardResult
 
         const itemList = {
             ...(activeQuestData.entryItemId ? { [activeQuestData.entryItemId]: getPlayerItemSync(playerId, activeQuestData.entryItemId) ?? 0 } : {}),
             ...scoreRewardsResult.items,
-            ...(rushEventRewardsResult?.items ?? {})
+            ...(rushEventRewardsResult?.items ?? {}),
+            ...(carnivalRewardResult?.items ?? {})
         }
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
             "data_headers": dataHeaders,
             "data": {
                 "user_info": {
-                    "free_mana": newMana + (clearReward?.user_info.free_mana || 0) + (sPlusClearReward?.user_info.free_mana || 0) + scoreRewardsResult.user_info.free_mana,
-                    "exp_pool": rewardCharacterExpResult.exp_pool + (clearReward?.user_info.exp_pool || 0) + scoreRewardsResult.user_info.exp_pool,
+                    "free_mana": newMana + (clearReward?.user_info.free_mana || 0) + (sPlusClearReward?.user_info.free_mana || 0) + scoreRewardsResult.user_info.free_mana + (carnivalRewardResult?.user_info.free_mana || 0),
+                    "exp_pool": rewardCharacterExpResult.exp_pool + (clearReward?.user_info.exp_pool || 0) + scoreRewardsResult.user_info.exp_pool + (carnivalRewardResult?.user_info.exp_pool || 0),
                     "exp_pooled_time": getServerTime(playerData.expPooledTime),
-                    "free_vmoney": playerData.freeVmoney + (clearReward?.user_info.free_vmoney || 0) + (sPlusClearReward?.user_info.free_vmoney || 0) + scoreRewardsResult.user_info.free_vmoney,
+                    "free_vmoney": playerData.freeVmoney + (clearReward?.user_info.free_vmoney || 0) + (sPlusClearReward?.user_info.free_vmoney || 0) + scoreRewardsResult.user_info.free_vmoney + (carnivalRewardResult?.user_info.free_vmoney || 0),
                     "rank_point": newRankPoint,
                     "degree_id": 1,
                     "stamina": playerData.stamina,
@@ -445,7 +466,8 @@ const routes = async (fastify: FastifyInstance) => {
                     ...rewardCharacterExpResult.character_list,
                     ...(clearReward?.character_list || []),
                     ...(sPlusClearReward?.character_list || []),
-                    ...scoreRewardsResult.character_list
+                    ...scoreRewardsResult.character_list,
+                    ...(carnivalRewardResult?.character_list || [])
                 ],
                 "bond_token_status_list": rewardCharacterExpResult.bond_token_status_list,
                 "rewards": {
@@ -459,7 +481,8 @@ const routes = async (fastify: FastifyInstance) => {
                 "joined_character_id_list": [
                     ...(clearReward?.joined_character_id_list || []),
                     ...(sPlusClearReward?.joined_character_id_list || []),
-                    ...scoreRewardsResult.joined_character_id_list
+                    ...scoreRewardsResult.joined_character_id_list,
+                    ...(carnivalRewardResult?.joined_character_id_list || [])
                 ],
                 "before_rank_point": beforeRankPoint,
                 "clear_rank": clearRank ?? 5,
@@ -471,7 +494,8 @@ const routes = async (fastify: FastifyInstance) => {
                     ...scoreRewardsResult.equipment_list,
                     ...(clearReward?.equipment_list || []),
                     ...(sPlusClearReward?.equipment_list || []),
-                    ...(rushEventRewardsResult?.equipment_list || [])
+                    ...(rushEventRewardsResult?.equipment_list || []),
+                    ...(carnivalRewardResult?.equipment_list || [])
                 ],
                 "category_id": body.category,
                 "start_time": dataHeaders['servertime'],
@@ -549,6 +573,25 @@ const routes = async (fastify: FastifyInstance) => {
             })
         }
 
+        const carnivalQuestPeriod = category === QuestCategory.CARNIVAL_EVENT
+            ? getCarnivalQuestPeriod(questId, carnivalEventQuestPeriods)
+            : null
+        if (category === QuestCategory.CARNIVAL_EVENT) {
+            const carnivalEventPeriod = carnivalQuestPeriod !== null
+                ? getCarnivalEventPeriod(carnivalQuestPeriod.event_id, carnivalEventPeriods)
+                : null
+            if (!isCarnivalQuestStartInPeriod(carnivalQuestPeriod, carnivalEventPeriod, getServerDate().getTime())) {
+                reply.header("content-type", "application/x-msgpack")
+                return reply.status(200).send({
+                    "data_headers": generateDataHeaders({
+                        viewer_id: viewerId,
+                        result_code: CARNIVAL_QUEST_OUT_OF_PERIOD_CODE,
+                    }),
+                    "data": {}
+                })
+            }
+        }
+
         // Deduct entry cost (ticket/item)
         const questKey = `${category}_${questId}`
         const entryCost = (questEntryCosts as Record<string, {itemId: number, itemCount: number, stamina: number}>)[questKey]
@@ -604,6 +647,7 @@ const routes = async (fastify: FastifyInstance) => {
             isAutoStartMode: isAutoStartMode,
             isMulti: false,
             entryItemId: entryCost?.itemId,
+            eventId: carnivalQuestPeriod?.event_id,
             playId: body.play_id,
             continueCount: 0
         }

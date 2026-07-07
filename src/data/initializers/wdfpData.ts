@@ -516,6 +516,14 @@ export default function init(
         FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
     )`).run()
 
+    database.prepare(`CREATE TABLE IF NOT EXISTS players_carnival_event_total_score_rewards (
+        player_id INTEGER NOT NULL,
+        event_id INTEGER NOT NULL,
+        reward_id INTEGER NOT NULL,
+        PRIMARY KEY (player_id, event_id, reward_id),
+        FOREIGN KEY (player_id) REFERENCES players (id) ON DELETE CASCADE
+    )`).run()
+
     database.prepare(`CREATE TABLE IF NOT EXISTS players_shop_purchases (
         player_id INTEGER NOT NULL,
         shop_item_id INTEGER NOT NULL,

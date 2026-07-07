@@ -4,10 +4,10 @@
 
 ## 架构与协议
 - [架构](./architecture.md)
-- 协议: [多人联机](./protocol/multi-battle.md) · [抽卡 C3032](./protocol/gacha-c3032.md) · [种子验证](./protocol/seed-verification.md)
+- 协议: [多人联机](./protocol/multi-battle.md) · [卡池生成](./protocol/gacha-pool-generation.md) · [抽卡 C3032](./protocol/gacha-c3032.md) · [种子验证](./protocol/seed-verification.md)
 
 ## 游戏系统
-- [狂热激战](./systems/rush-event.md) · [体力](./systems/stamina.md) · [商店](./systems/shop.md) · [漫画](./systems/comic.md) · [邮件](./systems/mail.md) · [存档与校验](./systems/save-validation.md)
+- [土偶嘉年华](./systems/carnival-event.md) · [狂热激战](./systems/rush-event.md) · [体力](./systems/stamina.md) · [商店](./systems/shop.md) · [漫画](./systems/comic.md) · [邮件](./systems/mail.md) · [存档与校验](./systems/save-validation.md)
 
 ## CDN
 - [机制总览](./cdn/overview.md) · [客户端流程](./cdn/client-flow.md) · [排查手册](./cdn/debugging.md)
