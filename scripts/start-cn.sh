@@ -17,6 +17,11 @@ if pkill -f "cn-server.js" 2>/dev/null; then
 fi
 
 # Build
+if [ -f admin/package.json ]; then
+    echo "[build] npm run build:admin..."
+    npm run build:admin 2>&1 | grep -v "Browserslist\|caniuse" || true
+fi
+
 echo "[build] npm run build..."
 npm run build 2>&1 | grep -v "Browserslist\|caniuse" || true
 
